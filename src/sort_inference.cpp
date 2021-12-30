@@ -250,6 +250,7 @@ Sort compute_sort(Op op, const SmtSolver solver, const TermVec & terms)
 
 Sort compute_sort(Op op, const SmtSolver solver, const SortVec & sorts)
 {
+  cout << "compute sort" << endl;
   return compute_sort(op, solver.get(), sorts);
 }
 

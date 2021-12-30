@@ -9,7 +9,6 @@ import glob
 
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
-from skbuild.cmaker import CMaker
 from distutils.version import LooseVersion
 
 
@@ -61,8 +60,8 @@ class CMakeBuild(build_ext):
 
         # call configure
         # default install everything?
-        solvers = ["bitwuzla", "cvc5", "z3"] # , "msat"]
-        solver_path = {"btor": "boolector", "bitwuzla": "bitwuzla", "cvc5": "cvc5", "msat": "mathsat", "z3": "z3"}
+        solvers = ["btor", "cvc5"] # , "msat"]
+        solver_path = {"btor": "boolector", "cvc5": "cvc5", "msat": "mathsat"}
         root_path = os.path.dirname(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
         build_dir = os.path.join(root_path, "build")
 
@@ -74,18 +73,15 @@ class CMakeBuild(build_ext):
             opts = ["--auto-yes"] if solver == "msat" else []
             subprocess.check_call([filename] + opts)
 
+        # get cmake files from scikit-build
+        skbuild_script = os.path.join(root_path, "contrib", "setup-skbuild.sh")
+        subprocess.check_call([skbuild_script])
+
         # to avoid multiple build, only call reconfigure if we couldn't find the makefile
         # for python
         python_make_dir = os.path.join(build_dir, "python")
         if not os.path.isfile(os.path.join(python_make_dir, "Makefile")):
             args = ["--" + solver for solver in solvers] + ["--python"]
-            args.append('-DPYTHON_VERSION_STRING:STRING=' + \
-                        sys.version.split(' ')[0])
-            python_version = CMaker.get_python_version()
-            args.append('-DPYTHON_INCLUDE_DIR:PATH=' + \
-                        CMaker.get_python_include_dir(python_version))
-            args.append('-DPYTHON_LIBRARY:FILEPATH=' + \
-                        CMaker.get_python_library(python_version))
             config_filename = os.path.join(root_path, "configure.sh")
             subprocess.check_call([config_filename] + args)
 

@@ -15,7 +15,7 @@
 **/
 
 #include "solver.h"
-
+#include "generic_sort.h"
 #include "assert.h"
 #include "exceptions.h"
 

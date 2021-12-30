@@ -35,6 +35,7 @@ Term IdentityWalker::visit(Term & term)
   }
 
   Term out = term;
+
   if (query_cache(term, out))
   {
     // cache hit

@@ -16,9 +16,6 @@
 
 #pragma once
 
-#include <signal.h>
-#include <unistd.h>
-
 #include <memory>
 #include <string>
 #include <unordered_set>
@@ -32,38 +29,19 @@
 #include "sort.h"
 
 namespace smt {
-
 /**
    Bzla Solver
  */
 class BzlaSolver : public AbsSmtSolver
 {
  public:
-  BzlaSolver()
-      : AbsSmtSolver(BZLA),
-        bzla(bitwuzla_new()),
-        context_level(0),
-        time_limit(0),
-        terminate_bzla(false)
+  BzlaSolver() : AbsSmtSolver(BZLA), bzla(bitwuzla_new()), context_level(0)
   {
     // set termination function -- throw an exception
     auto throw_exception = [](const char * msg) -> void {
       throw InternalSolverException(msg);
     };
     bitwuzla_set_abort_callback(throw_exception);
-
-    // this termination callback is used to support a time limit option
-    // used in conjunction with C alarm function. See timelimit_start()
-    // and timelimit_end() helper functions
-    auto terminate = [](void * state) -> int32_t {
-      bool terminate_bzla = *reinterpret_cast<bool *>(state);
-      if (terminate_bzla)
-      {
-        return 1;
-      }
-      return 0;
-    };
-    bitwuzla_set_termination_callback(bzla, terminate, &terminate_bzla);
   };
   BzlaSolver(const BzlaSolver &) = delete;
   BzlaSolver & operator=(const BzlaSolver &) = delete;
@@ -156,9 +134,6 @@ class BzlaSolver : public AbsSmtSolver
 
   uint64_t context_level;
 
-  uint64_t time_limit;
-  bool terminate_bzla;  ///< used if time limit is reached
-
   // helper functions
   template <class I>
   inline Result check_sat_assuming_internal(I it, const I & end)
@@ -171,9 +146,7 @@ class BzlaSolver : public AbsSmtSolver
       ++it;
     }
 
-    timelimit_start();
     BitwuzlaResult res = bitwuzla_check_sat(bzla);
-    bool tl_triggered = timelimit_end();
     if (res == BITWUZLA_SAT)
     {
       return Result(SAT);
@@ -182,27 +155,11 @@ class BzlaSolver : public AbsSmtSolver
     {
       return Result(UNSAT);
     }
-    else if (tl_triggered)
-    {
-      return Result(UNKNOWN, "Time limit reached.");
-    }
     else
     {
       return Result(UNKNOWN);
     }
   }
-
-  /** Helper function for managing time limits (if one is set)
-   *  Registers a signal handler to use with alarm
-   *  and a termination callback function.
-   */
-  void timelimit_start();
-
-  /** Helper function for managing time limits (if one is set)
-   *  Returns true iff the query was terminated due to the
-   *  time limit.
-   */
-  bool timelimit_end();
 };
 
 }  // namespace smt

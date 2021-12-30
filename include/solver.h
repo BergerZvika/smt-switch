@@ -25,6 +25,10 @@
 #include "solver_enums.h"
 #include "sort.h"
 #include "term.h"
+#include "pbvsort.h"
+#include "pbvterm.h"
+
+
 
 namespace smt {
 
@@ -182,6 +186,9 @@ class AbsSmtSolver
    */
   virtual Sort make_sort(const SortKind sk, const SortVec & sorts) const = 0;
 
+  // virtual Sort make_sort(const SortKind sk, const Term & t) const;
+
+
   /* Create an uninterpreted sort
    * @param sort_con a sort with SortKind UNINTERPRETED_CONS (must have
    * nonzero arity)
@@ -226,6 +233,10 @@ class AbsSmtSolver
    * @return a value term with Sort sort
    */
   virtual Term make_term(const Term & val, const Sort & sort) const = 0;
+
+  // virtual Term make_term(const Sort & pbvsort, const Term & val) const;
+
+  // virtual Term make_term(const Term & pbv);
 
   /* Make a symbolic constant or function term
    * SMTLIB: (declare-fun <name> (s1 ... sn) s) where sort = s1x...xsn -> s

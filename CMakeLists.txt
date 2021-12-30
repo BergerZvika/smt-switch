@@ -48,7 +48,13 @@ set (SOURCES "${SMT_SWITCH_LIB_TYPE}"
   "${PROJECT_SOURCE_DIR}/src/term.cpp"
   "${PROJECT_SOURCE_DIR}/src/term_hashtable.cpp"
   "${PROJECT_SOURCE_DIR}/src/term_translator.cpp"
-  "${PROJECT_SOURCE_DIR}/src/utils.cpp")
+  "${PROJECT_SOURCE_DIR}/src/utils.cpp"
+  "${PROJECT_SOURCE_DIR}/include/pbvsort.h"
+  "${PROJECT_SOURCE_DIR}/src/pbvsort.cpp"
+  "${PROJECT_SOURCE_DIR}/include/pbvterm.h"
+  "${PROJECT_SOURCE_DIR}/src/pbvterm.cpp"
+  "${PROJECT_SOURCE_DIR}/include/pbvsolver.h"
+  "${PROJECT_SOURCE_DIR}/src/pbvsolver.cpp")
 
 if (SMTLIB_READER)
   if (BISON_DIR)
@@ -125,6 +131,10 @@ if (BUILD_PYTHON_BINDINGS)
   # i.e. when the following issue is resolved:
   # https://github.com/scikit-build/scikit-build/issues/506
   find_package(PythonInterp 3.5 REQUIRED)
+  if (PYTHONINTERP_FOUND)
+    message(STATUS "Looking for PythonLibs version >= ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
+    find_package(PythonLibs "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}" REQUIRED)
+  endif()
 endif()
 
 if (BUILD_BITWUZLA OR BUILD_CVC5 OR BUILD_MSAT OR BUILD_YICES2 OR BUILD_Z3)

@@ -143,7 +143,7 @@ bool BzlaTermIter::equal(const TermIterBase & other) const
 
 /*  end BzlaTermIter implementation */
 
-BzlaTerm::BzlaTerm(const BitwuzlaTerm * t) : term(t) {}
+BzlaTerm::BzlaTerm(BitwuzlaTerm * t) : term(t) {}
 
 BzlaTerm::~BzlaTerm() {}
 
@@ -251,17 +251,17 @@ uint64_t BzlaTerm::to_int() const
 TermIter BzlaTerm::begin()
 {
   size_t size;
-  const BitwuzlaTerm ** children = bitwuzla_term_get_children(term, &size);
+  BitwuzlaTerm ** children = bitwuzla_term_get_children(term, &size);
   return TermIter(
-      new BzlaTermIter(vector<const BitwuzlaTerm *>(children, children + size), 0));
+      new BzlaTermIter(vector<BitwuzlaTerm *>(children, children + size), 0));
 }
 
 TermIter BzlaTerm::end()
 {
   size_t size;
-  const BitwuzlaTerm ** children = bitwuzla_term_get_children(term, &size);
+  BitwuzlaTerm ** children = bitwuzla_term_get_children(term, &size);
   return TermIter(new BzlaTermIter(
-      vector<const BitwuzlaTerm *>(children, children + size), size));
+      vector<BitwuzlaTerm *>(children, children + size), size));
 }
 
 string BzlaTerm::print_value_as(SortKind sk)

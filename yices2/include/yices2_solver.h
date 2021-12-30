@@ -34,18 +34,13 @@
 #include "sort.h"
 
 namespace smt {
-
 /**
    Yices2 Solver
  */
 class Yices2Solver : public AbsSmtSolver
 {
  public:
-  Yices2Solver()
-      : AbsSmtSolver(YICES2),
-        pushes_after_unsat(0),
-        context_level(0),
-        time_limit(0)
+  Yices2Solver() : AbsSmtSolver(YICES2), pushes_after_unsat(0), context_level(0)
   {
     // Had to move yices_init to the Factory
     // yices_init();
@@ -138,8 +133,6 @@ class Yices2Solver : public AbsSmtSolver
 
   uint64_t context_level;  ///< incremental solving context
 
-  uint64_t time_limit;
-
   std::unordered_map<std::string, Term> symbol_table;
   ///< Keep track of declared symbols to avoid re-declaration
   ///< Note: Yices2 has a global symbol table, but we want it
@@ -150,10 +143,8 @@ class Yices2Solver : public AbsSmtSolver
   // helper function
   inline Result check_sat_assuming(const std::vector<term_t> & y_assumps)
   {
-    timelimit_start();
     smt_status_t res = yices_check_context_with_assumptions(
         ctx, NULL, y_assumps.size(), &y_assumps[0]);
-    bool tl_triggered = timelimit_end();
 
     if (yices_error_code() != 0)
     {
@@ -174,17 +165,6 @@ class Yices2Solver : public AbsSmtSolver
       return Result(UNKNOWN);
     }
   }
-
-  /** Helper function for managing time limits (if one is set)
-   *  Registers a signal handler to use with alarm
-   */
-  void timelimit_start();
-
-  /** Helper function for managing time limits (if one is set)
-   *  Returns true iff the query was terminated due to the
-   *  time limit.
-   */
-  bool timelimit_end();
 };
 }  // namespace smt
 

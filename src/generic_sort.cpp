@@ -468,5 +468,5 @@ Datatype DatatypeComponentSort::get_datatype() const
 {
   return dt_sort->get_datatype();
 }
-
+  
 }  // namespace smt

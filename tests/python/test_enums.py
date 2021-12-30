@@ -16,10 +16,8 @@
 import pytest
 import smt_switch as ss
 
-from available_solvers import int_support_solvers
 
-
-@pytest.mark.parametrize("create_solver", [f for name, f in int_support_solvers.items()])
+@pytest.mark.parametrize("create_solver", [f for name, f in ss.solvers.items() if name != 'btor'])
 def test_sortkind(create_solver):
     solver = create_solver(False)
     bvsort = solver.make_sort(ss.sortkinds.BV, 8)
@@ -30,7 +28,7 @@ def test_sortkind(create_solver):
     assert sk is ss.sortkinds.BV
 
 
-@pytest.mark.parametrize("create_solver", [f for name, f in int_support_solvers.items()])
+@pytest.mark.parametrize("create_solver", [f for name, f in ss.solvers.items() if name != 'btor'])
 def test_primop(create_solver):
     solver = create_solver(False)
     bvsort = solver.make_sort(ss.sortkinds.BV, 8)

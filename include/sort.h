@@ -72,6 +72,7 @@ class AbsSort
   virtual std::size_t hash() const = 0;
   // TODO: decide on exception or special value for incorrect usage
   virtual uint64_t get_width() const = 0;
+  //virtual Term get_bv_width() const = 0; //for PBVSort
   virtual Sort get_indexsort() const = 0;
   virtual Sort get_elemsort() const = 0;
   virtual std::vector<Sort> get_domain_sorts() const = 0;
@@ -112,5 +113,8 @@ struct hash<smt::Sort>
 {
   size_t operator()(const smt::Sort & s) const { return s->hash(); }
 };
+
+
+
 }
 
