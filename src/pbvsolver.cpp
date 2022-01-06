@@ -109,7 +109,7 @@ namespace smt {
                     const Term & t0,
                     const Term & t1,
                     const Term & t2) const {
-        return wrapped_solver->make_term(op, t0, t1, t2);
+        return std::make_shared<PBVTerm>(op, TermVec{t0, t1, t2});
     }
     Term PBVSolver::make_term(const Op op, const TermVec & terms) const {
         return wrapped_solver->make_term(op, terms);

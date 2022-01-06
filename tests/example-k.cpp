@@ -108,11 +108,22 @@ TEST_P(BVModelTests, TestTranslatePBV_K)
   Term x2 = s->make_pbv_symbol("x2", bv7);
   Term formula = s->make_term(Equal, x1, x2);
   ASSERT_THROW(s->translate_term(formula), SmtException);
-  // TermVec children;
-  // children.insert(children.begin(), res->begin(), res->end());
-  // Term t1 = children[0];
-  // Sort s1 = t1->get_sort();
-  // ASSERT_TRUE(children[0]->get_sort() != children[1]->get_sort());
+}
+
+TEST_P(BVModelTests, TestTranslatePBV2)
+{
+  Sort intsort = s->make_sort(INT);
+  Term four = s->make_term("4", intsort);
+  Sort bv4 = s->make_sort(BV, four);
+  Term x1 = s->make_pbv_symbol("x1", bv4);
+  Term x2 = s->make_pbv_symbol("x2", bv4);
+  Term condition = s->make_term(Equal, x1, x2);
+  Term x1xorx2 = s->make_term(Xor, x1, x2);
+  Term then_branch = x1xorx2;
+  Term bv_15 = s->make_pbv_symbol("15", bv4);
+  Term else_branch = bv_15;
+  Term ite = s->make_term(Ite, condition, then_branch, else_branch);
+  Term formula = s->make_term(Distinct, x1, ite);
 }
 
 
