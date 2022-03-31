@@ -11,7 +11,7 @@ class PBVTerm : public AbsTerm
     std::string repr;
     bool is_sym;
     std::hash<std::string> str_hash;
-    size_t id_ = -1;
+    size_t id_;
 
   public:
     PBVTerm(Sort s1, TermVec t);
@@ -30,6 +30,7 @@ class PBVTerm : public AbsTerm
     bool is_value() const override;
     uint64_t to_int() const override;
     std::string print_value_as(SortKind sk) override;
+    // bool is_pbvterm() const override;
 
     // pbvterm
     Sort get_sort() const;
@@ -38,8 +39,6 @@ class PBVTerm : public AbsTerm
     size_t hash() const override;
     TermIter begin() override;
     TermIter end() override;
-
-
 
     bool compare(const Term & t) const;
     std::string compute_string() const;

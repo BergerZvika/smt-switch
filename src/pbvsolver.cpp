@@ -11,7 +11,13 @@ inline bool instanceof(const T*) {
 namespace smt {
 
     PBVSolver::PBVSolver(SmtSolver s) : AbsSmtSolver(s->get_solver_enum()),
-      wrapped_solver(s) {}
+      wrapped_solver(s) {
+        // term_rules = new TermVec();
+        // operator_rules = new TermVec();
+          Sort intsort = s->make_sort(INT);
+          Sort uninterpetd_function = s->make_sort(FUNCTION, SortVec{ intsort, intsort});
+          this->power2 = s->make_symbol("power2", uninterpetd_function);
+    }
 
     // implemented
     Sort PBVSolver::make_sort(const std::string name, uint64_t arity) const {
@@ -174,16 +180,17 @@ namespace smt {
     }
 
     Term PBVSolver::make_pbv_symbol(const std::string & name, const Sort & s) const {
-        // shared_ptr<PBVTerm> pbvt = static_pointer_cast<PBVTerm>(PBVTerm(name, s));
         Term pbvt = std::make_shared<PBVTerm>(name, s);
-        // shared_ptr<PBVTerm> pbvt = static_pointer_cast<PBVTerm>(pbv);
         return pbvt;
     }
 
     Term PBVSolver::make_term(const Op op, const Term & t0, const Term & t1) const {
-        Sort s = compute_sort(op, this, {t0->get_sort(), t1->get_sort()});
-        Term pbvt = std::make_shared<PBVTerm>(s, op, TermVec{t0, t1});
-        return pbvt;
+        if (t0->is_pbvterm() || t1->is_pbvterm()) {
+            Sort s = compute_sort(op, this, {t0->get_sort(), t1->get_sort()});
+            Term pbvt = std::make_shared<PBVTerm>(s, op, TermVec{t0, t1});
+            return pbvt;
+        }
+        return wrapped_solver->make_term(op, t0, t1);
     }
 
     void PBVSolver::assert_formula(const Term & t) {
@@ -191,18 +198,48 @@ namespace smt {
         wrapped_solver->assert_formula(res);
       }
 
-    Term PBVSolver::translate_term( const Term & t) const {
-        PBVWalker* walker = new PBVWalker(wrapped_solver);
-        Term& t1 = const_cast<Term&>(t);
+    Term PBVSolver::translate_term( const Term & t) {
+        // PBVConstantWalker* walker = new PBVConstantWalker(wrapped_solver);
+        PBVWalker* walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+        Term& t1 = const_cast<Term&>(t); // todo: add const to Walker->visit.
         Term res = walker->visit(t1);
-        // cout << "translate res: " << res << endl;
-        // cout << "translate t: " << t << endl;
-        // cout << "translate t1: " << t1 << endl;
+        // res /\ set rules
+        // auto  it = this->term_rules.begin();
+        //     cout << *it << endl;
+        //     res = wrapped_solver->make_term(And, res, *it);
+        //     it++;
+        // }
+        // auto  iter = this->operator_rules.begin();
+        // while(iter < this->operator_rules.end()) {
+        //     cout << *iter << endl;
+        //     res = wrapped_solver->make_term(And, res, *iter);
+        //     iter++;
+        // }
+        for (Term r : term_rules) {
+            // cout << r << endl;
+            res = wrapped_solver->make_term(And, res, r);
+        }
+        for (Term r : operator_rules) {
+            // cout << r << endl;
+            res = wrapped_solver->make_term(And, res, r);
+        }
         return res;
     }
 
 
 // PBVWalker function
+Term PBVWalker::make_bit_width_term(TermIter it) {
+    Sort s_left = (*it)->get_sort();
+    shared_ptr<PBVSort> pbvs_left = static_pointer_cast<PBVSort>(s_left);
+    Term width_left = pbvs_left->get_term();
+    it++;
+    Sort s_right = (*it)->get_sort();
+    shared_ptr<PBVSort> pbvs_right = static_pointer_cast<PBVSort>(s_right);
+    Term width_right = pbvs_right->get_term();
+    Term bitWidth = solver_->make_term(Equal, width_left, width_right);
+    // cout << bitWidth << endl;
+    return bitWidth;
+}
 
 WalkerStepResult PBVWalker::visit_term(Term & term) {
   if (!preorder_)
@@ -219,13 +256,104 @@ WalkerStepResult PBVWalker::visit_term(Term & term) {
         query_cache(t, c);
         cached_children.push_back(c);
       }
+      // convert bv operator to int operator.
+      Op int_op = op;
+      if(term->is_pbvterm()) {
+            auto it = term->begin();
+            PrimOp primop = op.prim_op;
+            switch (primop) {
+                case Equal: { operator_rules->push_back(make_bit_width_term(it));
+                            } break;
+                case BVAdd: { int_op = Plus;
+                            operator_rules->push_back(make_bit_width_term(it));
+                            } break;
+                case BVSub: { int_op = Minus;
+                            operator_rules->push_back(make_bit_width_term(it));
+                            } break;
+                case BVMul: { int_op = Mult;
+                            operator_rules->push_back(make_bit_width_term(it));
+                            } break;
+                case Concat: { Sort s1 = (*it)->get_sort();
+                             shared_ptr<PBVSort> pbvs1 = static_pointer_cast<PBVSort>(s1);
+                             Term t1 = pbvs1->get_term();
+                             it++;
+                             Sort s2 = (*it)->get_sort();
+                             shared_ptr<PBVSort> pbvs2 = static_pointer_cast<PBVSort>(s2);
+                             Term t2 = pbvs1->get_term();
+                             Term width_left = solver_->make_term(Plus, t1, t2);
+                             it++;
+                             Sort s_right = (*it)->get_sort();
+                             shared_ptr<PBVSort> pbvs_right = static_pointer_cast<PBVSort>(s_right);
+                             Term width_right = pbvs_right->get_term();
+                             Term bitWidth = solver_->make_term(Equal, width_left, width_right);
+                             operator_rules->push_back(bitWidth);
+                            } break;
+                            /// bvand mod
+                default: break;
+            }
+      }
+      // mod
+      //Term plus = solver_->make_term(int_op, cached_children)
+      save_in_cache(term, solver_->make_term(int_op, cached_children));
+    }
+    else
+    {
+     Term res;
+      // change bv, k ---> integer, k
+      if(term->is_pbvterm()) {
+        Sort intsort = solver_->make_sort(INT);
+        Term k = solver_->make_symbol("_pbv_" + term->to_string() ,intsort);
+        res = k;
+        // 0 <= k <= pow2(k)
+        Term zero =  solver_->make_term(0, intsort);
+        Term ge = solver_->make_term(Ge, zero, k);
+        term_rules->push_back(ge);
+        Sort pbv_sort = term->get_sort();
+        shared_ptr<PBVSort> bv_sort = static_pointer_cast<PBVSort>(pbv_sort);
+        Term bit_width = bv_sort->get_term();
+        Term power2_k = solver_->make_term(Apply, this->power2, bit_width);
+        Term lt = solver_->make_term(Lt, k, power2_k);
+        term_rules->push_back(lt);
+        // for (Term r : *term_rules) {
+        //    cout << r << endl; 
+        // }
+      } else {
+          res = term;
+      }
+      save_in_cache(term, res);
+    }
+  }
+return Walker_Continue;
+}
+
+// PBVConstantWalker function
+
+WalkerStepResult PBVConstantWalker::visit_term(Term & term) {
+  if (!preorder_)
+  {
+    bool is_pbv = false;
+    Op op = term->get_op();
+    if (!op.is_null())
+    {
+      TermVec cached_children;
+      Term c;
+      for (auto t : term)
+      {
+        if(t->is_pbvterm()) {
+            is_pbv = true;
+        }
+        // TODO: see if we can pass the same term as both arguments
+        c = t;
+        query_cache(t, c);
+        cached_children.push_back(c);
+      }
       save_in_cache(term, solver_->make_term(op, cached_children));
     }
     else
     {
      Term res;
       // change bv, "4" ---> bv, 4
-      if(term->get_id() == -1) {
+      if(term->is_pbvterm()) {
         Sort s = term->get_sort();
         shared_ptr<PBVSort> pbvs = static_pointer_cast<PBVSort>(s);
         Sort bvsort = solver_->make_sort(BV, stoi(pbvs->get_term()->to_string()));

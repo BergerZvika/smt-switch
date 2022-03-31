@@ -4,64 +4,140 @@
 #include "available_solvers.h"
 #include "gtest/gtest.h"
 #include "smt.h"
+#include "pbvsolver.h"
+
 
 using namespace smt;
 using namespace std;
 
 namespace smt_tests {
 
-class ArrayModelTests : public ::testing::Test,
+class BVModelTests : public ::testing::Test,
                         public ::testing::WithParamInterface<SolverConfiguration>
 {
  protected:
   void SetUp() override
   {
-    int k = 8;
-    s = create_solver(GetParam());
+    SmtSolver solver = create_solver(GetParam());
+    s = new PBVSolver(solver);
     s->set_opt("produce-models", "true");
-    bvsort = s->make_sort(BV, k);
-    arrsort = s->make_sort(ARRAY, bvsort, bvsort);
-    arr = s->make_symbol("arr", arrsort);
-    i = s->make_symbol("i", bvsort);
-    j = s->make_symbol("j", bvsort);
-    one = s->make_term(1, bvsort);
-    two = s->make_term(2, bvsort);
+
   }
-  SmtSolver s;
-  Sort bvsort, arrsort;
-  Term arr, i, j, one, two;
+  PBVSolver* s;
 };
 
-TEST_P(ArrayModelTests, TestArrayModel)
+
+TEST_P(BVModelTests, TestPBVTermModel)
 {
-  Term constraint1 = s->make_term(Equal, s->make_term(Select, arr, i), one);
-  Term constraint2 = s->make_term(Equal, s->make_term(Select, arr, j), two);
-  s->assert_formula(s->make_term(And, constraint1, constraint2));
+  Sort intsort = s->make_sort(INT);
+  Term k = s->make_symbol("k" ,intsort);
+  Sort bvsort = s->make_sort(BV, k);
+  Term bvterm_x = s->make_pbv_symbol("bv_k", bvsort);
+  Term bvterm_y = s->make_pbv_symbol("pbv_k", bvsort);
+  Term constraint1 = s->make_term(Equal, bvterm_x, bvterm_x);
   Result r = s->check_sat();
   ASSERT_TRUE(r.is_sat());
-
-  Term const_base;
-  UnorderedTermMap array_vals = s->get_array_values(arr, const_base);
-  Term iv = s->get_value(i);
-  Term jv = s->get_value(j);
-  Term arriv = s->get_value(s->make_term(Select, arr, iv));
-  Term arrjv = s->get_value(s->make_term(Select, arr, jv));
-  // expecting only two relevant indices
-  ASSERT_EQ(array_vals.size(), 2);
-  ASSERT_EQ(arriv, array_vals[iv]);
-  ASSERT_EQ(arrjv, array_vals[jv]);
-
-  if (const_base)
-  {
-    // if the solver provided a const array base
-    // check that the sort matches
-    ASSERT_EQ(const_base->get_sort(), arr->get_sort()->get_indexsort());
-  }
 }
+
+TEST_P(BVModelTests, TestEQModel)
+{
+  Sort intsort = s->make_sort(INT);
+  Term t = s->make_term(4 ,intsort);
+  Term t2 = s->make_term(4 ,intsort);
+  ASSERT_EQ(t, t2);
+
+  Term k = s->make_symbol("k" ,intsort);
+  Sort bvsort = s->make_sort(BV, k);
+  Term bvterm_x = s->make_pbv_symbol("bv_k", bvsort);
+  Term bvterm_y = s->make_pbv_symbol("pbv_k", bvsort);
+  Term constraint1 = s->make_term(Equal, bvterm_x, bvterm_y);
+  Term constraint2 = s->make_term(Equal, bvterm_x, bvterm_y);
+  ASSERT_EQ(constraint1, constraint2);
+}
+
+TEST_P(BVModelTests, TestTrivialPBV1)
+{
+  Sort intsort = s->make_sort(INT);
+  Term four = s->make_term("4", intsort);
+  Sort bv4 = s->make_sort(BV, four);
+  Term x1 = s->make_pbv_symbol("x1", bv4);
+  Term x2 = s->make_pbv_symbol("x2", bv4);
+  Term formula = s->make_term(Equal, x1, x2);
+  s->assert_formula(formula);
+  Result r = s->check_sat();
+  ASSERT_TRUE(r.is_sat());
+}
+
+TEST_P(BVModelTests, TestTranslatePBV)
+{
+  Sort intsort = s->make_sort(INT);
+  Term four = s->make_term("4", intsort);
+  Sort bv4 = s->make_sort(BV, four);
+  Term x1 = s->make_pbv_symbol("x1", bv4);
+  Term x2 = s->make_pbv_symbol("x2", bv4);
+  Term formula = s->make_term(Equal, x1, x2);
+  Term res = s->translate_term(formula);
+  Sort bv_4 = s->make_sort(BV, 4);
+  TermVec children;
+  children.insert(children.begin(), res->begin(), res->end());
+  Term t1 = children[0];
+  Sort s1 = t1->get_sort();
+  ASSERT_TRUE(s1 == bv_4);
+  ASSERT_TRUE(children[0]->get_sort() == bv_4);
+  ASSERT_TRUE(children[1]->get_sort() == bv_4);
+}
+
+TEST_P(BVModelTests, TestIntsortPBV)
+{
+  Sort intsort = s->make_sort(INT);
+  Term x1 = s->make_symbol("x1", intsort);
+  Term x2 = s->make_symbol("x2", intsort);
+  Term formula = s->make_term(Equal, x1, x2);
+  Term res = s->translate_term(formula);
+  TermVec children;
+  children.insert(children.begin(), res->begin(), res->end());
+  ASSERT_TRUE(children[0]->get_sort() == intsort);
+  ASSERT_TRUE(children[1]->get_sort() == intsort);
+}
+
+
+TEST_P(BVModelTests, TestTranslatePBV_K)
+{
+  Sort intsort = s->make_sort(INT);
+  Term four = s->make_term("4", intsort);
+  Sort bv4 = s->make_sort(BV, four);
+  Term seven = s->make_term("7", intsort);
+  Sort bv7 = s->make_sort(BV, seven);
+  Term x1 = s->make_pbv_symbol("x1", bv4);
+  Term x2 = s->make_pbv_symbol("x2", bv7);
+  Term formula = s->make_term(Equal, x1, x2);
+  ASSERT_THROW(s->translate_term(formula), SmtException);
+}
+
+TEST_P(BVModelTests, TestTranslatePBV2)
+{
+  Sort intsort = s->make_sort(INT);
+  Term four = s->make_term("4", intsort);
+  Sort bv4 = s->make_sort(BV, four);
+  Term x1 = s->make_pbv_symbol("x1", bv4);
+  Term x2 = s->make_pbv_symbol("x2", bv4);
+  Term condition = s->make_term(Equal, x1, x2);
+  Term x1xorx2 = s->make_term(Xor, x1, x2);
+  Term then_branch = x1xorx2;
+  Term bv_15 = s->make_pbv_symbol("15", bv4);
+  Term else_branch = bv_15;
+  Term ite = s->make_term(Ite, condition, then_branch, else_branch);
+  Term formula = s->make_term(Distinct, x1, ite);
+}
+
 
 INSTANTIATE_TEST_SUITE_P(
     ParameterizedArrayModelTests,
-    ArrayModelTests,
+    BVModelTests,
     testing::ValuesIn(filter_solver_configurations({ ARRAY_MODELS })));
 
 }  // namespace smt_tests
+
+
+
+

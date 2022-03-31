@@ -10,6 +10,9 @@ class PBVSolver : public AbsSmtSolver
 {
   protected:
    SmtSolver wrapped_solver;
+   Term power2;
+   TermVec term_rules;
+   TermVec operator_rules;
 
   public:
     PBVSolver(SmtSolver s);
@@ -85,16 +88,33 @@ class PBVSolver : public AbsSmtSolver
 
     Term make_pbv_symbol(const std::string & name, const Sort & s) const;
 
-    Term translate_term( const Term & t) const;
+    Term translate_term( const Term & t);
 };
 
 class PBVWalker : public IdentityWalker
 {
+  TermVec* term_rules;
+  TermVec* operator_rules;
+  Term power2;
   public:
-    PBVWalker(const SmtSolver & solver) : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {}
+    PBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {
+      this->term_rules = term_rules;
+      this->operator_rules = operator_rules;
+      this->power2 = power2;
+    }
 
     WalkerStepResult visit_term(Term & term) override;
+
+    Term make_bit_width_term(TermIter it);
     
+};
+
+class PBVConstantWalker : public IdentityWalker
+{
+  public:
+    PBVConstantWalker(const SmtSolver & solver) : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {}
+
+    WalkerStepResult visit_term(Term & term) override;    
 };
 
 } // namespace smt

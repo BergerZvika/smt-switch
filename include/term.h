@@ -36,6 +36,8 @@ class TermIter;
 class AbsTerm
 {
  public:
+   bool is_pbv = false;
+
   AbsTerm(){};
   virtual ~AbsTerm(){};
   /** Returns a hash for this term */
@@ -57,6 +59,11 @@ class AbsTerm
   virtual bool is_param() const = 0;
   /* returns true iff this term is a symbolic constant */
   virtual bool is_symbolic_const() const = 0;
+
+  virtual bool is_pbvterm() const {
+    return this->is_pbv;
+  }
+
   /* returns true iff this term is an interpreted constant */
   virtual bool is_value() const = 0;
   /** converts a constant that can be represented as an int to an int
