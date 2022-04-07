@@ -95,17 +95,22 @@ class PBVWalker : public IdentityWalker
 {
   TermVec* term_rules;
   TermVec* operator_rules;
-  Term power2;
+  Term two;
   public:
     PBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {
       this->term_rules = term_rules;
       this->operator_rules = operator_rules;
-      this->power2 = power2;
+      // this->power2 = power2;
+      Sort intsort = solver->make_sort(INT);
+      this->two = solver->make_term(2, intsort);
     }
 
     WalkerStepResult visit_term(Term & term) override;
 
     Term make_bit_width_term(TermIter it);
+    Term make_Integer_term(Op op, TermIter it);
+    Term get_bit_width_term(TermIter it);
+
     
 };
 
