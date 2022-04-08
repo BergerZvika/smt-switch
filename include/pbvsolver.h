@@ -108,7 +108,6 @@ class PBVWalker : public IdentityWalker
     WalkerStepResult visit_term(Term & term) override;
 
     Term make_bit_width_term(TermIter it);
-    Term make_Integer_term(Op op, TermIter it);
     Term get_bit_width_term(TermIter it);
 
     

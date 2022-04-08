@@ -191,32 +191,32 @@ TEST_P(BVModelTests, TestPBVAddunSat)
   ASSERT_TRUE(r.is_unsat());
 }
 
-// TEST_P(BVModelTests, TestPBVAddunSat2)
-// {
-//   PBVSolver* s = new PBVSolver(smtsolver);
-//   s->set_opt("produce-models", "true");
-//   Sort intsort = s->make_sort(INT);
-//   Term k = s->make_symbol("k", intsort);
-//   Term m = s->make_symbol("m", intsort);
-//   Sort bvk = s->make_sort(BV, k);
-//   Sort bvm = s->make_sort(BV, m);
-//   Term x1 = s->make_pbv_symbol("x1", bvk);
-//   Term x2 = s->make_pbv_symbol("x2", bvk);
-//   Term x3 = s->make_pbv_symbol("x3", bvm);
-//   Term bvadd = s->make_term(BVAdd, x1, x2);
-//   Term equal = s->make_term(Equal, bvadd, x3);
-//   Term one = s->make_term(1, intsort);
-//   Term width = s->make_term(Equal, k, one);
-//   Term x1_equal_x2 = s->make_term(Equal, x1, x2);
-//   Term x3_minus_x3 = s->make_term(Minus, );
-//   Term x3_distinct = s->make_term(Distinct, x3, zero); 
-//   Term width_and_equal = s->make_term(And, width, equal);
-//   Term width_and_equal_and_x1x2 = s->make_term(And, width_and_equal, x1_equal_x2);
-//   Term and_all = s->make_term(And, width_and_equal_and_x1x2, x3_distinct);
-//   s->assert_formula(and_all);
-//   Result r = s->check_sat();
-//   ASSERT_TRUE(r.is_unsat());
-// }
+TEST_P(BVModelTests, TestPBVAddunSat2)
+{
+  PBVSolver* s = new PBVSolver(smtsolver);
+  s->set_opt("produce-models", "true");
+  Sort intsort = s->make_sort(INT);
+  Term k = s->make_symbol("k", intsort);
+  Term m = s->make_symbol("m", intsort);
+  Sort bvk = s->make_sort(BV, k);
+  Sort bvm = s->make_sort(BV, m);
+  Term x1 = s->make_pbv_symbol("x1", bvk);
+  Term x2 = s->make_pbv_symbol("x2", bvk);
+  Term x3 = s->make_pbv_symbol("x3", bvm);
+  Term bvadd = s->make_term(BVAdd, x1, x2);
+  Term equal = s->make_term(Equal, bvadd, x3);
+  Term one = s->make_term(1, intsort);
+  Term width = s->make_term(Equal, k, one);
+  Term x1_equal_x2 = s->make_term(Equal, x1, x2);
+  Term x3_minus_x3 = s->make_term(Minus, x3, x3);
+  Term x3_distinct = s->make_term(Distinct, x3, x3_minus_x3); 
+  Term width_and_equal = s->make_term(And, width, equal);
+  Term width_and_equal_and_x1x2 = s->make_term(And, width_and_equal, x1_equal_x2);
+  Term and_all = s->make_term(And, width_and_equal_and_x1x2, x3_distinct);
+  s->assert_formula(and_all);
+  Result r = s->check_sat();
+  ASSERT_TRUE(r.is_unsat());
+}
 
 // bvsub
 TEST_P(BVModelTests, TestPBVSubSat)
@@ -313,24 +313,99 @@ TEST_P(BVModelTests, TestPBMulbunSat)
 }
 
 // bvudiv
-// TEST_P(BVModelTests, TestPBVDivSat)
-// {
-//   PBVSolver* s = new PBVSolver(smtsolver);
-//   s->set_opt("produce-models", "true");
-//   Sort intsort = s->make_sort(INT);
-//   Term k = s->make_symbol("k", intsort);
-//   Term m = s->make_symbol("m", intsort);
-//   Sort bvk = s->make_sort(BV, k);
-//   Sort bvm = s->make_sort(BV, m);
-//   Term x1 = s->make_pbv_symbol("x1", bvk);
-//   Term x2 = s->make_pbv_symbol("x2", bvk);
-//   Term x3 = s->make_pbv_symbol("x3", bvm);
-//   Term bvdiv = s->make_term(BVUdiv, x1, x2);
-//   Term equal = s->make_term(Equal, bvdiv, x3);
-//   s->assert_formula(equal);
-//   Result r = s->check_sat();
-//   ASSERT_TRUE(r.is_sat());
-// }
+TEST_P(BVModelTests, TestPBVDivSat)
+{
+  PBVSolver* s = new PBVSolver(smtsolver);
+  s->set_opt("produce-models", "true");
+  Sort intsort = s->make_sort(INT);
+  Term k = s->make_symbol("k", intsort);
+  Term m = s->make_symbol("m", intsort);
+  Sort bvk = s->make_sort(BV, k);
+  Sort bvm = s->make_sort(BV, m);
+  Term x1 = s->make_pbv_symbol("x1", bvk);
+  Term x2 = s->make_pbv_symbol("x2", bvk);
+  Term x3 = s->make_pbv_symbol("x3", bvm);
+  Term bvdiv = s->make_term(BVUdiv, x1, x2);
+  Term equal = s->make_term(Equal, bvdiv, x3);
+  s->assert_formula(equal);
+  Result r = s->check_sat();
+  ASSERT_TRUE(r.is_sat());
+}
+
+TEST_P(BVModelTests, TestPBVDivunSat)
+{
+  PBVSolver* s = new PBVSolver(smtsolver);
+  s->set_opt("produce-models", "true");
+  Sort intsort = s->make_sort(INT);
+  Term k = s->make_symbol("k", intsort);
+  Term m = s->make_symbol("m", intsort);
+  Sort bvk = s->make_sort(BV, k);
+  Sort bvm = s->make_sort(BV, m);
+  Term x1 = s->make_pbv_symbol("x1", bvk);
+  Term x2 = s->make_pbv_symbol("x2", bvk);
+  Term x3 = s->make_pbv_symbol("x3", bvm);
+  Term bvdiv = s->make_term(BVUdiv, x1, x2);
+  Term equal = s->make_term(Equal, bvdiv, x3);
+  Term one = s->make_term(1, intsort);
+  Term width = s->make_term(Equal, k, one);
+  Term x1_equal_x2 = s->make_term(Equal, x1, x2);
+  Term equal_and_equal = s->make_term(And, equal, x1_equal_x2);
+  Term x3_minus_x3 = s->make_term(Minus, x3, x3);
+  Term x3_distinct = s->make_term(Equal, x3, x3_minus_x3);
+  Term and_all = s->make_term(And, equal_and_equal, x3_distinct);
+  Term and_all_width = s->make_term(And, and_all, width);
+  s->assert_formula(and_all_width);
+  Result r = s->check_sat();
+  ASSERT_TRUE(r.is_unsat());
+}
+
+// bvNot
+TEST_P(BVModelTests, TestPBVNotSat)
+{
+  PBVSolver* s = new PBVSolver(smtsolver);
+  s->set_opt("produce-models", "true");
+  Sort intsort = s->make_sort(INT);
+  Term k = s->make_symbol("k", intsort);
+  Term m = s->make_symbol("m", intsort);
+  Sort bvk = s->make_sort(BV, k);
+  Sort bvm = s->make_sort(BV, m);
+  Term x1 = s->make_pbv_symbol("x1", bvk);
+  Term x2 = s->make_pbv_symbol("x2", bvm);
+  Term x1_not = s->make_term(BVNot, x1);
+  Term x2_not = s->make_term(BVNot, x2);
+  Term equal = s->make_term(Equal, x1_not, x2_not);
+  s->assert_formula(equal);
+  Result r = s->check_sat();
+  ASSERT_TRUE(r.is_sat());
+}
+
+TEST_P(BVModelTests, TestPBVNotunSat)
+{
+  PBVSolver* s = new PBVSolver(smtsolver);
+  s->set_opt("produce-models", "true");
+  Sort intsort = s->make_sort(INT);
+  Term k = s->make_symbol("k", intsort);
+  Term m = s->make_symbol("m", intsort);
+  Sort bvk = s->make_sort(BV, k);
+  Sort bvm = s->make_sort(BV, m);
+  Term x1 = s->make_pbv_symbol("x1", bvk);
+  Term x2 = s->make_pbv_symbol("x2", bvm);
+  Term x1_not = s->make_term(BVNot, x1);
+  Term x2_not = s->make_term(BVNot, x2);
+  Term equal = s->make_term(Equal, x1_not, x2_not);
+  Term one = s->make_term(1, intsort);
+  Term width = s->make_term(Equal, k, one);
+  Term equal_and_width = s->make_term(And, equal, width);
+  Term plus = s->make_term(Plus, x1_not, x2_not);
+  Term x1_minus_x1 = s->make_term(Minus, x1, x1);
+  Term bv_one = s->make_term(BVNot, x1_minus_x1);
+  Term equal_plus = s->make_term(Equal, plus, bv_one);
+  Term and_all = s->make_term(And, equal_and_width, equal_plus);
+  s->assert_formula(and_all);
+  Result r = s->check_sat();
+  ASSERT_TRUE(r.is_unsat());
+}
+
 
 
 INSTANTIATE_TEST_SUITE_P(
