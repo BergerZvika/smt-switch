@@ -406,6 +406,109 @@ TEST_P(BVModelTests, TestPBVNotunSat)
   ASSERT_TRUE(r.is_unsat());
 }
 
+// bvNeg
+TEST_P(BVModelTests, TestPBVNegSat)
+{
+  PBVSolver* s = new PBVSolver(smtsolver);
+  s->set_opt("produce-models", "true");
+  Sort intsort = s->make_sort(INT);
+  Term k = s->make_symbol("k", intsort);
+  Term m = s->make_symbol("m", intsort);
+  Sort bvk = s->make_sort(BV, k);
+  Sort bvm = s->make_sort(BV, m);
+  Term x1 = s->make_pbv_symbol("x1", bvk);
+  Term x2 = s->make_pbv_symbol("x2", bvm);
+  Term x1_neg = s->make_term(BVNeg, x1);
+  Term x2_neg = s->make_term(BVNeg, x2);
+  Term equal = s->make_term(Equal, x1_neg, x2_neg);
+  s->assert_formula(equal);
+  Result r = s->check_sat();
+  ASSERT_TRUE(r.is_sat());
+}
+
+
+TEST_P(BVModelTests, TestPBVNegSat2)
+{
+  PBVSolver* s = new PBVSolver(smtsolver);
+  s->set_opt("produce-models", "true");
+  Sort intsort = s->make_sort(INT);
+  Term k = s->make_symbol("k", intsort);
+  Term m = s->make_symbol("m", intsort);
+  Sort bvk = s->make_sort(BV, k);
+  Sort bvm = s->make_sort(BV, m);
+  Term x1 = s->make_pbv_symbol("x1", bvk);
+  Term x2 = s->make_pbv_symbol("x2", bvm);
+  Term x1_neg = s->make_term(BVNeg, x1);
+  Term equal = s->make_term(Equal, x1_neg, x1);
+  Term zero = s->make_term(Minus, x1, x1);
+  Term x1_ditinct_zero = s->make_term(Distinct, x1, zero);
+  Term and_all = s->make_term(And, equal, x1_ditinct_zero);
+  s->assert_formula(and_all);
+  Result r = s->check_sat();
+  ASSERT_TRUE(r.is_sat());
+  // (and (= (bvneg x1) x1) (distinct x1 (- x1 x1)))
+  // model k=1 x1=1
+}
+
+TEST_P(BVModelTests, TestPBVNegunSat)
+{
+  PBVSolver* s = new PBVSolver(smtsolver);
+  s->set_opt("produce-models", "true");
+  Sort intsort = s->make_sort(INT);
+  Term k = s->make_symbol("k", intsort);
+  Term m = s->make_symbol("m", intsort);
+  Sort bvk = s->make_sort(BV, k);
+  Sort bvm = s->make_sort(BV, m);
+  Term x1 = s->make_pbv_symbol("x1", bvk);
+  Term x2 = s->make_pbv_symbol("x2", bvm);
+  Term x1_neg = s->make_term(BVNeg, x1);
+  Term plus = s->make_term(BVAdd, x1_neg, x1);
+  Term zero = s->make_term(Minus, x1, x1);
+  Term x1_ditinct_zero = s->make_term(Distinct, plus, zero);
+  s->assert_formula(x1_ditinct_zero);
+  Result r = s->check_sat();
+  ASSERT_TRUE(r.is_unsat());
+  //(distinct (bvadd (bvneg x1) x1) (- x1 x1))
+}
+
+// bvsmod
+TEST_P(BVModelTests, TestPBVModSat)
+{
+  PBVSolver* s = new PBVSolver(smtsolver);
+  s->set_opt("produce-models", "true");
+  Sort intsort = s->make_sort(INT);
+  Term k = s->make_symbol("k", intsort);
+  Term m = s->make_symbol("m", intsort);
+  Sort bvk = s->make_sort(BV, k);
+  Sort bvm = s->make_sort(BV, m);
+  Term x1 = s->make_pbv_symbol("x1", bvk);
+  Term x2 = s->make_pbv_symbol("x2", bvm);
+  Term x1_mod_x2 = s->make_term(BVSmod, x1, x2);
+  Term x2_mod_x1 = s->make_term(BVSmod, x2, x1);
+  Term equal = s->make_term(Equal, x1_mod_x2, x2_mod_x1);
+  s->assert_formula(equal);
+  Result r = s->check_sat();
+  ASSERT_TRUE(r.is_sat());
+}
+
+TEST_P(BVModelTests, TestPBVModunSat)
+{
+  PBVSolver* s = new PBVSolver(smtsolver);
+  s->set_opt("produce-models", "true");
+  Sort intsort = s->make_sort(INT);
+  Term k = s->make_symbol("k", intsort);
+  Term m = s->make_symbol("m", intsort);
+  Sort bvk = s->make_sort(BV, k);
+  Sort bvm = s->make_sort(BV, m);
+  Term x1 = s->make_pbv_symbol("x1", bvk);
+  Term x2 = s->make_pbv_symbol("x2", bvm);
+  Term x1_mod_x2 = s->make_term(BVSmod, x1, x2);
+  Term gt = s->make_term(Gt, x1_mod_x2, x1);
+  s->assert_formula(gt);
+  Result r = s->check_sat();
+  ASSERT_TRUE(r.is_unsat());
+}
+
 
 
 INSTANTIATE_TEST_SUITE_P(

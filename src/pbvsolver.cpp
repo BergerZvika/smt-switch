@@ -108,7 +108,7 @@ namespace smt {
         return wrapped_solver->make_param(name, sort);
     }
     Term PBVSolver::make_term(const Op op, const Term & t) const {
-        if (t->is_pbvterm() && (op == BVNot || op ==BVNeg)) {
+        if (t->is_pbvterm() && (op == BVNot || op == BVNeg)) {
             Sort s = t->get_sort();
             Term pbvt = std::make_shared<PBVTerm>(s, op, TermVec{t});
             return pbvt;
@@ -305,6 +305,24 @@ WalkerStepResult PBVWalker::visit_term(Term & term) {
                             Term ite = solver_->make_term(Ite, condition, then_branch, else_branch);
                             save_in_cache(term, ite);
                             } break;
+                case BVSmod: { int_op = Ite;
+                            bit_width = get_bit_width_term(it);
+                            operator_rules->push_back(make_bit_width_term(it));
+                            Term x = *it;
+                            Term translate_x;
+                            query_cache(x, translate_x);
+                            Term y = *(++it);
+                            Term translate_y;
+                            query_cache(y, translate_y);
+                            Sort intsort = solver_->make_sort(INT);
+                            Term zero =  solver_->make_term(0, intsort);
+                            Term condition = solver_->make_term(Equal, translate_y, zero);
+                            Term then_branch = translate_x;
+                            Term else_branch = solver_->make_term(Mod, cached_children);
+                            Term ite = solver_->make_term(Ite, condition, then_branch, else_branch);
+                            save_in_cache(term, ite);
+
+                            } break;
                 case BVNot: { int_op =  Minus;
                             bit_width = get_bit_width_term(it);
                             Term power2_k = solver_->make_term(Pow, this->two, bit_width);
@@ -317,8 +335,13 @@ WalkerStepResult PBVWalker::visit_term(Term & term) {
                             Term res = solver_->make_term(int_op, power2_k, x_plus_one);
                             save_in_cache(term, res);
                             } break;
-                case BVNeg: {
-
+                case BVNeg: { int_op = Mod;
+                              bit_width = get_bit_width_term(it);
+                              Term power2_k = solver_->make_term(Pow, this->two, bit_width);
+                              Term x = *it;
+                              Term translate_x;
+                              query_cache(x, translate_x);
+                              int_term = solver_->make_term(Minus, power2_k, translate_x);
                             } break;
                 case Concat: { Sort s1 = (*it)->get_sort();
                              shared_ptr<PBVSort> pbvs1 = static_pointer_cast<PBVSort>(s1);
