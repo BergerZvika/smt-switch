@@ -191,7 +191,19 @@ namespace smt {
 
     Term PBVSolver::make_term(const Op op, const Term & t0, const Term & t1) const {
         if (t0->is_pbvterm() || t1->is_pbvterm()) {
-            Sort s = compute_sort(op, this, {t0->get_sort(), t1->get_sort()});
+            Sort s;
+            if (op == Concat) {
+                Sort s0 = t0->get_sort();
+                shared_ptr<PBVSort> pbvs_t0 = static_pointer_cast<PBVSort>(s0);
+                Term width_t0 = pbvs_t0->get_term();
+                Sort s1 = t1->get_sort();
+                shared_ptr<PBVSort> pbvs_t1 = static_pointer_cast<PBVSort>(s1);
+                Term width_t1 = pbvs_t1->get_term();
+                s = make_sort(BV, make_term(Plus, width_t0, width_t1));
+            } else {
+                s = compute_sort(op, this, {t0->get_sort(), t1->get_sort()});
+            }
+            
             Term pbvt = std::make_shared<PBVTerm>(s, op, TermVec{t0, t1});
             return pbvt;
         }
@@ -274,6 +286,22 @@ WalkerStepResult PBVWalker::visit_term(Term & term) {
                             } break;
                 case Distinct: { operator_rules->push_back(make_bit_width_term(it));
                             } break;
+                case BVUge: { int_op = Ge;
+                              operator_rules->push_back(make_bit_width_term(it));
+                              save_in_cache(term, solver_->make_term(int_op, cached_children));
+                            } break;
+                case BVUgt: { int_op = Gt;
+                              operator_rules->push_back(make_bit_width_term(it));
+                              save_in_cache(term, solver_->make_term(int_op, cached_children));
+                            } break;
+                case BVUle: { int_op = Le;
+                              operator_rules->push_back(make_bit_width_term(it));
+                              save_in_cache(term, solver_->make_term(int_op, cached_children));
+                            } break;
+                case BVUlt: { int_op = Lt;
+                              operator_rules->push_back(make_bit_width_term(it));
+                              save_in_cache(term, solver_->make_term(int_op, cached_children));
+                            } break;
                 case BVAdd: { int_op = Mod;
                             bit_width = get_bit_width_term(it);
                             operator_rules->push_back(make_bit_width_term(it));
@@ -321,7 +349,6 @@ WalkerStepResult PBVWalker::visit_term(Term & term) {
                             Term else_branch = solver_->make_term(Mod, cached_children);
                             Term ite = solver_->make_term(Ite, condition, then_branch, else_branch);
                             save_in_cache(term, ite);
-
                             } break;
                 case BVNot: { int_op =  Minus;
                             bit_width = get_bit_width_term(it);
@@ -343,22 +370,55 @@ WalkerStepResult PBVWalker::visit_term(Term & term) {
                               query_cache(x, translate_x);
                               int_term = solver_->make_term(Minus, power2_k, translate_x);
                             } break;
-                case Concat: { Sort s1 = (*it)->get_sort();
-                             shared_ptr<PBVSort> pbvs1 = static_pointer_cast<PBVSort>(s1);
-                             Term t1 = pbvs1->get_term();
-                             it++;
-                             Sort s2 = (*it)->get_sort();
-                             shared_ptr<PBVSort> pbvs2 = static_pointer_cast<PBVSort>(s2);
-                             Term t2 = pbvs1->get_term();
-                             Term width_left = solver_->make_term(Plus, t1, t2);
-                             it++;
-                             Sort s_right = (*it)->get_sort();
-                             shared_ptr<PBVSort> pbvs_right = static_pointer_cast<PBVSort>(s_right);
-                             Term width_right = pbvs_right->get_term();
-                             Term bitWidth = solver_->make_term(Equal, width_left, width_right);
-                             operator_rules->push_back(bitWidth);
+                case BVShl: { int_op = Mod;
+                              bit_width = get_bit_width_term(it);
+                              Term x = *it;
+                              Term translate_x;
+                              query_cache(x, translate_x);
+                              Term y = *(++it);
+                              Term translate_y;
+                              query_cache(y, translate_y);
+                              Term power2_y = solver_->make_term(Pow, this->two, translate_y);
+                              int_term =  solver_->make_term(Mult, translate_x , power2_y);
                             } break;
-                            /// bvand mod
+                case BVAshr: { int_op = Div; // Mod
+                              bit_width = get_bit_width_term(it);
+                              Term x = *it;
+                              Term translate_x;
+                              query_cache(x, translate_x);
+                              Term y = *(++it);
+                              Term translate_y;
+                              query_cache(y, translate_y);
+                              Term power2_y = solver_->make_term(Pow, this->two, translate_y);
+                              int_term =  solver_->make_term(Div, translate_x , power2_y);
+                            //   Term power2_k = solver_->make_term(Pow, this->two, bit_width);
+                            //   save_in_cache(term, solver_->make_term(Mod, int_term, power2_k));
+                            save_in_cache(term, int_term);
+                            } break;
+                case Concat: { int_op = Plus;
+                            // must add concat constraint k + m
+                              Term x = *it;
+                              Term translate_x;
+                              query_cache(x, translate_x);
+                              Term y = *(++it);
+                              Term translate_y;
+                              query_cache(y, translate_y);
+                              Term bit_width_y = get_bit_width_term(it);
+                              Term power2_y = solver_->make_term(Pow, this->two, bit_width_y);
+                              Term x_mult_power2_y = solver_->make_term(Mult, translate_x, power2_y);
+                              save_in_cache(term, solver_->make_term(int_op, x_mult_power2_y, translate_y));
+                            // Sort s1 = (*it)->get_sort();
+                            //  shared_ptr<PBVSort> pbvs1 = static_pointer_cast<PBVSort>(s1);
+                            //  Term width_x = pbvs1->get_term();
+                            //  it++;
+                            //  Sort s2 = (*it)->get_sort();
+                            //  shared_ptr<PBVSort> pbvs2 = static_pointer_cast<PBVSort>(s2);
+                            //  Term width_y = pbvs1->get_term();
+                            //  Term width_concat = solver_->make_term(Plus, t1, t2);
+                            //  Sort width_concat = solver_->make_sort(BV, k);
+                            //  int_term =  
+                            //  operator_rules->push_back(bitWidth);
+                            } break;
                 default: break;
             }
       }

@@ -509,7 +509,153 @@ TEST_P(BVModelTests, TestPBVModunSat)
   ASSERT_TRUE(r.is_unsat());
 }
 
+// bvshl
+TEST_P(BVModelTests, TestPBVShlSat)
+{
+  PBVSolver* s = new PBVSolver(smtsolver);
+  s->set_opt("produce-models", "true");
+  Sort intsort = s->make_sort(INT);
+  Term k = s->make_symbol("k", intsort);
+  Term m = s->make_symbol("m", intsort);
+  Sort bvk = s->make_sort(BV, k);
+  Sort bvm = s->make_sort(BV, m);
+  Term x1 = s->make_pbv_symbol("x1", bvk);
+  Term x2 = s->make_pbv_symbol("x2", bvm);
+  Term x1_shl_x2 = s->make_term(BVShl, x1, x2);
+  Term x2_shl_x1 = s->make_term(BVShl, x2, x1);
+  Term equal = s->make_term(Equal, x1_shl_x2, x2_shl_x1);
+  s->assert_formula(equal);
+  Result r = s->check_sat();
+  ASSERT_TRUE(r.is_sat());
+}
 
+TEST_P(BVModelTests, TestPBVShlunSat)
+{
+  PBVSolver* s = new PBVSolver(smtsolver);
+  s->set_opt("produce-models", "true");
+  Sort intsort = s->make_sort(INT);
+  Term k = s->make_symbol("k", intsort);
+  Term m = s->make_symbol("m", intsort);
+  Sort bvk = s->make_sort(BV, k);
+  Sort bvm = s->make_sort(BV, m);
+  Term x1 = s->make_pbv_symbol("x1", bvk);
+  Term x2 = s->make_pbv_symbol("x2", bvm);
+  Term zero = s->make_term(BVSub, x1, x1);
+  Term x1_shl_x2 = s->make_term(BVShl, x1, x2);
+  Term lt_zero = s->make_term(Lt, x1_shl_x2, zero);
+  Term gt_zero = s->make_term(Gt, x1, zero);
+  Term and_all = s->make_term(And, gt_zero, lt_zero);
+  s->assert_formula(and_all);
+  Result r = s->check_sat();
+  ASSERT_TRUE(r.is_unsat());
+}
+
+// bvAshr
+TEST_P(BVModelTests, TestPBVAshrSat)
+{
+  PBVSolver* s = new PBVSolver(smtsolver);
+  s->set_opt("produce-models", "true");
+  Sort intsort = s->make_sort(INT);
+  Term k = s->make_symbol("k", intsort);
+  Term m = s->make_symbol("m", intsort);
+  Sort bvk = s->make_sort(BV, k);
+  Sort bvm = s->make_sort(BV, m);
+  Term x1 = s->make_pbv_symbol("x1", bvk);
+  Term x2 = s->make_pbv_symbol("x2", bvm);
+  Term x1_shl_x2 = s->make_term(BVAshr, x1, x2);
+  Term x2_shl_x1 = s->make_term(BVAshr, x2, x1);
+  Term equal = s->make_term(Equal, x1_shl_x2, x2_shl_x1);
+  s->assert_formula(equal);
+  Result r = s->check_sat();
+  ASSERT_TRUE(r.is_sat());
+}
+
+
+
+TEST_P(BVModelTests, TestPBVAshrunSat)
+{
+  PBVSolver* s = new PBVSolver(smtsolver);
+  s->set_opt("produce-models", "true");
+  Sort intsort = s->make_sort(INT);
+  Term k = s->make_symbol("k", intsort);
+  Term m = s->make_symbol("m", intsort);
+  Sort bvk = s->make_sort(BV, k);
+  Sort bvm = s->make_sort(BV, m);
+  Term x1 = s->make_pbv_symbol("x1", bvk);
+  Term x2 = s->make_pbv_symbol("x2", bvm);
+  Term x1_shl_x2 = s->make_term(BVAshr, x1, x2);
+  Term lt = s->make_term(BVUgt, x1_shl_x2, x1);
+  s->assert_formula(lt);
+  Result r = s->check_sat();
+  ASSERT_TRUE(r.is_unsat());
+}
+
+// bvConcat
+TEST_P(BVModelTests, TestPBVConcatSat)
+{
+  PBVSolver* s = new PBVSolver(smtsolver);
+  s->set_opt("produce-models", "true");
+  Sort intsort = s->make_sort(INT);
+  Term k = s->make_symbol("k", intsort);
+  Term m = s->make_symbol("m", intsort);
+  Sort bvk = s->make_sort(BV, k);
+  Sort bvm = s->make_sort(BV, m);
+  Term x1 = s->make_pbv_symbol("x1", bvk);
+  Term x2 = s->make_pbv_symbol("x2", bvm);
+  cout << 1 << endl;
+  Term x1_concat_x2 = s->make_term(Concat, x1, x2);
+  Term x2_concat_x1 = s->make_term(Concat, x2, x1);
+  cout << 2 << endl;
+  Term equal = s->make_term(Equal, x1_concat_x2, x2_concat_x1);
+  s->assert_formula(equal);
+  Result r = s->check_sat();
+  ASSERT_TRUE(r.is_sat());
+}
+
+TEST_P(BVModelTests, TestPBVConcatSat2)
+{
+  PBVSolver* s = new PBVSolver(smtsolver);
+  s->set_opt("produce-models", "true");
+  Sort intsort = s->make_sort(INT);
+  Term k = s->make_symbol("k", intsort);
+  Term m = s->make_symbol("m", intsort);
+  Term r = s->make_symbol("r", intsort);
+  Sort bvk = s->make_sort(BV, k);
+  Sort bvm = s->make_sort(BV, m);
+  Sort bvr = s->make_sort(BV, r);
+  Term x1 = s->make_pbv_symbol("x1", bvk);
+  Term x2 = s->make_pbv_symbol("x2", bvm);
+  Term x3 = s->make_pbv_symbol("x3", bvr);
+  Term x1_concat_x2 = s->make_term(Concat, x1, x2);
+  Term equal = s->make_term(Equal, x1_concat_x2, x3);
+  s->assert_formula(equal);
+  Result res = s->check_sat();
+  ASSERT_TRUE(res.is_sat());
+}
+
+TEST_P(BVModelTests, TestPBVConcatunSat)
+{
+  PBVSolver* s = new PBVSolver(smtsolver);
+  s->set_opt("produce-models", "true");
+  Sort intsort = s->make_sort(INT);
+  Term k = s->make_symbol("k", intsort);
+  Term m = s->make_symbol("m", intsort);
+  Term r = s->make_symbol("r", intsort);
+  Sort bvk = s->make_sort(BV, k);
+  Sort bvm = s->make_sort(BV, m);
+  Sort bvr = s->make_sort(BV, r);
+  Term x1 = s->make_pbv_symbol("x1", bvk);
+  Term x2 = s->make_pbv_symbol("x2", bvm);
+  Term x3 = s->make_pbv_symbol("x3", bvr);
+  Term x1_concat_x2 = s->make_term(Concat, x1, x2);
+  Term equal = s->make_term(Equal, x1_concat_x2, x3);
+  Term k_plus_m = s->make_term(Plus, k, m);
+  Term k_plus_m_distinct_r = s->make_term(Distinct, k_plus_m, r);
+  Term and_all = s->make_term(And, equal, k_plus_m_distinct_r);
+  s->assert_formula(and_all);
+  Result res = s->check_sat();
+  ASSERT_TRUE(res.is_unsat());
+}
 
 INSTANTIATE_TEST_SUITE_P(
     ParameterizedArrayModelTests,
