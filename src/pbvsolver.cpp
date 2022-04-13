@@ -396,7 +396,6 @@ WalkerStepResult PBVWalker::visit_term(Term & term) {
                             save_in_cache(term, int_term);
                             } break;
                 case Concat: { int_op = Plus;
-                            // must add concat constraint k + m
                               Term x = *it;
                               Term translate_x;
                               query_cache(x, translate_x);
@@ -407,17 +406,6 @@ WalkerStepResult PBVWalker::visit_term(Term & term) {
                               Term power2_y = solver_->make_term(Pow, this->two, bit_width_y);
                               Term x_mult_power2_y = solver_->make_term(Mult, translate_x, power2_y);
                               save_in_cache(term, solver_->make_term(int_op, x_mult_power2_y, translate_y));
-                            // Sort s1 = (*it)->get_sort();
-                            //  shared_ptr<PBVSort> pbvs1 = static_pointer_cast<PBVSort>(s1);
-                            //  Term width_x = pbvs1->get_term();
-                            //  it++;
-                            //  Sort s2 = (*it)->get_sort();
-                            //  shared_ptr<PBVSort> pbvs2 = static_pointer_cast<PBVSort>(s2);
-                            //  Term width_y = pbvs1->get_term();
-                            //  Term width_concat = solver_->make_term(Plus, t1, t2);
-                            //  Sort width_concat = solver_->make_sort(BV, k);
-                            //  int_term =  
-                            //  operator_rules->push_back(bitWidth);
                             } break;
                 default: break;
             }
