@@ -633,6 +633,31 @@ TEST_P(BVModelTests, TestPBVConcatSat2)
   ASSERT_TRUE(res.is_sat());
 }
 
+TEST_P(BVModelTests, TestPBVConcatSat3)
+{
+  PBVSolver* s = new PBVSolver(smtsolver);
+  s->set_opt("produce-models", "true");
+  Sort intsort = s->make_sort(INT);
+  Term k = s->make_symbol("k", intsort);
+  Term m = s->make_symbol("m", intsort);
+  Term r = s->make_symbol("r", intsort);
+  Term q = s->make_symbol("q", intsort);
+  Sort bvk = s->make_sort(BV, k);
+  Sort bvm = s->make_sort(BV, m);
+  Sort bvr = s->make_sort(BV, r);
+  Sort bv1 = s->make_sort(BV, q);
+  Term x1 = s->make_pbv_symbol("x1", bvk);
+  Term x2 = s->make_pbv_symbol("x2", bvm);
+  Term x3 = s->make_pbv_symbol("x3", bvr);
+  Term x4 = s->make_pbv_symbol("x4", bv1);
+  Term x1_concat_x2 = s->make_term(Concat, x1, x2);
+  Term x3_concat_x1x2 = s->make_term(Concat, x3, x1_concat_x2);
+  Term equal = s->make_term(Equal, x3_concat_x1x2, x4);
+  s->assert_formula(equal);
+  Result res = s->check_sat();
+  ASSERT_TRUE(res.is_sat());
+}
+
 TEST_P(BVModelTests, TestPBVConcatunSat)
 {
   PBVSolver* s = new PBVSolver(smtsolver);

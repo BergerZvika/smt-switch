@@ -213,7 +213,7 @@ namespace smt {
     void PBVSolver::assert_formula(const Term & t) {
         Term res = translate_term(t);
         wrapped_solver->assert_formula(res);
-      }
+    }
 
     Term PBVSolver::translate_term( const Term & t) {
         // PBVConstantWalker* walker = new PBVConstantWalker(wrapped_solver);
@@ -280,7 +280,7 @@ WalkerStepResult PBVWalker::visit_term(Term & term) {
       if(term->is_pbvterm()) {
             auto it = term->begin();
             PrimOp primop = op.prim_op;
-
+            // assert();
             switch (primop) {
                 case Equal: { operator_rules->push_back(make_bit_width_term(it));
                             } break;
@@ -390,10 +390,10 @@ WalkerStepResult PBVWalker::visit_term(Term & term) {
                               Term translate_y;
                               query_cache(y, translate_y);
                               Term power2_y = solver_->make_term(Pow, this->two, translate_y);
-                              int_term =  solver_->make_term(Div, translate_x , power2_y);
-                            //   Term power2_k = solver_->make_term(Pow, this->two, bit_width);
-                            //   save_in_cache(term, solver_->make_term(Mod, int_term, power2_k));
-                            save_in_cache(term, int_term);
+                              int_term =  solver_->make_term(IntDiv, translate_x , power2_y);
+                              Term power2_k = solver_->make_term(Pow, this->two, bit_width);
+                              save_in_cache(term, solver_->make_term(Mod, int_term, power2_k));
+                            // save_in_cache(term, int_term);
                             } break;
                 case Concat: { int_op = Plus;
                               Term x = *it;

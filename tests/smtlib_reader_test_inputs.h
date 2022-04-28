@@ -41,6 +41,7 @@ const std::unordered_map<std::string, std::vector<smt::Result>> qf_ufbv_tests(
 
 const std::unordered_map<std::string, std::vector<smt::Result>> qf_alia_tests({
     { "test-array.smt2", { smt::Result(smt::UNSAT) } },
+    { "test-bv-k.smt2", { smt::Result(smt::SAT) }},
 });
 
 const std::unordered_map<std::string, std::vector<smt::Result>> qf_uf_tests(
