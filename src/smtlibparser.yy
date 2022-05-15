@@ -406,9 +406,9 @@ sort:
    {
      // this one is intended for bit-vectors
      smt::SortKind sk = drv.lookup_sortkind($2);
-     cout << "nat $2 = " << $2 << endl;
-     cout << "nat $3 = " << $3 << endl;
-     cout << "sk = " << smt::to_string(sk) << endl;
+     //cout << "nat $2 = " << $2 << endl;
+     //cout << "nat $3 = " << $3 << endl;
+     //cout << "sk = " << smt::to_string(sk) << endl;
      if (sk == smt::NUM_SORT_KINDS)
      {
        // got dedicated null enum
@@ -424,9 +424,9 @@ sort:
    {
      // this one is intended for bit-vectors k
      smt::SortKind sk = drv.lookup_sortkind($2);
-     cout << "term $2 = " << $2 << endl;
-     cout << "term $3 = " << $3 << endl;
-     cout << "sk = " << smt::to_string(sk) << endl;
+     //cout << "term $2 = " << $2 << endl;
+     //cout << "term $3 = " << $3 << endl;
+     //cout << "sk = " << smt::to_string(sk) << endl;
      if (sk == smt::NUM_SORT_KINDS)
      {
        // got dedicated null enum

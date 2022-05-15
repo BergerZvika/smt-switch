@@ -100,7 +100,7 @@ namespace smt {
     }
     Term PBVSolver::make_symbol(const std::string name, const Sort & sort) {
         if(sort->get_sort_kind() == BV) {
-            cout << "name: " << name << endl;
+            //cout << "name: " << name << endl;
             // cout << "sort: " << sort << endl;
             return make_pbv_symbol(name, sort);
         }
