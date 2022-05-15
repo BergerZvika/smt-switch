@@ -128,8 +128,11 @@ namespace smt {
         return std::make_shared<PBVTerm>(op, TermVec{t0, t1, t2});
     }
     Term PBVSolver::make_term(const Op op, const TermVec & terms) const {
-        Term pbvt = std::make_shared<PBVTerm>(op, terms);
-        return pbvt;
+        if ((*terms.begin())->is_pbvterm()) {
+            Term pbvt = std::make_shared<PBVTerm>(op, terms);
+            return pbvt;
+        }
+        return wrapped_solver->make_term(op, terms);
     }
     Term PBVSolver::get_value(const Term & t) const {
         return wrapped_solver->get_value(t);
@@ -186,7 +189,6 @@ namespace smt {
     }
 
     Sort PBVSolver::make_sort(const SortKind sk, const Term & t) const {
-        cout << "make_sort" << endl;
         Sort s = std::make_shared<PBVSort>(BV, t);
         return s;
     }
@@ -226,6 +228,7 @@ namespace smt {
         // PBVConstantWalker* walker = new PBVConstantWalker(wrapped_solver);
         PBVWalker* walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
         Term& t1 = const_cast<Term&>(t); // todo: add const to Walker->visit.
+        // cout << "translate: " << t << endl;
         Term res = walker->visit(t1);
         // res /\ set rules
         for (Term r : term_rules) {
@@ -238,6 +241,8 @@ namespace smt {
         }
         cout << "original term: " << t << endl;
         cout << "translate term: " << res << endl;
+        term_rules.clear();
+        operator_rules.clear();
         return res;
     }
 

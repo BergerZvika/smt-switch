@@ -702,10 +702,8 @@ TEST_P(BVModelTests, TestPBVconst2)
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
-  // Term k = s->make_term(8, intsort);
-  Sort bvk = s->make_sort(BV, k);
-  Term x1 = s->make_pbv_symbol("x1", bvk);
-  Term distinct = s->make_term(Equal, x1, x1);
+  Term m = s->make_symbol("m", intsort);
+  Term distinct = s->make_term(Distinct, k, m);
   s->assert_formula(distinct);
   Result res = s->check_sat();
   ASSERT_TRUE(res.is_sat());
