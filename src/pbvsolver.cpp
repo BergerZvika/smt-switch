@@ -296,6 +296,7 @@ WalkerStepResult PBVWalker::visit_term(Term & term) {
       Term int_term;
       Term bit_width;
       if(term->is_pbvterm()) {
+            // cout << op << endl;
             auto it = term->begin();
             PrimOp primop = op.prim_op;
             // assert();
