@@ -129,6 +129,16 @@ class AbsSmtSolver
    */
   virtual Sort make_sort(const std::string name, uint64_t arity) const = 0;
 
+  virtual Sort make_sort(const SortKind sk, const Term & t) const {
+    throw NotImplementedException("make_sort(sortkind, term) not implemented by default");
+  }
+
+  virtual Term make_pbv_symbol(const std::string & name, const Sort & s) const {
+    throw NotImplementedException("make_pbv_symbol(string, sort) not implemented by default");
+  }
+
+
+
   /* Create a sort
    * @param sk the SortKind (BOOL, INT, REAL)
    * @return a Sort object

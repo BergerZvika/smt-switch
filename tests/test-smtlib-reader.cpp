@@ -25,6 +25,7 @@
 #include "smt.h"
 #include "smtlib_reader.h"
 #include "smtlib_reader_test_inputs.h"
+#include "pbvsolver.h"
 
 using namespace smt;
 using namespace std;
@@ -66,7 +67,10 @@ class ReaderTests
  protected:
   void SetUp() override
   {
-    s = create_solver(get<0>(GetParam()));
+    SolverConfiguration sc = get<0>(GetParam());
+    SmtSolver solve = create_solver(sc);
+    cout << sc <<endl;
+    s = std::make_shared<PBVSolver>(solve);
     s->set_opt("produce-models", "true");
     reader = new SmtLibReaderTester(s);
   }
@@ -93,13 +97,51 @@ class UninterpReaderTests : public ReaderTests
 {
 };
 
-TEST_P(IntReaderTests, QF_UFLIA_Smt2Files)
+// TEST_P(IntReaderTests, QF_UFLIA_Smt2Files)
+// {
+//   // SMT_SWITCH_DIR is a macro defined at build time
+//   // and should point to the top-level Smt-Switch directory
+//   string test = STRFY(SMT_SWITCH_DIR);
+//   auto testpair = get<1>(GetParam());
+//   test += "/tests/smt2/qf_uflia/" + testpair.first;
+//   reader->parse(test);
+//   auto results = reader->get_results();
+//   auto expected_results = testpair.second;
+//   ASSERT_EQ(results.size(), expected_results.size());
+
+//   size_t size = results.size();
+//   for (size_t i = 0; i < size; i++)
+//   {
+//     EXPECT_EQ(results[i], expected_results[i]);
+//   }
+// }
+
+// TEST_P(BitVecReaderTests, QF_UFBV_Smt2Files)
+// {
+//   // SMT_SWITCH_DIR is a macro defined at build time
+//   // and should point to the top-level Smt-Switch directory
+//   string test = STRFY(SMT_SWITCH_DIR);
+//   auto testpair = get<1>(GetParam());
+//   test += "/tests/smt2/qf_ufbv/" + testpair.first;
+//   reader->parse(test);
+//   auto results = reader->get_results();
+//   auto expected_results = testpair.second;
+//   ASSERT_EQ(results.size(), expected_results.size());
+
+//   size_t size = results.size();
+//   for (size_t i = 0; i < size; i++)
+//   {
+//     EXPECT_EQ(results[i], expected_results[i]);
+//   }
+// }
+
+TEST_P(BitVecReaderTests, QF_PBV_Smt2Files)
 {
   // SMT_SWITCH_DIR is a macro defined at build time
   // and should point to the top-level Smt-Switch directory
   string test = STRFY(SMT_SWITCH_DIR);
   auto testpair = get<1>(GetParam());
-  test += "/tests/smt2/qf_uflia/" + testpair.first;
+  test += "/tests/smt2/qf_pbv/" + testpair.first;
   reader->parse(test);
   auto results = reader->get_results();
   auto expected_results = testpair.second;
@@ -112,100 +154,90 @@ TEST_P(IntReaderTests, QF_UFLIA_Smt2Files)
   }
 }
 
-TEST_P(BitVecReaderTests, QF_UFBV_Smt2Files)
-{
-  // SMT_SWITCH_DIR is a macro defined at build time
-  // and should point to the top-level Smt-Switch directory
-  string test = STRFY(SMT_SWITCH_DIR);
-  auto testpair = get<1>(GetParam());
-  test += "/tests/smt2/qf_ufbv/" + testpair.first;
-  reader->parse(test);
-  auto results = reader->get_results();
-  auto expected_results = testpair.second;
-  ASSERT_EQ(results.size(), expected_results.size());
+// TEST_P(ArrayIntReaderTests, QF_ALIA_Smt2Files)
+// {
+//   // SMT_SWITCH_DIR is a macro defined at build time
+//   // and should point to the top-level Smt-Switch directory
+//   string test = STRFY(SMT_SWITCH_DIR);
+//   auto testpair = get<1>(GetParam());
+//   test += "/tests/smt2/qf_alia/" + testpair.first;
+//   reader->parse(test);
+//   auto results = reader->get_results();
+//   auto expected_results = testpair.second;
+//   ASSERT_EQ(results.size(), expected_results.size());
 
-  size_t size = results.size();
-  for (size_t i = 0; i < size; i++)
-  {
-    EXPECT_EQ(results[i], expected_results[i]);
-  }
-}
+//   size_t size = results.size();
+//   for (size_t i = 0; i < size; i++)
+//   {
+//     EXPECT_EQ(results[i], expected_results[i]);
+//   }
+// }
 
-TEST_P(ArrayIntReaderTests, QF_ALIA_Smt2Files)
-{
-  // SMT_SWITCH_DIR is a macro defined at build time
-  // and should point to the top-level Smt-Switch directory
-  string test = STRFY(SMT_SWITCH_DIR);
-  auto testpair = get<1>(GetParam());
-  test += "/tests/smt2/qf_alia/" + testpair.first;
-  reader->parse(test);
-  auto results = reader->get_results();
-  auto expected_results = testpair.second;
-  ASSERT_EQ(results.size(), expected_results.size());
+// TEST_P(UninterpReaderTests, QF_UF_Smt2Files)
+// {
+//   // SMT_SWITCH_DIR is a macro defined at build time
+//   // and should point to the top-level Smt-Switch directory
+//   string test = STRFY(SMT_SWITCH_DIR);
+//   auto testpair = get<1>(GetParam());
+//   test += "/tests/smt2/qf_uf/" + testpair.first;
+//   reader->parse(test);
+//   auto results = reader->get_results();
+//   auto expected_results = testpair.second;
+//   ASSERT_EQ(results.size(), expected_results.size());
 
-  size_t size = results.size();
-  for (size_t i = 0; i < size; i++)
-  {
-    EXPECT_EQ(results[i], expected_results[i]);
-  }
-}
+//   size_t size = results.size();
+//   for (size_t i = 0; i < size; i++)
+//   {
+//     EXPECT_EQ(results[i], expected_results[i]);
+//   }
+// }
 
-TEST_P(UninterpReaderTests, QF_UF_Smt2Files)
-{
-  // SMT_SWITCH_DIR is a macro defined at build time
-  // and should point to the top-level Smt-Switch directory
-  string test = STRFY(SMT_SWITCH_DIR);
-  auto testpair = get<1>(GetParam());
-  test += "/tests/smt2/qf_uf/" + testpair.first;
-  reader->parse(test);
-  auto results = reader->get_results();
-  auto expected_results = testpair.second;
-  ASSERT_EQ(results.size(), expected_results.size());
+// INSTANTIATE_TEST_SUITE_P(
+//     ParameterizedSolverIntReaderTests,
+//     IntReaderTests,
+//     testing::Combine(testing::ValuesIn(filter_non_generic_solver_configurations(
+//                          { THEORY_INT })),
+//                      testing::ValuesIn(qf_uflia_tests.begin(),
+//                                        qf_uflia_tests.end())));
 
-  size_t size = results.size();
-  for (size_t i = 0; i < size; i++)
-  {
-    EXPECT_EQ(results[i], expected_results[i]);
-  }
-}
+// INSTANTIATE_TEST_SUITE_P(
+//     ParameterizedSolverBitVecReaderTests,
+//     BitVecReaderTests,
+//     testing::Combine(
+//         testing::ValuesIn(available_non_generic_solver_configurations()),
+//         testing::ValuesIn(qf_ufbv_tests.begin(), qf_ufbv_tests.end())));
 
-INSTANTIATE_TEST_SUITE_P(
-    ParameterizedSolverIntReaderTests,
-    IntReaderTests,
-    testing::Combine(testing::ValuesIn(filter_non_generic_solver_configurations(
-                         { THEORY_INT })),
-                     testing::ValuesIn(qf_uflia_tests.begin(),
-                                       qf_uflia_tests.end())));
 
 INSTANTIATE_TEST_SUITE_P(
     ParameterizedSolverBitVecReaderTests,
     BitVecReaderTests,
     testing::Combine(
-        testing::ValuesIn(available_non_generic_solver_configurations()),
-        testing::ValuesIn(qf_ufbv_tests.begin(), qf_ufbv_tests.end())));
+        testing::ValuesIn(filter_non_generic_solver_configurations({ ARRAY_MODELS, PARAM_UNINTERP_SORT })),
+        testing::ValuesIn(qf_pbv_tests.begin(), qf_pbv_tests.end())));
+        
 
-INSTANTIATE_TEST_SUITE_P(
-    ParameterizedSolverArrayIntReaderTests,
-    ArrayIntReaderTests,
-    testing::Combine(testing::ValuesIn(filter_non_generic_solver_configurations(
-                         { THEORY_INT, ARRAY_MODELS })),
-                     testing::ValuesIn(qf_alia_tests.begin(),
-                                       qf_alia_tests.end())));
+// INSTANTIATE_TEST_SUITE_P(
+//     ParameterizedSolverArrayIntReaderTests,
+//     ArrayIntReaderTests,
+//     testing::Combine(testing::ValuesIn(filter_non_generic_solver_configurations(
+//                          { THEORY_INT, ARRAY_MODELS })),
+//                      testing::ValuesIn(qf_alia_tests.begin(),
+//                                        qf_alia_tests.end())));
 
-INSTANTIATE_TEST_SUITE_P(
-    ParameterizedSolverUninterpReaderTests,
-    UninterpReaderTests,
-    testing::Combine(testing::ValuesIn(filter_non_generic_solver_configurations(
-                         { UNINTERP_SORT })),
-                     testing::ValuesIn(qf_uf_tests.begin(),
-                                       qf_uf_tests.end())));
+// INSTANTIATE_TEST_SUITE_P(
+//     ParameterizedSolverUninterpReaderTests,
+//     UninterpReaderTests,
+//     testing::Combine(testing::ValuesIn(filter_non_generic_solver_configurations(
+//                          { UNINTERP_SORT })),
+//                      testing::ValuesIn(qf_uf_tests.begin(),
+//                                        qf_uf_tests.end())));
 
-INSTANTIATE_TEST_SUITE_P(
-    ParameterizedSolverParamUninterpReaderTests,
-    UninterpReaderTests,
-    testing::Combine(testing::ValuesIn(filter_non_generic_solver_configurations(
-                         { PARAM_UNINTERP_SORT })),
-                     testing::ValuesIn(qf_uf_param_sorts_tests.begin(),
-                                       qf_uf_param_sorts_tests.end())));
+// INSTANTIATE_TEST_SUITE_P(
+//     ParameterizedSolverParamUninterpReaderTests,
+//     UninterpReaderTests,
+//     testing::Combine(testing::ValuesIn(filter_non_generic_solver_configurations(
+//                          { PARAM_UNINTERP_SORT })),
+//                      testing::ValuesIn(qf_uf_param_sorts_tests.begin(),
+//                                        qf_uf_param_sorts_tests.end())));
 
 }  // namespace smt_tests

@@ -344,9 +344,10 @@ atom:
       smt::Term sym = drv.lookup_symbol($1);
       if (!sym)
       {
+        sym = drv.solver()->make_symbol($1, drv.solver()->make_sort(smt::INT));
         // Note: using @1 will force locations to be enabled
-        smtlib::parser::error(@1, std::string("Unrecognized symbol: ") + $1);
-        YYERROR;
+        //smtlib::parser::error(@1, std::string("Unrecognized symbol: ") + $1);
+        //YYERROR;
       }
       $$ = sym;
    }
@@ -405,13 +406,34 @@ sort:
    {
      // this one is intended for bit-vectors
      smt::SortKind sk = drv.lookup_sortkind($2);
+     cout << "nat $2 = " << $2 << endl;
+     cout << "nat $3 = " << $3 << endl;
+     cout << "sk = " << smt::to_string(sk) << endl;
+     if (sk == smt::NUM_SORT_KINDS)
+     {
+       // got dedicated null enum
+       smtlib::parser::error(@2, std::string("Unrecognized sort: ") + $2);
+       YYERROR;
+     } else if (smt::to_string(sk) == "BitVec") {
+        $$ = drv.solver()->make_sort(sk, drv.solver()->make_term($3, drv.solver()->make_sort(drv.lookup_sortkind("Int"))));
+     } else {
+       $$ = drv.solver()->make_sort(sk, std::stoi($3));
+     }
+   }
+   | indprefix SYMBOL term_s_expr RP
+   {
+     // this one is intended for bit-vectors k
+     smt::SortKind sk = drv.lookup_sortkind($2);
+     cout << "term $2 = " << $2 << endl;
+     cout << "term $3 = " << $3 << endl;
+     cout << "sk = " << smt::to_string(sk) << endl;
      if (sk == smt::NUM_SORT_KINDS)
      {
        // got dedicated null enum
        smtlib::parser::error(@2, std::string("Unrecognized sort: ") + $2);
        YYERROR;
      }
-     $$ = drv.solver()->make_sort(sk, std::stoi($3));
+     $$ = drv.solver()->make_sort(sk, $3);
    }
    | LP SYMBOL sort_list RP
    {

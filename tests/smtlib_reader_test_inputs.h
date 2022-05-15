@@ -39,6 +39,18 @@ const std::unordered_map<std::string, std::vector<smt::Result>> qf_ufbv_tests(
       { "test-define-sort.smt2", { smt::Result(smt::UNSAT) } },
       { "test-define-sort-edge-case.smt2", { smt::Result(smt::UNSAT) } } });
 
+const std::unordered_map<std::string, std::vector<smt::Result>> qf_pbv_tests(
+    { 
+    { "test-k0.smt2",
+      { smt::Result(smt::UNSAT)}},
+        { "test-k2.smt2",
+        { smt::Result(smt::UNSAT)}},
+        { "test-k3.smt2",
+        { smt::Result(smt::SAT)}},
+        { "test-k1.smt2",
+        { smt::Result(smt::SAT)}
+       }});
+
 const std::unordered_map<std::string, std::vector<smt::Result>> qf_alia_tests({
     { "test-array.smt2", { smt::Result(smt::UNSAT) } },
     { "test-bv-k.smt2", { smt::Result(smt::SAT) }},
@@ -50,3 +62,4 @@ const std::unordered_map<std::string, std::vector<smt::Result>> qf_uf_tests(
 const std::unordered_map<std::string, std::vector<smt::Result>>
     qf_uf_param_sorts_tests({ { "test-uninterp-sort-nonzero-arity.smt2",
                                 { smt::Result(smt::UNSAT) } } });
+                                

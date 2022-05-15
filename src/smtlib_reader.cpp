@@ -87,6 +87,7 @@ int SmtLibReader::parse(const std::string & f)
   catch (const SmtException & e)
   {
     // need to end scan even if threw an exception
+    cout << "catch" << endl;
     scan_end();
     throw e;
   }

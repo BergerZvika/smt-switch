@@ -99,6 +99,11 @@ namespace smt {
         return wrapped_solver->make_term(val, sort);
     }
     Term PBVSolver::make_symbol(const std::string name, const Sort & sort) {
+        if(sort->get_sort_kind() == BV) {
+            cout << "name: " << name << endl;
+            // cout << "sort: " << sort << endl;
+            return make_pbv_symbol(name, sort);
+        }
         return wrapped_solver->make_symbol(name, sort);
     }
     Term PBVSolver::get_symbol(const std::string & name) {
@@ -123,7 +128,8 @@ namespace smt {
         return std::make_shared<PBVTerm>(op, TermVec{t0, t1, t2});
     }
     Term PBVSolver::make_term(const Op op, const TermVec & terms) const {
-        return wrapped_solver->make_term(op, terms);
+        Term pbvt = std::make_shared<PBVTerm>(op, terms);
+        return pbvt;
     }
     Term PBVSolver::get_value(const Term & t) const {
         return wrapped_solver->get_value(t);
@@ -180,6 +186,7 @@ namespace smt {
     }
 
     Sort PBVSolver::make_sort(const SortKind sk, const Term & t) const {
+        cout << "make_sort" << endl;
         Sort s = std::make_shared<PBVSort>(BV, t);
         return s;
     }
@@ -253,7 +260,13 @@ Term PBVWalker::get_bit_width_term(TermIter it) {
     Sort s = (*it)->get_sort();
     shared_ptr<PBVSort> pbvs = static_pointer_cast<PBVSort>(s);
     Term width = pbvs->get_term();
-    return width;
+    try {
+        Sort intsort = solver_->make_sort(INT);
+        Term constbv = solver_->make_term(stoi(width->to_string()), intsort);
+        return constbv;
+    } catch (...) {
+        return width;
+    }
 }
 
 
@@ -433,7 +446,14 @@ WalkerStepResult PBVWalker::visit_term(Term & term) {
         Sort pbv_sort = term->get_sort();
         shared_ptr<PBVSort> bv_sort = static_pointer_cast<PBVSort>(pbv_sort);
         Term bit_width = bv_sort->get_term();
-        Term power2_k = solver_->make_term(Pow, this->two, bit_width);
+        try {
+        Sort intsort = solver_->make_sort(INT);
+        Term constbv = solver_->make_term(stoi(bit_width->to_string()), intsort);
+        bit_width = constbv;
+    } catch (...) {}
+        // cout << "bit width: " << bit_width << endl;
+        Term two_2 = solver_->make_term(2, intsort);
+        Term power2_k = solver_->make_term(Pow, two_2, bit_width);
         Term lt = solver_->make_term(Lt, k, power2_k);
         term_rules->push_back(lt);
         // for (Term r : *term_rules) {
