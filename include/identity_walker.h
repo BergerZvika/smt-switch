@@ -96,12 +96,12 @@ protected:
   */
  void save_in_cache(const Term & key, const Term & val);
 
+public:
  const smt::SmtSolver & solver_; /**< the solver to use for rebuilding terms */
  bool clear_cache_; /**< if true, clears the cache between calls to visit */
  bool preorder_; /**< true when the current term is being visited for the first
                     time. For use in visit_term */
 
-private:
  // derived classes should interact with cache through the methods above only
  smt::UnorderedTermMap cache_;       /**< cache for updating terms */
  smt::UnorderedTermMap * ext_cache_; /**< external (user-provided) cache. If

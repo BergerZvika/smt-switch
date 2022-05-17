@@ -24,15 +24,15 @@ namespace smt
 
 Term IdentityWalker::visit(Term & term)
 {
-  if (clear_cache_)
-  {
-    cache_.clear();
+  // if (clear_cache_)
+  // {
+  //   cache_.clear();
 
-    if (ext_cache_)
-    {
-      ext_cache_->clear();
-    }
-  }
+  //   if (ext_cache_)
+  //   {
+  //     ext_cache_->clear();
+  //   }
+  // }
 
   Term out = term;
   if (query_cache(term, out))

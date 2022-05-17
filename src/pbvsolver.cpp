@@ -16,6 +16,8 @@ namespace smt {
         // operator_rules = new TermVec();
           Sort intsort = s->make_sort(INT);
           Sort uninterpetd_function = s->make_sort(FUNCTION, SortVec{ intsort, intsort});
+          this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+
         //   this->power2 = s->make_symbol("power2", uninterpetd_function);
     }
 
@@ -156,6 +158,15 @@ namespace smt {
         return wrapped_solver->set_logic(logic);
     }
     Result PBVSolver::check_sat() {
+          if (this->walker->clear_cache_)
+            {
+                this->walker->cache_.clear();
+
+                if (this->walker->ext_cache_)
+                    {
+                        this->walker->ext_cache_->clear();
+                    }
+            }
         return wrapped_solver->check_sat();
     }
     Result PBVSolver::check_sat_assuming(const TermVec & assumptions) {
@@ -226,10 +237,10 @@ namespace smt {
 
     Term PBVSolver::translate_term( const Term & t) {
         // PBVConstantWalker* walker = new PBVConstantWalker(wrapped_solver);
-        PBVWalker* walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+        // PBVWalker* walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
         Term& t1 = const_cast<Term&>(t); // todo: add const to Walker->visit.
         // cout << "translate: " << t << endl;
-        Term res = walker->visit(t1);
+        Term res = this->walker->visit(t1);
         // res /\ set rules
         for (Term r : term_rules) {
             // cout << r << endl;
@@ -440,10 +451,17 @@ WalkerStepResult PBVWalker::visit_term(Term & term) {
     else
     {
      Term res;
-      // change bv, k ---> integer, k
+      // change bv, k ---> integer mod 2 ^ k
       if(term->is_pbvterm()) {
         Sort intsort = solver_->make_sort(INT);
-        Term k = solver_->make_symbol("_pbv_" + term->to_string() ,intsort);
+        Term k = NULL;
+        cout << "term: " << term << endl;
+        if (query_cache(term, k)){
+            cout << "k: " << k << endl;
+        }
+        if (!query_cache(term, k)){
+            k = solver_->make_symbol("_pbv_" + term->to_string() ,intsort);
+        }
         res = k;
         // 0 <= k <= pow2(k)
         Term zero =  solver_->make_term(0, intsort);
@@ -453,18 +471,18 @@ WalkerStepResult PBVWalker::visit_term(Term & term) {
         shared_ptr<PBVSort> bv_sort = static_pointer_cast<PBVSort>(pbv_sort);
         Term bit_width = bv_sort->get_term();
         try {
-        Sort intsort = solver_->make_sort(INT);
-        Term constbv = solver_->make_term(stoi(bit_width->to_string()), intsort);
-        bit_width = constbv;
-    } catch (...) {}
-        // cout << "bit width: " << bit_width << endl;
-        Term two_2 = solver_->make_term(2, intsort);
-        Term power2_k = solver_->make_term(Pow, two_2, bit_width);
-        Term lt = solver_->make_term(Lt, k, power2_k);
-        term_rules->push_back(lt);
-        // for (Term r : *term_rules) {
-        //    cout << r << endl; 
-        // }
+            Sort intsort = solver_->make_sort(INT);
+            Term constbv = solver_->make_term(stoi(bit_width->to_string()), intsort);
+            bit_width = constbv;
+        } catch (...) {}
+            // cout << "bit width: " << bit_width << endl;
+            Term two_2 = solver_->make_term(2, intsort);
+            Term power2_k = solver_->make_term(Pow, two_2, bit_width);
+            Term lt = solver_->make_term(Lt, k, power2_k);
+            term_rules->push_back(lt);
+            // for (Term r : *term_rules) {
+            //    cout << r << endl; 
+            // }
       } else {
           res = term;
       }

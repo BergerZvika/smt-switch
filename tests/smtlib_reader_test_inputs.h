@@ -53,9 +53,13 @@ const std::unordered_map<std::string, std::vector<smt::Result>>
 
 const std::unordered_map<std::string, std::vector<smt::Result>> qf_pbv_tests(
     { 
-    { "test-k6.smt2",
+    { "test-k8.smt2",
+        { smt::Result(smt::SAT)}},
+    { "test-k7.smt2",
         { smt::Result(smt::UNSAT)}},
-        { "test-k5.smt2",
+     { "test-k6.smt2",
+        { smt::Result(smt::UNSAT)}},
+     { "test-k5.smt2",
         { smt::Result(smt::SAT)}},
     { "test-k4.smt2",
         { smt::Result(smt::SAT)}},
