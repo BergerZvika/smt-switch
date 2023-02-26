@@ -8,7 +8,9 @@ cd ..
 cd build
 make
 make install
-cd ../pbv/build
+cd ../pbv
+mkdir build
+cd build
 cmake ..
 make
 cd ../..

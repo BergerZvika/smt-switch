@@ -1,1 +1,0 @@
-/usr/bin/c++    -rdynamic CMakeFiles/unit-incremental.dir/unit-incremental.cpp.o  -o unit-incremental  -Wl,-rpath,/home/zvi/smt-switch/pbv/tests:/home/zvi/smt-switch/pbv ../../lib/libgtest_main.a ../libtest-deps.so ../../lib/libgtest.a -pthread ../../libsmt-switch.so 

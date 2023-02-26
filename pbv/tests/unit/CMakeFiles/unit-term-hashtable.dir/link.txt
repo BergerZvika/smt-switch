@@ -1,1 +1,0 @@
-/usr/bin/c++    -rdynamic CMakeFiles/unit-term-hashtable.dir/unit-term-hashtable.cpp.o  -o unit-term-hashtable  -Wl,-rpath,/home/zvi/smt-switch/pbv/tests:/home/zvi/smt-switch/pbv ../../lib/libgtest_main.a ../libtest-deps.so ../../lib/libgtest.a -pthread ../../libsmt-switch.so 
