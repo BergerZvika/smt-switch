@@ -1,0 +1,1 @@
+/usr/bin/c++    -rdynamic CMakeFiles/test-variadic-ops.dir/test-variadic-ops.cpp.o  -o test-variadic-ops  -Wl,-rpath,/home/zvi/smt-switch/pbv/tests:/home/zvi/smt-switch/pbv ../lib/libgtest_main.a libtest-deps.so ../lib/libgtest.a -pthread ../libsmt-switch.so 

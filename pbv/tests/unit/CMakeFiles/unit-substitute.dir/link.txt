@@ -1,0 +1,1 @@
+/usr/bin/c++    -rdynamic CMakeFiles/unit-substitute.dir/unit-substitute.cpp.o  -o unit-substitute  -Wl,-rpath,/home/zvi/smt-switch/pbv/tests:/home/zvi/smt-switch/pbv ../../lib/libgtest_main.a ../libtest-deps.so ../../lib/libgtest.a -pthread ../../libsmt-switch.so 

@@ -1,0 +1,1 @@
+/usr/bin/c++    -rdynamic CMakeFiles/test-itp.dir/test-itp.cpp.o  -o test-itp  -Wl,-rpath,/home/zvi/smt-switch/pbv/tests:/home/zvi/smt-switch/pbv ../lib/libgtest_main.a libtest-deps.so ../lib/libgtest.a -pthread ../libsmt-switch.so 

@@ -1,0 +1,1 @@
+/usr/bin/c++    -rdynamic CMakeFiles/test-array.dir/test-array.cpp.o  -o test-array  -Wl,-rpath,/home/zvi/smt-switch/pbv/tests:/home/zvi/smt-switch/pbv ../lib/libgtest_main.a libtest-deps.so ../lib/libgtest.a -pthread ../libsmt-switch.so 

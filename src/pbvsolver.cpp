@@ -252,6 +252,8 @@ namespace smt {
         }
         cout << "original term: " << t << endl;
         cout << "translate term: " << res << endl;
+        // cout << "adding terms rules: " << term_rules << endl;
+        // cout << "adding operators rules: " << operator_rules << endl;
         term_rules.clear();
         operator_rules.clear();
         return res;
@@ -311,6 +313,7 @@ WalkerStepResult PBVWalker::visit_term(Term & term) {
             auto it = term->begin();
             PrimOp primop = op.prim_op;
             // assert();
+            cout << primop << endl;
             switch (primop) {
                 case Equal: { operator_rules->push_back(make_bit_width_term(it));
                             } break;
@@ -437,7 +440,80 @@ WalkerStepResult PBVWalker::visit_term(Term & term) {
                               Term x_mult_power2_y = solver_->make_term(Mult, translate_x, power2_y);
                               save_in_cache(term, solver_->make_term(int_op, x_mult_power2_y, translate_y));
                             } break;
-                default: break;
+                case BVAnd: { int_op = Forall;
+                              cout << "bvand" << endl;
+                              Term k = *(++it);
+                              Term translate_k;
+                              query_cache(k, translate_k);
+                              Term x = *it;
+                              Term translate_x;
+                              query_cache(x, translate_x);
+                              Term y = *(++it);
+                              Term translate_y;
+                              query_cache(y, translate_y);
+                              // create axiom
+                              Sort intsort = solver_->make_sort(INT);
+                              Term zero =  solver_->make_term(0, intsort);
+                              Term one =  solver_->make_term(1, intsort);
+                              Term condition = solver_->make_term(Gt, translate_k, one);
+                              // then
+                              Term k_minus_one = solver_->make_term(Minus, translate_k, k_minus_one);
+                              Term pow2_k_minus_one = solver_->make_term(Pow, this->two, one);
+                              Term x_mod_k_minus_one = solver_->make_term(Mod, translate_x, pow2_k_minus_one);
+                              Term y_mod_k_minus_one = solver_->make_term(Mod, translate_y, pow2_k_minus_one);
+                              Term then_branch = solver_->make_term(BVAnd, k_minus_one, x_mod_k_minus_one, y_mod_k_minus_one);
+                              // else
+                              Term else_branch =  solver_->make_term(0, intsort);
+                              // ite
+                              Term ite = solver_->make_term(Ite, condition, then_branch, else_branch);
+                              // plus
+                              Term x_shift_k = solver_->make_term(BVAshr, translate_x, k_minus_one);
+                              Term x_shift_k_mod_2 = solver_->make_term(Mod, x_shift_k, this->two);
+                              Term x_shift_k_mod_2_equal_1 = solver_->make_term(Equal, x_shift_k_mod_2, one);
+                              Term y_shift_k = solver_->make_term(BVAshr, translate_y, k_minus_one);
+                              Term y_shift_k_mod_2 = solver_->make_term(Mod, y_shift_k, this->two);
+                              Term y_shift_k_mod_2_equal_1 = solver_->make_term(Equal, y_shift_k_mod_2, one);
+                              Term and_condition = solver_->make_term(And, x_shift_k_mod_2_equal_1, y_shift_k_mod_2_equal_1);
+                              Term ite_plus = solver_->make_term(Ite, and_condition, pow2_k_minus_one, zero);
+                              Term plus = solver_->make_term(Plus, ite, ite_plus);
+                              // forall
+                              Term forally = solver_->make_term(Forall, translate_y, plus);;
+                              Term forallx = solver_->make_term(Forall, translate_x, forally);
+                              save_in_cache(term, solver_->make_term(int_op, translate_k, forallx));
+                            } break;
+                case BVOr: { int_op = Minus;
+                              Term k = *(++it);
+                              Term translate_k;
+                              query_cache(k, translate_k);
+                              Term x = *it;
+                              Term translate_x;
+                              query_cache(x, translate_x);
+                              Term y = *(++it);
+                              Term translate_y;
+                              query_cache(y, translate_y);
+                              // translate to bvand
+                              Term x_plus_y = solver_->make_term(BVAdd, x, y);
+                              Term x_and_y = solver_->make_term(BVAnd, k, x, y);
+                              save_in_cache(term, solver_->make_term(int_op, x_plus_y, x_and_y));
+                            } break;
+                case BVXor: { int_op = Minus;
+                              Term k = *(++it);
+                              Term translate_k;
+                              query_cache(k, translate_k);
+                              Term x = *it;
+                              Term translate_x;
+                              query_cache(x, translate_x);
+                              Term y = *(++it);
+                              Term translate_y;
+                              query_cache(y, translate_y);
+                              // translate to bvand
+                              Term x_or_y = solver_->make_term(BVOr, k, x, y);
+                              Term x_and_y = solver_->make_term(BVAnd, k, x, y);
+                              save_in_cache(term, solver_->make_term(int_op, x_or_y, x_and_y));
+                            } break;
+                default: 
+                    cout << primop << endl;
+                    assert(false);
             }
       }
       // mod
@@ -448,14 +524,14 @@ WalkerStepResult PBVWalker::visit_term(Term & term) {
         save_in_cache(term, solver_->make_term(int_op, cached_children));
       }
     }
-    else
+    else 
     {
      Term res;
       // change bv, k ---> integer mod 2 ^ k
       if(term->is_pbvterm()) {
         Sort intsort = solver_->make_sort(INT);
         Term k = NULL;
-        cout << "term: " << term << endl;
+        // cout << "term: " << term << endl;
         if (query_cache(term, k)){
             cout << "k: " << k << endl;
         }

@@ -3,7 +3,7 @@
 (set-option :incremental true)
 (declare-const k Int)
 (declare-const m Int)
-(declare-const x (_ BitVec k))
+(declare-const x (_ BitVec (+ k 1)))
 (declare-const y (_ BitVec k))
 (declare-const z (_ BitVec m))
 (assert (= z (bvsub x y)))

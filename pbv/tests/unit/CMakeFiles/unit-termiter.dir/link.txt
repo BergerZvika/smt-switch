@@ -1,0 +1,1 @@
+/usr/bin/c++    -rdynamic CMakeFiles/unit-termiter.dir/unit-termiter.cpp.o  -o unit-termiter  -Wl,-rpath,/home/zvi/smt-switch/pbv/tests:/home/zvi/smt-switch/pbv ../../lib/libgtest_main.a ../libtest-deps.so ../../lib/libgtest.a -pthread ../../libsmt-switch.so 

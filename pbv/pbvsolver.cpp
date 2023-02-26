@@ -45,8 +45,8 @@ int main(int argc, char** argv){
   string test = argv[1];
   cout << "test path: " << test << endl;
   SmtSolver cvc5 = Cvc5SolverFactory::create(false);
-  PBVSolver pbvsolver = PBVSolver(cvc5);
-  SmtSolver s = std::make_shared<PBVSolver>(pbvsolver);
+  SmtSolver s = std::make_shared<PBVSolver>(cvc5);
+  s->set_opt("produce-models", "true");
   SmtLibReaderTester* reader = new SmtLibReaderTester(s);
   reader->parse(test);
   auto results = reader->get_results();

@@ -1,0 +1,1 @@
+/usr/bin/c++    -rdynamic CMakeFiles/test-unsat-core-reducer.dir/test-unsat-core-reducer.cpp.o  -o test-unsat-core-reducer  -Wl,-rpath,/home/zvi/smt-switch/pbv/tests:/home/zvi/smt-switch/pbv ../lib/libgtest_main.a libtest-deps.so ../lib/libgtest.a -pthread ../libsmt-switch.so 
