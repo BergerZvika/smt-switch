@@ -7,6 +7,6 @@
 (declare-const x (_ BitVec r))
 (declare-const y (_ BitVec k))
 (declare-const z (_ BitVec m))
-(assert (= z (bvand k x y)))
+(assert (= z (bvand x y)))
 (check-sat)
 (exit)
