@@ -344,8 +344,11 @@ WalkerStepResult PBVWalker::visit_term(Term & term) {
                               operator_rules->push_back(make_bit_width_term(it));
                               save_in_cache(term, solver_->make_term(int_op, cached_children));
                             } break;
-                case BVAdd: { int_op = Minus;
-                            int_term = bvadd_term(it, cached_children);
+                case BVAdd: {     bit_width = get_bit_width_term(it);
+                                operator_rules->push_back(make_bit_width_term(it));
+                                int_term = solver_->make_term(Plus, cached_children);
+                                Term power2_k = solver_->make_term(Pow, this->two, bit_width);
+                                int_term = solver_->make_term(Mod, int_term, power2_k);
                             } break;
                 case BVSub: { int_op = Mod;
                             bit_width = get_bit_width_term(it);
