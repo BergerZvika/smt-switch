@@ -287,13 +287,13 @@ Term PBVWalker::get_bit_width_term(TermIter it) {
     }
 }
 
-Term PBVWalker::bvadd_term(TermIter it, TermVec cached_children) {
-    bit_width = get_bit_width_term(it);
-    operator_rules->push_back(make_bit_width_term(it));
-    int_term = solver_->make_term(Plus, cached_children);
-    Term power2_k = solver_->make_term(Pow, this->two, bit_width);
-    return solver_->make_term(Mod, int_term, power2_k);
-}
+// Term PBVWalker::bvadd_term(TermIter it, TermVec cached_children) {
+//     bit_width = get_bit_width_term(it);
+//     operator_rules->push_back(make_bit_width_term(it));
+//     int_term = solver_->make_term(Plus, cached_children);
+//     Term power2_k = solver_->make_term(Pow, this->two, bit_width);
+//     return solver_->make_term(Mod, int_term, power2_k);
+// }
 
 
 
