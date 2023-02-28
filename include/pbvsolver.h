@@ -24,6 +24,7 @@ namespace smt {
 
     Term make_bit_width_term(TermIter it);
     Term get_bit_width_term(TermIter it);
+    Term bvadd(TermIter it, TermVec cached_children);
 
     
 };

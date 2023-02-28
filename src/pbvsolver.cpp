@@ -287,6 +287,12 @@ Term PBVWalker::get_bit_width_term(TermIter it) {
     }
 }
 
+// Term PBVWalker::bvadd(TermIter it, TermVec cached_children) {
+//     int_op = Mod;
+//     bit_width = get_bit_width_term(it);
+//     operator_rules->push_back(make_bit_width_term(it));
+//     int_term = solver_->make_term(Plus, cached_children);
+// }
 
 
 WalkerStepResult PBVWalker::visit_term(Term & term) {
