@@ -32,6 +32,7 @@ using namespace std;
 
 namespace smt_tests {
 
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(SmtLibReaderTester);
 class SmtLibReaderTester : public SmtLibReader
 {
  public:
@@ -81,18 +82,22 @@ class ReaderTests
   SmtLibReaderTester * reader;
 };
 
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(IntReaderTests);
 class IntReaderTests : public ReaderTests
 {
 };
 
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(BitVecReaderTests);
 class BitVecReaderTests : public ReaderTests
 {
 };
 
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ArrayIntReaderTests);
 class ArrayIntReaderTests : public ReaderTests
 {
 };
 
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(UninterpReaderTests);
 class UninterpReaderTests : public ReaderTests
 {
 };
