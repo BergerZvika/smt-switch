@@ -17,7 +17,7 @@ For an example of how to link and use `smt-switch`, please see the [examples dir
 
 ## Install Pbv-Solver binary
 ```
-$ git clone -b pbvk_new https://github.com/BergerZvika/smt-switch.git
+$ git clone -b pbv-master https://github.com/BergerZvika/smt-switch.git
 $ cd smt-switch/pbv
 $ bash install.sh
 $ cd ..
