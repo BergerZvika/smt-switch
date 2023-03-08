@@ -4,32 +4,50 @@
 #include "pbvterm.h"
 #include "pbvsort.h"
 
+using namespace std;
+
 namespace smt {
 
+  // PBVWalker
   class PBVWalker : public IdentityWalker
 {
   TermVec* term_rules;
   TermVec* operator_rules;
-  Term two;
+  Term two, bvand;
   public:
     PBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {
       this->term_rules = term_rules;
       this->operator_rules = operator_rules;
-      // this->power2 = power2;
       Sort intsort = solver->make_sort(INT);
       this->two = solver->make_term(2, intsort);
+      Sort funsort = solver->make_sort(FUNCTION, SortVec{intsort, intsort, intsort, intsort});
+      this->bvand = solver->make_symbol("bvand", funsort);
+      // cout << 1 << endl;
+      // operator_rules->push_back(bvand_axiom());
+      // cout << 2 << endl;
     }
 
     WalkerStepResult visit_term(Term & term) override;
 
     Term make_bit_width_term(TermIter it);
     Term get_bit_width_term(TermIter it);
-    Term bvadd(TermIter it, TermVec cached_children);
+    Term bvand_axiom();
 
     
 };
 
-class PBVSolver : public AbsSmtSolver
+// PBVConstantWalker
+class PBVConstantWalker : public IdentityWalker
+{
+  public:
+    PBVConstantWalker(const SmtSolver & solver) : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {}
+
+    WalkerStepResult visit_term(Term & term) override;  
+};
+
+
+// AbstractPBVSolver
+class AbstractPBVSolver : public AbsSmtSolver
 {
   protected:
    SmtSolver wrapped_solver;
@@ -37,9 +55,11 @@ class PBVSolver : public AbsSmtSolver
    TermVec term_rules;
    TermVec operator_rules;
    PBVWalker* walker;
+   int debug = 0;
   public:
-    PBVSolver(SmtSolver s);
-    ~PBVSolver(){};
+    AbstractPBVSolver(SmtSolver s);
+    AbstractPBVSolver(SmtSolver s, int debug);
+    ~AbstractPBVSolver(){};
 
     // implemented
     Sort make_sort(const std::string name, uint64_t arity) const override;
@@ -94,7 +114,6 @@ class PBVSolver : public AbsSmtSolver
     // dispatched to underlying solver
     void set_opt(const std::string option, const std::string value) override;
     void set_logic(const std::string logic) override;
-    void assert_formula(const Term & t) override;
     Result check_sat() override;
     Result check_sat_assuming(const TermVec & assumptions) override;
     Result check_sat_assuming_list(const TermList & assumptions) override;
@@ -111,15 +130,33 @@ class PBVSolver : public AbsSmtSolver
 
     Term make_pbv_symbol(const std::string & name, const Sort & s) const;
 
+    virtual void assert_formula(const Term & t) = 0;
+
     Term translate_term( const Term & t);
 };
 
-class PBVConstantWalker : public IdentityWalker
-{
-  public:
-    PBVConstantWalker(const SmtSolver & solver) : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {}
 
-    WalkerStepResult visit_term(Term & term) override;    
+// PBVSolver
+class PBVSolver : public AbstractPBVSolver
+{
+    public:
+    PBVSolver(SmtSolver s);
+    PBVSolver(SmtSolver s, int debug);
+    ~PBVSolver(){};
+
+    void assert_formula(const Term & t) override;
+};
+
+
+// PBVSolver
+class EfficientPBVSolver : public AbstractPBVSolver
+{
+    public:
+    EfficientPBVSolver(SmtSolver s);
+    EfficientPBVSolver(SmtSolver s, int debug);
+    ~EfficientPBVSolver(){};
+
+    void assert_formula(const Term & t) override;
 };
 
 } // namespace smt

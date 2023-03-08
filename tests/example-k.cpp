@@ -29,7 +29,7 @@ class BVModelTests : public ::testing::Test,
 
 TEST_P(BVModelTests, TestPBVTermModel)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k" ,intsort);
@@ -43,7 +43,7 @@ TEST_P(BVModelTests, TestPBVTermModel)
 
 TEST_P(BVModelTests, TestEQModel)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");  
   Sort intsort = s->make_sort(INT);
   Term t = s->make_term(4 ,intsort);
@@ -61,7 +61,7 @@ TEST_P(BVModelTests, TestEQModel)
 
 TEST_P(BVModelTests, TestTrivialPBV)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -77,7 +77,7 @@ TEST_P(BVModelTests, TestTrivialPBV)
 // x1 != x2 != x3 /\ k= 1
 TEST_P(BVModelTests, TestRulesPBV)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -97,7 +97,7 @@ TEST_P(BVModelTests, TestRulesPBV)
 
 TEST_P(BVModelTests, TestTrivialTransPBV)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -114,7 +114,7 @@ TEST_P(BVModelTests, TestTrivialTransPBV)
 
 TEST_P(BVModelTests, TestIntsortPBV)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term x1 = s->make_symbol("x1", intsort);
@@ -129,7 +129,7 @@ TEST_P(BVModelTests, TestIntsortPBV)
 
 TEST_P(BVModelTests, TestTranslatePBV2)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term four = s->make_term("4", intsort);
@@ -148,7 +148,7 @@ TEST_P(BVModelTests, TestTranslatePBV2)
 // bvadd
 TEST_P(BVModelTests, TestPBVAddSat)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -167,7 +167,7 @@ TEST_P(BVModelTests, TestPBVAddSat)
 
 TEST_P(BVModelTests, TestPBVAddunSat)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -193,7 +193,7 @@ TEST_P(BVModelTests, TestPBVAddunSat)
 
 TEST_P(BVModelTests, TestPBVAddunSat2)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -221,7 +221,7 @@ TEST_P(BVModelTests, TestPBVAddunSat2)
 // bvsub
 TEST_P(BVModelTests, TestPBVSubSat)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -240,7 +240,7 @@ TEST_P(BVModelTests, TestPBVSubSat)
 
 TEST_P(BVModelTests, TestPBVSubunSat)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -267,7 +267,7 @@ TEST_P(BVModelTests, TestPBVSubunSat)
 // bvmul
 TEST_P(BVModelTests, TestPBVMulSat)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -286,7 +286,7 @@ TEST_P(BVModelTests, TestPBVMulSat)
 
 TEST_P(BVModelTests, TestPBMulbunSat)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -315,7 +315,7 @@ TEST_P(BVModelTests, TestPBMulbunSat)
 // bvudiv
 TEST_P(BVModelTests, TestPBVDivSat)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -334,7 +334,7 @@ TEST_P(BVModelTests, TestPBVDivSat)
 
 TEST_P(BVModelTests, TestPBVDivunSat)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -362,7 +362,7 @@ TEST_P(BVModelTests, TestPBVDivunSat)
 // bvNot
 TEST_P(BVModelTests, TestPBVNotSat)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -381,7 +381,7 @@ TEST_P(BVModelTests, TestPBVNotSat)
 
 TEST_P(BVModelTests, TestPBVNotunSat)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -409,7 +409,7 @@ TEST_P(BVModelTests, TestPBVNotunSat)
 // bvNeg
 TEST_P(BVModelTests, TestPBVNegSat)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -429,7 +429,7 @@ TEST_P(BVModelTests, TestPBVNegSat)
 
 TEST_P(BVModelTests, TestPBVNegSat2)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -452,7 +452,7 @@ TEST_P(BVModelTests, TestPBVNegSat2)
 
 TEST_P(BVModelTests, TestPBVNegunSat)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -474,7 +474,7 @@ TEST_P(BVModelTests, TestPBVNegunSat)
 // bvsmod
 TEST_P(BVModelTests, TestPBVModSat)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -493,7 +493,7 @@ TEST_P(BVModelTests, TestPBVModSat)
 
 TEST_P(BVModelTests, TestPBVModunSat)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -512,7 +512,7 @@ TEST_P(BVModelTests, TestPBVModunSat)
 // bvshl
 TEST_P(BVModelTests, TestPBVShlSat)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -531,7 +531,7 @@ TEST_P(BVModelTests, TestPBVShlSat)
 
 TEST_P(BVModelTests, TestPBVShlunSat)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -553,7 +553,7 @@ TEST_P(BVModelTests, TestPBVShlunSat)
 // bvAshr
 TEST_P(BVModelTests, TestPBVAshrSat)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -574,7 +574,7 @@ TEST_P(BVModelTests, TestPBVAshrSat)
 
 TEST_P(BVModelTests, TestPBVAshrunSat)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -593,7 +593,7 @@ TEST_P(BVModelTests, TestPBVAshrunSat)
 // bvConcat
 TEST_P(BVModelTests, TestPBVConcatSat)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -614,7 +614,7 @@ TEST_P(BVModelTests, TestPBVConcatSat)
 
 TEST_P(BVModelTests, TestPBVConcatSat2)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -635,7 +635,7 @@ TEST_P(BVModelTests, TestPBVConcatSat2)
 
 TEST_P(BVModelTests, TestPBVConcatSat3)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -660,7 +660,7 @@ TEST_P(BVModelTests, TestPBVConcatSat3)
 
 TEST_P(BVModelTests, TestPBVConcatunSat)
 {
-  PBVSolver* s = new PBVSolver(smtsolver);
+  PBVSolver* s = new PBVSolver(smtsolver, 1);
   s->set_opt("produce-models", "true");
   Sort intsort = s->make_sort(INT);
   Term k = s->make_symbol("k", intsort);
@@ -686,7 +686,7 @@ TEST_P(BVModelTests, TestPBVConcatunSat)
 
 // TEST_P(BVModelTests, TestPBVconst2)
 // {
-//   PBVSolver* s = new PBVSolver(smtsolver);
+//   PBVSolver* s = new PBVSolver(smtsolver, 1);
 //   s->set_opt("produce-models", "true");
 //   Sort intsort = s->make_sort(INT);
 //   Term k = s->make_symbol("k", intsort);

@@ -41,11 +41,48 @@ class SmtLibReaderTester : public SmtLibReader
   vector<Result> results_;
 };
 
+int help = 0;
+int debug = 0;
+int pbvsolver = 0;
+
+
+void parse_args(int argc, char** argv) {
+  vector<string> args(argv + 1, argv + argc);
+    for (auto i = args.begin(); i != args.end(); ++i) {
+      if (!(*i).compare("-h") ||  !(*i).compare("--help")) {
+        help = 1;
+        cout << "Syntax: ./pbvsolver <path/to/smt2>" << endl;
+        cout << "\t-h / --help\t\tprint help command line arrgument on screen." << endl;
+        cout << "\t-d / --debug\t\tprint debug on screen." << endl;
+        cout << "\t-p / --pbvsolver\tuse Efficient PBVSolver." << endl;
+        //cout << "\t--pbv\tpbvsolver" << endl;
+      } else if (!(*i).compare("-d") ||  !(*i).compare("--debug")) {
+        debug = 1;
+      } else if (!(*i).compare("-p") ||  !(*i).compare("--pbvsolver")) {
+        pbvsolver = 1;
+      }
+    }
+}
+
+
+
 int main(int argc, char** argv){
+  parse_args(argc, argv);
+    if (help) {
+    return 0;
+  }
   string test = argv[1];
-  cout << "test path: " << test << endl;
+  if (debug) {
+    cout << "test path: " << test << endl;
+  }
   SmtSolver cvc5 = Cvc5SolverFactory::create(false);
-  SmtSolver s = std::make_shared<PBVSolver>(cvc5);
+  SmtSolver s;
+  if (pbvsolver) {
+     s = std::make_shared<EfficientPBVSolver>(cvc5, debug);
+  }
+  else {
+    s = std::make_shared<PBVSolver>(cvc5, debug);
+  }
   s->set_opt("produce-models", "true");
   SmtLibReaderTester* reader = new SmtLibReaderTester(s);
   reader->parse(test);

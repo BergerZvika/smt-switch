@@ -19,7 +19,7 @@ class BVModelTests : public ::testing::Test,
   void SetUp() override
   {
     SmtSolver solver = create_solver(GetParam());
-    s = new PBVSolver(solver);
+    s = new PBVSolver(solver, 1);
     s->set_opt("produce-models", "true");
 
   }

@@ -71,7 +71,7 @@ class ReaderTests
     SolverConfiguration sc = get<0>(GetParam());
     SmtSolver solve = create_solver(sc);
     cout << sc <<endl;
-    s = std::make_shared<PBVSolver>(solve);
+    s = std::make_shared<PBVSolver>(solve, 1);
     s->set_opt("produce-models", "true");
     reader = new SmtLibReaderTester(s);
   }
