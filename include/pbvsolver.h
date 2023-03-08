@@ -9,31 +9,49 @@ using namespace std;
 namespace smt {
 
   // PBVWalker
-  class PBVWalker : public IdentityWalker
+  class AbstractPBVWalker : public IdentityWalker
 {
-  TermVec* term_rules;
-  TermVec* operator_rules;
-  Term two, bvand;
+  protected:
+    TermVec* term_rules;
+    TermVec* operator_rules;
+    Term two, bvand;
   public:
-    PBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {
+    AbstractPBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {
       this->term_rules = term_rules;
       this->operator_rules = operator_rules;
       Sort intsort = solver->make_sort(INT);
       this->two = solver->make_term(2, intsort);
       Sort funsort = solver->make_sort(FUNCTION, SortVec{intsort, intsort, intsort, intsort});
       this->bvand = solver->make_symbol("bvand", funsort);
-      // cout << 1 << endl;
-      // operator_rules->push_back(bvand_axiom());
-      // cout << 2 << endl;
     }
 
-    WalkerStepResult visit_term(Term & term) override;
+    WalkerStepResult visit_term(Term & term);
 
     Term make_bit_width_term(TermIter it);
     Term get_bit_width_term(TermIter it);
-    Term bvand_axiom();
+};
 
-    
+  class PBVWalker : public AbstractPBVWalker
+{
+  public:
+    PBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) 
+        : AbstractPBVWalker(solver, term_rules, operator_rules, power2) {
+        // cout << 1 << endl;
+        // operator_rules->push_back(bvand_axiom());
+        // cout << 2 << endl;
+        // cout << "PBVWalker" << endl;
+      }
+
+      Term bvand_axiom();
+};
+
+  class EfficientPBVWalker : public AbstractPBVWalker
+{
+  public:
+    EfficientPBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) 
+        : AbstractPBVWalker(solver, term_rules, operator_rules, power2) {
+          // cout << "Efficiecd ntPBVWalker" << endl;
+        }
 };
 
 // PBVConstantWalker
@@ -54,7 +72,7 @@ class AbstractPBVSolver : public AbsSmtSolver
    Term power2;
    TermVec term_rules;
    TermVec operator_rules;
-   PBVWalker* walker;
+   AbstractPBVWalker* walker;
    int debug = 0;
   public:
     AbstractPBVSolver(SmtSolver s);

@@ -16,7 +16,6 @@ namespace smt {
         // term_rules = new TermVec();
         // operator_rules = new TermVec();
           Sort intsort = s->make_sort(INT);
-          this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
     }
 
     AbstractPBVSolver::AbstractPBVSolver(SmtSolver s, int debug) : AbsSmtSolver(s->get_solver_enum()),
@@ -24,7 +23,6 @@ namespace smt {
         // term_rules = new TermVec();
         // operator_rules = new TermVec();
           Sort intsort = s->make_sort(INT);
-          this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
     }
 
     // implemented
@@ -236,20 +234,57 @@ namespace smt {
         return wrapped_solver->make_term(op, t0, t1);
     }
 
+Term AbstractPBVSolver::translate_term( const Term & t) {
+        // PBVConstantWalker* walker = new PBVConstantWalker(wrapped_solver);
+        // PBVWalker* walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+        Term& t1 = const_cast<Term&>(t); // todo: add const to Walker->visit.
+        // cout << "translate: " << t << endl;
+        Term res = this->walker->visit(t1);
+        // res /\ set rules
+        for (Term r : term_rules) {
+            // cout << r << endl;
+            res = wrapped_solver->make_term(And, res, r);
+        }
+        for (Term r : operator_rules) {
+            // cout << r << endl;
+            res = wrapped_solver->make_term(And, res, r);
+        }
+        if (this->debug) {
+            cout << "original term: " << t << endl;
+            cout << "translate term: " << res << endl;
+        }
+        // cout << "adding terms rules: " << term_rules << endl;
+        // cout << "adding operators rules: " << operator_rules << endl;
+        term_rules.clear();
+        operator_rules.clear();
+        return res;
+    }
+
+
     // pbvsolver
-    PBVSolver::PBVSolver(SmtSolver s) : AbstractPBVSolver(s) {};
-    PBVSolver::PBVSolver(SmtSolver s, int debug) : AbstractPBVSolver(s, debug) {};
-        void PBVSolver::assert_formula(const Term & t) {
+    PBVSolver::PBVSolver(SmtSolver s) : AbstractPBVSolver(s) {
+        this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+    };
+    PBVSolver::PBVSolver(SmtSolver s, int debug) : AbstractPBVSolver(s, debug) {
+        this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+    };
+    void PBVSolver::assert_formula(const Term & t) {
         if(this->debug) {
             cout << "PBVSolver:" << endl;
-        }
+        }      
         Term res = translate_term(t);
         wrapped_solver->assert_formula(res);
     }
+    
+  
 
     // EfficientPBVSolver
-    EfficientPBVSolver::EfficientPBVSolver(SmtSolver s) : AbstractPBVSolver(s) {};
-    EfficientPBVSolver::EfficientPBVSolver(SmtSolver s, int debug) : AbstractPBVSolver(s, debug) {};
+    EfficientPBVSolver::EfficientPBVSolver(SmtSolver s) : AbstractPBVSolver(s) {
+        this->walker = new EfficientPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+    };
+    EfficientPBVSolver::EfficientPBVSolver(SmtSolver s, int debug) : AbstractPBVSolver(s, debug) {
+        this->walker = new EfficientPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+    };
     void EfficientPBVSolver::assert_formula(const Term & t) {
         if(this->debug) {
             cout << "EfficientPBVSolver:" << endl;
@@ -258,36 +293,10 @@ namespace smt {
         wrapped_solver->assert_formula(res);
     }
 
-    Term AbstractPBVSolver::translate_term( const Term & t) {
-        // PBVConstantWalker* walker = new PBVConstantWalker(wrapped_solver);
-        // PBVWalker* walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        Term& t1 = const_cast<Term&>(t); // todo: add const to Walker->visit.
-        // cout << "translate: " << t << endl;
-        Term res = this->walker->visit(t1);
-        // res /\ set rules
-        // cout << "adding terms rules: ";
-        for (Term r : term_rules) {
-            // cout << r << endl;
-            res = wrapped_solver->make_term(And, res, r);
-        }
-        // cout << endl;
-        // cout << "adding operators rules: ";
-        for (Term r : operator_rules) {
-            // cout << r << endl;
-            res = wrapped_solver->make_term(And, res, r);
-        }
-        if(this->debug) {
-            cout << "original term: " << t << endl;
-            cout << "translate term: " << res << endl;
-        }
-        term_rules.clear();
-        operator_rules.clear();
-        return res;
-    }
 
 
 // PBVWalker function
-Term PBVWalker::make_bit_width_term(TermIter it) {
+Term AbstractPBVWalker::make_bit_width_term(TermIter it) {
     Sort s_left = (*it)->get_sort();
     shared_ptr<PBVSort> pbvs_left = static_pointer_cast<PBVSort>(s_left);
     Term width_left = pbvs_left->get_term();
@@ -300,7 +309,7 @@ Term PBVWalker::make_bit_width_term(TermIter it) {
     return bitWidth;
 }
 
-Term PBVWalker::get_bit_width_term(TermIter it) {
+Term AbstractPBVWalker::get_bit_width_term(TermIter it) {
     Sort s = (*it)->get_sort();
     shared_ptr<PBVSort> pbvs = static_pointer_cast<PBVSort>(s);
     Term width = pbvs->get_term();
@@ -352,7 +361,7 @@ Term PBVWalker::bvand_axiom() {
 }
 
 
-WalkerStepResult PBVWalker::visit_term(Term & term) {
+WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
   if (!preorder_)
   {
     Op op = term->get_op();
