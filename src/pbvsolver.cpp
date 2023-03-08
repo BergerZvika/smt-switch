@@ -270,7 +270,7 @@ Term AbstractPBVSolver::translate_term( const Term & t) {
     };
     void PBVSolver::assert_formula(const Term & t) {
         if(this->debug) {
-            cout << "PBVSolver:" << endl;
+            cout << "PBVSolver: " << endl;
         }      
         Term res = translate_term(t);
         wrapped_solver->assert_formula(res);
