@@ -27,22 +27,24 @@ namespace smt {
 
     WalkerStepResult visit_term(Term & term);
 
-    Term make_bit_width_term(TermIter it);
+    void make_bit_width_term(TermIter it);
     Term get_bit_width_term(TermIter it);
+    virtual void bvand_handle() = 0;
 };
 
   class PBVWalker : public AbstractPBVWalker
 {
+  protected:
+    int singlenton_axiom = 0;
   public:
     PBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) 
         : AbstractPBVWalker(solver, term_rules, operator_rules, power2) {
         // cout << 1 << endl;
-        // operator_rules->push_back(bvand_axiom());
+        // operator_rules->push_back(bvand_handle());
         // cout << 2 << endl;
         // cout << "PBVWalker" << endl;
       }
-
-      Term bvand_axiom();
+      void bvand_handle();
 };
 
   class EfficientPBVWalker : public AbstractPBVWalker
@@ -52,6 +54,8 @@ namespace smt {
         : AbstractPBVWalker(solver, term_rules, operator_rules, power2) {
           // cout << "Efficiecd ntPBVWalker" << endl;
         }
+
+    void bvand_handle();
 };
 
 // PBVConstantWalker

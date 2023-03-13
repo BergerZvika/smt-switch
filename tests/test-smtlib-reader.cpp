@@ -73,6 +73,9 @@ class ReaderTests
     cout << sc << endl;
     s = std::make_shared<PBVSolver>(solve, 1);
     s->set_opt("produce-models", "true");
+    s->set_opt("nl-ext-tplanes", "true");
+    // s->set_opt("finite-model-find", "true");
+    s->set_opt("full-saturate-quant", "true");
     reader = new SmtLibReaderTester(s);
   }
 

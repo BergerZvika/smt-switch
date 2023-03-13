@@ -78,12 +78,21 @@ int main(int argc, char** argv){
   SmtSolver cvc5 = Cvc5SolverFactory::create(false);
   SmtSolver s;
   if (pbvsolver) {
+    if (debug) {
+      cout << "EfficientPBVSolver:" << endl;
+    }
      s = std::make_shared<EfficientPBVSolver>(cvc5, debug);
   }
   else {
+    if (debug) {
+      cout << "PBVSolver:" << endl;
+    }
     s = std::make_shared<PBVSolver>(cvc5, debug);
   }
   s->set_opt("produce-models", "true");
+  s->set_opt("nl-ext-tplanes", "true");
+  // s->set_opt("finite-model-find", "true");
+  s->set_opt("full-saturate-quant", "true");
   SmtLibReaderTester* reader = new SmtLibReaderTester(s);
   reader->parse(test);
   auto results = reader->get_results();

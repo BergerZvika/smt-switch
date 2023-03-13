@@ -268,10 +268,7 @@ Term AbstractPBVSolver::translate_term( const Term & t) {
     PBVSolver::PBVSolver(SmtSolver s, int debug) : AbstractPBVSolver(s, debug) {
         this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
     };
-    void PBVSolver::assert_formula(const Term & t) {
-        if(this->debug) {
-            cout << "PBVSolver: " << endl;
-        }      
+    void PBVSolver::assert_formula(const Term & t) { 
         Term res = translate_term(t);
         wrapped_solver->assert_formula(res);
     }
@@ -285,10 +282,7 @@ Term AbstractPBVSolver::translate_term( const Term & t) {
     EfficientPBVSolver::EfficientPBVSolver(SmtSolver s, int debug) : AbstractPBVSolver(s, debug) {
         this->walker = new EfficientPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
     };
-    void EfficientPBVSolver::assert_formula(const Term & t) {
-        if(this->debug) {
-            cout << "EfficientPBVSolver:" << endl;
-        }      
+    void EfficientPBVSolver::assert_formula(const Term & t) {   
         Term res = translate_term(t);
         wrapped_solver->assert_formula(res);
     }
@@ -296,17 +290,22 @@ Term AbstractPBVSolver::translate_term( const Term & t) {
 
 
 // PBVWalker function
-Term AbstractPBVWalker::make_bit_width_term(TermIter it) {
-    Sort s_left = (*it)->get_sort();
-    shared_ptr<PBVSort> pbvs_left = static_pointer_cast<PBVSort>(s_left);
-    Term width_left = pbvs_left->get_term();
+void AbstractPBVWalker::make_bit_width_term(TermIter it) {
+    Term t0 = (*it);
     it++;
-    Sort s_right = (*it)->get_sort();
-    shared_ptr<PBVSort> pbvs_right = static_pointer_cast<PBVSort>(s_right);
-    Term width_right = pbvs_right->get_term();
-    Term bitWidth = solver_->make_term(Equal, width_left, width_right);
-    // cout << bitWidth << endl;
-    return bitWidth;
+    Term t1 = (*it);
+    if (t0->is_pbvterm() && t1->is_pbvterm()) {
+        Sort s_left = t0->get_sort();
+        Sort s_right = t1->get_sort();
+        shared_ptr<PBVSort> pbvs_left = static_pointer_cast<PBVSort>(s_left);
+        Term width_left = pbvs_left->get_term();
+
+        shared_ptr<PBVSort> pbvs_right = static_pointer_cast<PBVSort>(s_right);
+        Term width_right = pbvs_right->get_term();
+        Term bitWidth = solver_->make_term(Equal, width_left, width_right);
+        // cout << bitWidth << endl;
+        operator_rules->push_back(bitWidth);
+    }
 }
 
 Term AbstractPBVWalker::get_bit_width_term(TermIter it) {
@@ -322,22 +321,25 @@ Term AbstractPBVWalker::get_bit_width_term(TermIter it) {
     }
 }
 
-Term PBVWalker::bvand_axiom() {
+void PBVWalker::bvand_handle() {
+    if (singlenton_axiom) {
+        return;
+    }
+    singlenton_axiom = 1;
     Sort intsort = solver_->make_sort(INT);
-    Term k = solver_->make_symbol("k", intsort);
-    Term x = solver_->make_symbol("x", intsort);
-    Term y = solver_->make_symbol("y", intsort);
+    Term k = solver_->make_param("k", intsort);
+    Term x = solver_->make_param("x", intsort);
+    Term y = solver_->make_param("y", intsort);
     // create axiom
     Term zero =  solver_->make_term(0, intsort);
     Term one =  solver_->make_term(1, intsort);
     Term condition = solver_->make_term(Gt, k, one);
-    
     // then
     Term k_minus_one = solver_->make_term(Minus, k, one);
     Term pow2_k_minus_one = solver_->make_term(Pow, this->two, k_minus_one);
     Term x_mod_k_minus_one = solver_->make_term(Mod, x, pow2_k_minus_one);
     Term y_mod_k_minus_one = solver_->make_term(Mod, y, pow2_k_minus_one);
-    Term then_branch = solver_->make_term(Apply, TermVec{this->bvand, k_minus_one, x_mod_k_minus_one, y_mod_k_minus_one});
+    Term then_branch = solver_->make_term(Apply, {this->bvand, k_minus_one, x_mod_k_minus_one, y_mod_k_minus_one});
     // else zero. ite
     Term ite = solver_->make_term(Ite, condition, then_branch, zero);
     // plus
@@ -350,14 +352,16 @@ Term PBVWalker::bvand_axiom() {
     Term and_condition = solver_->make_term(And, x_div_k_mod_2_equal_1, y_div_k_mod_2_equal_1);
     Term ite_plus = solver_->make_term(Ite, and_condition, pow2_k_minus_one, zero);
     Term plus = solver_->make_term(Plus, ite, ite_plus);
-    cout << 1.1 << endl;
-    // return solver_->make_term(Forall, {k, x, y, plus});
-    // return solver_->make_term(Forall, {k}, solver_->make_term(Forall, {x}, solver_->make_term(Forall, {y}, plus)));
+    Term ufbvand = solver_->make_term(Apply, {this->bvand, k, x, y});
+    Term equal = solver_->make_term(Equal, ufbvand, plus);
     // forall
-    Term forally = solver_->make_term(Forall, y, plus);
-    cout << 1.2 << endl;
-    Term forallx = solver_->make_term(Forall, x, forally);
-    return solver_->make_term(Forall, k, forallx);
+    Term forally = solver_->make_term(Forall, {y}, equal);
+    Term forallx = solver_->make_term(Forall, {x}, forally);
+    this->operator_rules->push_back(solver_->make_term(Forall, {k}, forallx));
+}
+
+void EfficientPBVWalker::bvand_handle() {
+    cout << "EfficientPBVWalker::bvand_handle " << endl;
 }
 
 
@@ -387,44 +391,44 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
             // assert();
             // cout << primop << endl;
             switch (primop) {
-                case Equal: { operator_rules->push_back(make_bit_width_term(it));
+                case Equal: { make_bit_width_term(it);
                             } break;
-                case Distinct: { operator_rules->push_back(make_bit_width_term(it));
+                case Distinct: { make_bit_width_term(it);
                             } break;
                 case BVUge: { int_op = Ge;
-                              operator_rules->push_back(make_bit_width_term(it));
+                              make_bit_width_term(it);
                               save_in_cache(term, solver_->make_term(int_op, cached_children));
                             } break;
                 case BVUgt: { int_op = Gt;
-                              operator_rules->push_back(make_bit_width_term(it));
+                              make_bit_width_term(it);
                               save_in_cache(term, solver_->make_term(int_op, cached_children));
                             } break;
                 case BVUle: { int_op = Le;
-                              operator_rules->push_back(make_bit_width_term(it));
+                              make_bit_width_term(it);
                               save_in_cache(term, solver_->make_term(int_op, cached_children));
                             } break;
                 case BVUlt: { int_op = Lt;
-                              operator_rules->push_back(make_bit_width_term(it));
+                              make_bit_width_term(it);
                               save_in_cache(term, solver_->make_term(int_op, cached_children));
                             } break;
                 case BVAdd: { int_op = Mod;
                             bit_width = get_bit_width_term(it);
-                            operator_rules->push_back(make_bit_width_term(it));
+                            make_bit_width_term(it);
                             int_term = solver_->make_term(Plus, cached_children);
                             } break;
                 case BVSub: { int_op = Mod;
                             bit_width = get_bit_width_term(it);
-                            operator_rules->push_back(make_bit_width_term(it));
+                            make_bit_width_term(it);
                             int_term = solver_->make_term(Minus, cached_children);
                             } break;
                 case BVMul: { int_op = Mod;
                             bit_width = get_bit_width_term(it);
-                            operator_rules->push_back(make_bit_width_term(it));
+                            make_bit_width_term(it);
                             int_term = solver_->make_term(Mult, cached_children);
                             } break;
                 case BVUdiv: { int_op = Ite;
                             bit_width = get_bit_width_term(it);
-                            operator_rules->push_back(make_bit_width_term(it));
+                            make_bit_width_term(it);
                             Term y = *(++it);
                             Term translate_y;
                             query_cache(y, translate_y);
@@ -440,7 +444,7 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                             } break;
                 case BVSmod: { int_op = Ite;
                             bit_width = get_bit_width_term(it);
-                            operator_rules->push_back(make_bit_width_term(it));
+                            make_bit_width_term(it);
                             Term x = *it;
                             Term translate_x;
                             query_cache(x, translate_x);
@@ -512,18 +516,19 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                               Term x_mult_power2_y = solver_->make_term(Mult, translate_x, power2_y);
                               save_in_cache(term, solver_->make_term(int_op, x_mult_power2_y, translate_y));
                             } break;
-                // case BVAnd: { int_op = Apply;
-                //               Term k = get_bit_width_term(it);
-                //               operator_rules->push_back(make_bit_width_term(it));
-                //               Term x = *it;
-                //               Term translate_x;
-                //               query_cache(x, translate_x);
-                //               Term y = *(++it);
-                //               Term translate_y;
-                //               query_cache(y, translate_y);
-                //               save_in_cache(term, solver_->make_term(int_op, TermVec{this->bvand, k, translate_x, translate_y}));
-                //             //   save_in_cache(term, solver_->make_term(int_op, TermVec{this->bvand, k, cached_children}));
-                //             } break;
+                case BVAnd: { int_op = Apply;
+                              Term k = get_bit_width_term(it);
+                              make_bit_width_term(it);
+                              Term x = *it;
+                              Term translate_x;
+                              query_cache(x, translate_x);
+                              Term y = *(++it);
+                              Term translate_y;
+                              query_cache(y, translate_y);
+                              bvand_handle();
+                              save_in_cache(term, solver_->make_term(int_op, {this->bvand, k, translate_x, translate_y}));
+                            //   save_in_cache(term, solver_->make_term(int_op, TermVec{this->bvand, k, cached_children}));
+                            } break;
                 // case BVOr: { int_op = Minus;
                 //               Term k = *(++it);
                 //               Term translate_k;
