@@ -236,9 +236,7 @@ namespace smt {
 
 Term AbstractPBVSolver::translate_term( const Term & t) {
         // PBVConstantWalker* walker = new PBVConstantWalker(wrapped_solver);
-        // PBVWalker* walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
         Term& t1 = const_cast<Term&>(t); // todo: add const to Walker->visit.
-        // cout << "translate: " << t << endl;
         Term res = this->walker->visit(t1);
         // res /\ set rules
         for (Term r : term_rules) {
@@ -246,15 +244,13 @@ Term AbstractPBVSolver::translate_term( const Term & t) {
             res = wrapped_solver->make_term(And, res, r);
         }
         for (Term r : operator_rules) {
-            // cout << r << endl;
+            // cout << "lemma: " << r << endl;
             res = wrapped_solver->make_term(And, res, r);
         }
         if (this->debug) {
             cout << "original term: " << t << endl;
             cout << "translate term: " << res << endl;
         }
-        // cout << "adding terms rules: " << term_rules << endl;
-        // cout << "adding operators rules: " << operator_rules << endl;
         term_rules.clear();
         operator_rules.clear();
         return res;
@@ -282,20 +278,6 @@ Term AbstractPBVSolver::translate_term( const Term & t) {
         Term res = translate_term(t);
         wrapped_solver->assert_formula(res);
     }
-
-    // // fullpbvsolver
-    // FullPBVSolver::PBVSolver(SmtSolver s) : AbstractPBVSolver(s) {
-    //     this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-    // };
-    // FullPBVSolver::PBVSolver(SmtSolver s, int debug) : AbstractPBVSolver(s, debug) {
-    //     this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-    // };
-    // void FullPBVSolver::assert_formula(const Term & t) { 
-    //     Term res = translate_term(t);
-    //     wrapped_solver->assert_formula(res);
-    // }
-    
-  
 
     // EfficientPBVSolver
     EfficientPBVSolver::EfficientPBVSolver(SmtSolver s) : AbstractPBVSolver(s) {
@@ -684,36 +666,42 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                               save_in_cache(term, solver_->make_term(int_op, {this->bvand, k, translate_x, translate_y}));
                             //   save_in_cache(term, solver_->make_term(int_op, TermVec{this->bvand, k, cached_children}));
                             } break;
-                // case BVOr: { int_op = Minus;
-                //               Term k = *(++it);
-                //               Term translate_k;
-                //               query_cache(k, translate_k);
-                //               Term x = *it;
-                //               Term translate_x;
-                //               query_cache(x, translate_x);
-                //               Term y = *(++it);
-                //               Term translate_y;
-                //               query_cache(y, translate_y);
-                //               // translate to bvand
-                //               Term x_plus_y = solver_->make_term(BVAdd, x, y);
-                //               Term x_and_y = solver_->make_term(BVAnd, k, x, y);
-                //               save_in_cache(term, solver_->make_term(int_op, x_plus_y, x_and_y));
-                //             } break;
-                // case BVXor: { int_op = Minus;
-                //               Term k = *(++it);
-                //               Term translate_k;
-                //               query_cache(k, translate_k);
-                //               Term x = *it;
-                //               Term translate_x;
-                //               query_cache(x, translate_x);
-                //               Term y = *(++it);
-                //               Term translate_y;
-                //               query_cache(y, translate_y);
-                //               // translate to bvand
-                //               Term x_or_y = solver_->make_term(BVOr, k, x, y);
-                //               Term x_and_y = solver_->make_term(BVAnd, k, x, y);
-                //               save_in_cache(term, solver_->make_term(int_op, x_or_y, x_and_y));
-                //             } break;
+                case BVOr: {  int_op = Minus;
+                              Term k = get_bit_width_term(it);
+                              make_bit_width_term(it);
+                              Term translate_k;
+                              query_cache(k, translate_k);
+                              Term x = *it;
+                              Term translate_x;
+                              query_cache(x, translate_x);
+                              Term y = *(++it);
+                              Term translate_y;
+                              query_cache(y, translate_y);
+                              // translate to bvand
+                              Term x_plus_y = solver_->make_term(Plus, cached_children);
+                              Term x_and_y = solver_->make_term(Apply, {this->bvand, k, translate_x, translate_y});
+                              bvand_handle();
+                              save_in_cache(term, solver_->make_term(int_op, x_plus_y, x_and_y));
+                            } break;
+                case BVXor: { int_op = Minus;
+                              Term k = get_bit_width_term(it);
+                              make_bit_width_term(it);
+                              Term translate_k;
+                              query_cache(k, translate_k);
+                              Term x = *it;
+                              Term translate_x;
+                              query_cache(x, translate_x);
+                              Term y = *(++it);
+                              Term translate_y;
+                              query_cache(y, translate_y);
+                              // bvor and
+                              Term x_plus_y = solver_->make_term(Plus, cached_children);
+                              Term x_and_y = solver_->make_term(Apply, {this->bvand, k, translate_x, translate_y});
+                              bvand_handle();
+                              Term x_or_y = solver_->make_term(int_op, x_plus_y, x_and_y);
+                              bvand_handle();
+                              save_in_cache(term, solver_->make_term(int_op, x_or_y, x_and_y));
+                            } break;
                 default: 
                     cout << primop << endl;
                     assert(false);
