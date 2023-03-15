@@ -43,7 +43,7 @@ class SmtLibReaderTester : public SmtLibReader
 
 int help = 0;
 int debug = 0;
-int pbvsolver = 0;
+int pbvsolver = 1;
 
 
 void parse_args(int argc, char** argv) {
@@ -54,12 +54,21 @@ void parse_args(int argc, char** argv) {
         cout << "Syntax: ./pbvsolver <path/to/smt2>" << endl;
         cout << "\t-h / --help\t\tprint help command line arrgument on screen." << endl;
         cout << "\t-d / --debug\t\tprint debug on screen." << endl;
-        cout << "\t-p / --pbvsolver\tuse Efficient PBVSolver." << endl;
+        cout << "\t--pbvsolver\tuse Efficient PBVSolver." << endl;
+        cout << "\t-c / --comb\tuse PBVSolver with comb (default)." << endl;
+        cout << "\t-f / --full\tuse PBVSolver with full." << endl;
+        cout << "\t-p / --partial\tuse PBVSolver with partial." << endl;
         //cout << "\t--pbv\tpbvsolver" << endl;
       } else if (!(*i).compare("-d") ||  !(*i).compare("--debug")) {
         debug = 1;
-      } else if (!(*i).compare("-p") ||  !(*i).compare("--pbvsolver")) {
+      } else if (!(*i).compare("--pbvsolver")) {
+        pbvsolver = 0;
+      }  else if (!(*i).compare("-c") ||  !(*i).compare("--comb")) {
         pbvsolver = 1;
+      } else if (!(*i).compare("-f") ||  !(*i).compare("--full")) {
+        pbvsolver = 2;
+      }  else if (!(*i).compare("-p") ||  !(*i).compare("--partial")) {
+        pbvsolver = 3;
       }
     }
 }
@@ -77,7 +86,7 @@ int main(int argc, char** argv){
   }
   SmtSolver cvc5 = Cvc5SolverFactory::create(false);
   SmtSolver s;
-  if (pbvsolver) {
+  if (pbvsolver == 0) {
     if (debug) {
       cout << "EfficientPBVSolver:" << endl;
     }
@@ -87,7 +96,7 @@ int main(int argc, char** argv){
     if (debug) {
       cout << "PBVSolver:" << endl;
     }
-    s = std::make_shared<PBVSolver>(cvc5, debug);
+    s = std::make_shared<PBVSolver>(cvc5, debug, pbvsolver);
   }
   s->set_opt("produce-models", "true");
   s->set_opt("nl-ext-tplanes", "true");

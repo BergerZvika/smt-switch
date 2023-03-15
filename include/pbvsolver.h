@@ -14,7 +14,7 @@ namespace smt {
   protected:
     TermVec* term_rules;
     TermVec* operator_rules;
-    Term two, bvand;
+    Term two, bvand, k, x, y;
   public:
     AbstractPBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {
       this->term_rules = term_rules;
@@ -23,6 +23,9 @@ namespace smt {
       this->two = solver->make_term(2, intsort);
       Sort funsort = solver->make_sort(FUNCTION, SortVec{intsort, intsort, intsort, intsort});
       this->bvand = solver->make_symbol("bvand", funsort);
+      this->k = solver->make_param("k", intsort);
+      this->x = solver->make_param("x", intsort);
+      this->y = solver->make_param("y", intsort);
     }
 
     WalkerStepResult visit_term(Term & term);
@@ -30,6 +33,16 @@ namespace smt {
     void make_bit_width_term(TermIter it);
     Term get_bit_width_term(TermIter it);
     virtual void bvand_handle() = 0;
+    Term bvand_fullaxiom();
+    Term bvand_basecase();
+    Term bvand_max();
+    Term bvand_min();
+    Term bvand_idempotence();
+    Term bvand_contradiction();
+    Term bvand_symmetry();
+    Term bvand_difference();
+    Term bvand_min_range();
+    Term bvand_max_range();
 };
 
   class PBVWalker : public AbstractPBVWalker
@@ -39,12 +52,32 @@ namespace smt {
   public:
     PBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) 
         : AbstractPBVWalker(solver, term_rules, operator_rules, power2) {
-        // cout << 1 << endl;
-        // operator_rules->push_back(bvand_handle());
-        // cout << 2 << endl;
-        // cout << "PBVWalker" << endl;
       }
       void bvand_handle();
+};
+
+class PartialPBVWalker : public AbstractPBVWalker
+{
+  protected:
+    int singlenton_axiom = 0;
+  public:
+    PartialPBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) 
+        : AbstractPBVWalker(solver, term_rules, operator_rules, power2) {
+      }
+      void bvand_handle();
+};
+
+  class FullPBVWalker : public AbstractPBVWalker
+{
+  protected:
+    int singlenton_axiom = 0;
+  public:
+    FullPBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) 
+        : AbstractPBVWalker(solver, term_rules, operator_rules, power2) {
+          // cout << "Efficiecd ntPBVWalker" << endl;
+        }
+
+    void bvand_handle();
 };
 
   class EfficientPBVWalker : public AbstractPBVWalker
@@ -164,13 +197,13 @@ class PBVSolver : public AbstractPBVSolver
     public:
     PBVSolver(SmtSolver s);
     PBVSolver(SmtSolver s, int debug);
+    PBVSolver(SmtSolver s, int debug, int walker);
     ~PBVSolver(){};
 
     void assert_formula(const Term & t) override;
 };
 
-
-// PBVSolver
+// EfficientPBVSolver
 class EfficientPBVSolver : public AbstractPBVSolver
 {
     public:
