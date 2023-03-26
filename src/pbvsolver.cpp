@@ -751,7 +751,12 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
             //    cout << r << endl; 
             // }
       } else {
-          res = term;
+          if (term->is_value()) { // translate constant bit-vectors like: bv0
+            Sort intsort = solver_->make_sort(INT);
+            res = solver_->make_term(term->to_int(), intsort);
+          } else {
+            res = term;
+          }
       }
       save_in_cache(term, res);
     }
