@@ -2,7 +2,6 @@
 cd ..
 ./contrib/setup-bison.sh
 ./contrib/setup-flex.sh
-./contrib/setup-btor.sh
 ./contrib/setup-cvc5.sh
 ./configure.sh --cvc5 --smtlib-reader --debug --prefix=build/install
 cd build

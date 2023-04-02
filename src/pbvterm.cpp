@@ -61,10 +61,18 @@ PBVTerm::PBVTerm(Op op1, TermVec t) : op(op1), children(t) {
     throw NotImplementedException("is_symbolic_const() not implemented by default");
   }
   bool PBVTerm::is_value() const {
-    throw NotImplementedException("is_value() not implemented by default");
+    try {
+      if (stoi(repr) >= 0) {
+        return true;
+      }
+    }
+    catch (...) {
+      return false;
+    }
   }
+
   uint64_t PBVTerm::to_int() const {
-    throw NotImplementedException("to_int() not implemented by default");
+    return stoi(repr);
   }
   std::string PBVTerm::print_value_as(SortKind sk) {
     throw NotImplementedException("print_value_as() not implemented by default");

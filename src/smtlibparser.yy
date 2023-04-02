@@ -377,6 +377,11 @@ bvconst:
      smt::Sort bvsort = drv.solver()->make_sort(smt::BV, std::stoi($3));
      $$ = drv.solver()->make_term($2, bvsort, 10);
    }
+   | indprefix BVDEC term_s_expr RP
+   {
+    smt::Sort bvsort = drv.solver()->make_sort(smt::BV, $3);
+     $$ = drv.solver()->make_term($2, bvsort, 0);
+   }
 ;
 
 sort:

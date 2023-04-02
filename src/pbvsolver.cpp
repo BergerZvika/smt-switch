@@ -99,6 +99,10 @@ namespace smt {
         return wrapped_solver->make_term(i, sort);
     }
     Term AbstractPBVSolver::make_term(const std::string val, const Sort & sort, uint64_t base) const {
+        if (base == 0) {
+            Term pbvt = std::make_shared<PBVTerm>(val, sort);
+            return pbvt;
+        }
         return wrapped_solver->make_term(val, sort, base);
     }
     Term AbstractPBVSolver::make_term(const Term & val, const Sort & sort) const {
@@ -298,14 +302,28 @@ void AbstractPBVWalker::make_bit_width_term(TermIter it) {
     Term t0 = (*it);
     it++;
     Term t1 = (*it);
-    if (t0->is_pbvterm() && t1->is_pbvterm()) {
-        Sort s_left = t0->get_sort();
-        Sort s_right = t1->get_sort();
-        shared_ptr<PBVSort> pbvs_left = static_pointer_cast<PBVSort>(s_left);
-        Term width_left = pbvs_left->get_term();
+    Sort intsort = solver_->make_sort(INT);
+    if ((t0->is_pbvterm() || t0->is_value()) && (t1->is_pbvterm() || t1->is_value())) {
+        Term width_left;
+        Term width_right;
 
-        shared_ptr<PBVSort> pbvs_right = static_pointer_cast<PBVSort>(s_right);
-        Term width_right = pbvs_right->get_term();
+        if (t0->is_pbvterm()) {
+            Sort s_left = t0->get_sort();
+            shared_ptr<PBVSort> pbvs_left = static_pointer_cast<PBVSort>(s_left);
+            width_left = pbvs_left->get_term();
+        } else {
+            Sort s_left = t0->get_sort();
+            width_left = solver_->make_term(s_left->get_width(), intsort); 
+        }
+
+        if (t1->is_pbvterm()) {
+            Sort s_right = t1->get_sort();
+            shared_ptr<PBVSort> pbvs_right = static_pointer_cast<PBVSort>(s_right);
+            width_right = pbvs_right->get_term();
+        } else {
+            Sort s_right = t1->get_sort();
+            width_right = solver_->make_term(s_right->get_width(), intsort); 
+        }
         Term bitWidth = solver_->make_term(Equal, width_left, width_right);
         // cout << bitWidth << endl;
         operator_rules->push_back(bitWidth);
@@ -719,7 +737,7 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
     {
      Term res;
       // change bv, k ---> integer mod 2 ^ k
-      if(term->is_pbvterm()) {
+      if(term->is_pbvterm() && !term->is_value()) {
         Sort intsort = solver_->make_sort(INT);
         Term k = NULL;
         // cout << "term: " << term << endl;
@@ -806,4 +824,3 @@ return Walker_Continue;
 }
 
 }  // namespace smt
-

@@ -55,6 +55,8 @@ const std::unordered_map<std::string, std::vector<smt::Result>> qf_pbv_tests(
     { 
     { "test-bvand.smt2",
         { smt::Result(smt::UNSAT)}},
+    { "test-bvand2.smt2",
+        { smt::Result(smt::UNSAT)}},
     { "test-k8.smt2",
         { smt::Result(smt::SAT)}},
     { "test-k7.smt2",
