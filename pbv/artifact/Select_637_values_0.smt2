@@ -1,0 +1,8 @@
+(set-logic ALL)
+(declare-const k Int)
+(declare-fun %Y () (_ BitVec k))
+(declare-fun C () (_ BitVec k))
+(declare-fun %X () (_ BitVec k))
+(assert (let ((_let_0 (= %X C))) (not (= (ite _let_0 %X %Y) (ite _let_0 C %Y)))))
+(assert true)
+(check-sat)
