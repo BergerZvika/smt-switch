@@ -20,10 +20,7 @@ For an example of how to link and use `smt-switch`, please see the [examples dir
 $ git clone -b pbv-master https://github.com/BergerZvika/smt-switch.git
 $ cd smt-switch/pbv
 $ bash install.sh
-$ cd ..
-$ LD_LIBRARY_PATH=/usr/local/bin:$(pwd)/build/install/lib 
-$ export LD_LIBRARY_PATH
-$ cd pbv/build
+$ cd build
 $ ./pbvsolver <path to smt2 file>
 ```
 For an example, you can run: ./pbvsolver ../qf_pbv/test-pbvsub-unsat.smt2

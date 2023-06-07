@@ -1,23 +1,35 @@
 cmake_minimum_required(VERSION 3.5)
 project(pbvsolver)
 
-add_library(smtswitch STATIC IMPORTED)
-set_target_properties(smtswitch PROPERTIES IMPORTED_LOCATION  "../../build/install/lib/libsmt-switch.so")
-add_library(cvc5 STATIC IMPORTED)
-set_target_properties(cvc5 PROPERTIES IMPORTED_LOCATION "../../build/install/lib/libsmt-switch-cvc5.so")
-set(LIBS smtswitch cvc5)
+# Include the directory where FindGMP.cmake is located
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
+# Find the GMP library
+find_package(GMP REQUIRED)
 
 # Add the include directory
+include_directories("${PROJECT_SOURCE_DIR}")
 include_directories(
-	"../build/install/include/smt-switch"
-	"../tests"
-	"../build/install/lib"
-)
+	"${PROJECT_SOURCE_DIR}/../build/install/include/smt-switch"
+	"${PROJECT_SOURCE_DIR}/../tests"
+	"${PROJECT_SOURCE_DIR}/../build/install/lib"
+	)
+
+message("-- Project directory source: ${PROJECT_SOURCE_DIR}")
 
 # Add all the header files in the directory
-file(GLOB_RECURSE headers "../build/install/include/smt-switch/*.h" "../tests/*.h")
+file(GLOB headers "../build/install/include/smt-switch/*.h" "../tests/*.h")
+
+# Add the directory containing libsmt-switch.a and libsmt-switch-cvc5.a to the project
+link_directories("${PROJECT_SOURCE_DIR}/../build/install/lib")
 
 add_executable(pbvsolver pbvsolver.cpp ${headers})
 
-target_link_libraries(pbvsolver PUBLIC ${LIBS})
+# Add the GMP include directories
+target_include_directories(pbvsolver PUBLIC ${GMP_INCLUDE_DIRS})
+
+# Link the static libraries to the executable
+target_link_libraries(pbvsolver PUBLIC "${PROJECT_SOURCE_DIR}/../build/install/lib/libsmt-switch-cvc5.a")
+target_link_libraries(pbvsolver PUBLIC "${PROJECT_SOURCE_DIR}/../build/install/lib/libsmt-switch.a")
+target_link_libraries(pbvsolver PUBLIC ${GMP_LIBRARIES})
+
