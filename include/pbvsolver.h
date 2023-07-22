@@ -31,7 +31,12 @@ namespace smt {
     WalkerStepResult visit_term(Term & term);
 
     void make_bit_width_term(TermIter it);
-    Term get_bit_width_term(TermIter it);
+    Term extractSort(Term t);
+    Term uts(Term t);
+    Term bvlshr(Term t_left, Term t_right);
+    Term bvnot(Term t);
+    Term extract(Term x, Term i, Term j);
+    Term get_bit_width_term(Term t);
     virtual void bvand_handle() = 0;
     Term bvand_fullaxiom();
     Term bvand_basecase();

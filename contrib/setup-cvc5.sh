@@ -21,7 +21,7 @@ if [ ! -d "$DEPS/cvc5" ]; then
     chmod -R 777 cvc5
     cd cvc5
     git checkout -f ${CVC5_VERSION}
-    CXXFLAGS=-fPIC CFLAGS=-fPIC ./configure.sh --static --auto-download
+    CXXFLAGS=-fPIC CFLAGS=-fPIC ./configure.sh --static --auto-download --tracing
     cd build
     make -j$NUM_CORES
     cd $DIR

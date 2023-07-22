@@ -1,0 +1,8 @@
+(set-logic ALL)
+(set-option :produce-models true)
+(set-option :incremental true)
+(declare-const k Int)
+(declare-const x (_ BitVec k))
+(assert (bvslt (_ bv1 k) x))
+(check-sat)
+(exit)

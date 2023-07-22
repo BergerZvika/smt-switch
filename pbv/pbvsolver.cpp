@@ -84,7 +84,11 @@ int main(int argc, char** argv){
   if (debug) {
     cout << "test path: " << test << endl;
   }
-  SmtSolver cvc5 = Cvc5SolverFactory::create(false);
+    SmtSolver cvc5 = Cvc5SolverFactory::create(false);
+  // SmtSolver cvc5_1 = Cvc5SolverFactory::create(false);
+  // ostream os1(&strbuf1);
+  // SmtSolver cvc5 =
+  //     create_printing_solver(cvc5_1, &os1, PrintingStyleEnum::DEFAULT_STYLE);
   SmtSolver s;
   if (pbvsolver == 0) {
     if (debug) {
@@ -108,3 +112,24 @@ int main(int argc, char** argv){
   cout << results[0] << endl;
   return 0;
 }
+
+
+
+(assert (and 
+            (and 
+            (and 
+            (and 
+            (and (distinct 
+                (mod (* (mod (* _pbv_s (^ 2 _pbv_t)) (^ 2 k)) (^ 2 _pbv_s)) (^ 2 k))
+                (mod (* (mod (* _pbv_s (^ 2 _pbv_s)) (^ 2 k)) (^ 2 _pbv_t)) (^ 2 k)))
+                (>= _pbv_t 0)) 
+                (< _pbv_t (^ 2 k)))
+                (>= _pbv_s 0)) 
+                (< _pbv_s (^ 2 k))) 
+                (= k k)))
+
+(assert (= (mod (* (mod (^ 2 x) (^ 2 k)) (^ 2 y)) (^ 2 k)) (mod (* (mod (^ 2 y) (^ 2 k)) (^ 2 x)) (^ 2 k))))
+
+
+(assert (not (distinct (mod (mod (^ 2 _pbv_t) ((^ 2 k))) (^ 2 k)) (mod (^ 2 _pbv_t) (^ 2 k)))))
+(assert (not (distinct (mod (^ 2 _pbv_s) (^ 2 k)) (^ 2 _pbv_s))))
