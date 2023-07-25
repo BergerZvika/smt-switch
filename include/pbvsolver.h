@@ -50,7 +50,7 @@ namespace smt {
     Term bvand_max_range();
 };
 
-  class PBVWalker : public AbstractPBVWalker
+class PBVWalker : public AbstractPBVWalker
 {
   protected:
     int singlenton_axiom = 0;
@@ -103,6 +103,23 @@ class PBVConstantWalker : public IdentityWalker
     PBVConstantWalker(const SmtSolver & solver) : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {}
 
     WalkerStepResult visit_term(Term & term) override;  
+};
+
+// PrePBVWalker
+class PrePBVWalker : public IdentityWalker
+{
+  public:
+    PrePBVWalker(const SmtSolver & solver) : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {}
+    WalkerStepResult visit_term(Term & term) override; 
+    Term get_bit_width_term(Term t);
+};
+
+// PostPBVWalker
+class PostPBVWalker : public IdentityWalker
+{
+  public:
+    PostPBVWalker(const SmtSolver & solver)  : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {}
+    WalkerStepResult visit_term(Term & term) override; 
 };
 
 
@@ -218,5 +235,6 @@ class EfficientPBVSolver : public AbstractPBVSolver
 
     void assert_formula(const Term & t) override;
 };
+
 
 } // namespace smt
