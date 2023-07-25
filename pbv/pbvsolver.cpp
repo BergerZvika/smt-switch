@@ -112,24 +112,3 @@ int main(int argc, char** argv){
   cout << results[0] << endl;
   return 0;
 }
-
-
-
-(assert (and 
-            (and 
-            (and 
-            (and 
-            (and (distinct 
-                (mod (* (mod (* _pbv_s (^ 2 _pbv_t)) (^ 2 k)) (^ 2 _pbv_s)) (^ 2 k))
-                (mod (* (mod (* _pbv_s (^ 2 _pbv_s)) (^ 2 k)) (^ 2 _pbv_t)) (^ 2 k)))
-                (>= _pbv_t 0)) 
-                (< _pbv_t (^ 2 k)))
-                (>= _pbv_s 0)) 
-                (< _pbv_s (^ 2 k))) 
-                (= k k)))
-
-(assert (= (mod (* (mod (^ 2 x) (^ 2 k)) (^ 2 y)) (^ 2 k)) (mod (* (mod (^ 2 y) (^ 2 k)) (^ 2 x)) (^ 2 k))))
-
-
-(assert (not (distinct (mod (mod (^ 2 _pbv_t) ((^ 2 k))) (^ 2 k)) (mod (^ 2 _pbv_t) (^ 2 k)))))
-(assert (not (distinct (mod (^ 2 _pbv_s) (^ 2 k)) (^ 2 _pbv_s))))

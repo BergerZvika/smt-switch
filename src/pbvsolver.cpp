@@ -859,9 +859,18 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                     save_in_cache(term, solver_->make_term(int_op, cached_children));
                 } break;
                 default: 
-                    save_in_cache(term, term);
+                    TermVec cached_children;
+                    Term c;
+                    for (auto t : term)
+                    {
+                        c = t;
+                        query_cache(t, c);
+                        cached_children.push_back(c);
+                    }
+                    save_in_cache(term, solver_->make_term(int_op, cached_children));
+                    // save_in_cache(term, term);
                     cout << "The Operator " << op <<  " is not support!!!" << endl;
-                    assert(false);
+                    // assert(false);
             }
       }
       // mod
