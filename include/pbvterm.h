@@ -1,7 +1,7 @@
 #include "term.h"
 
 namespace smt {
-//, public AbsTerm
+// public AbsTerm
 class PBVTerm : public AbsTerm
 {
   protected:

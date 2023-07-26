@@ -243,7 +243,11 @@ Term AbstractPBVSolver::translate_term( const Term & t) {
         Term& t1 = const_cast<Term&>(t);
         PrePBVWalker* prewalk = new PrePBVWalker(wrapped_solver);
         Term term = prewalk->visit(t1);
-        Term res = this->walker->visit(term);
+        // Term res = this->walker->visit(term);
+        // postwalk
+        Term pre_res = this->walker->visit(term);
+        PostPBVWalker* postwalk = new PostPBVWalker(wrapped_solver);
+        Term res = postwalk->visit(pre_res);
         // Term res = this->walker->visit(t1);
         // res /\ set rules
         for (Term r : term_rules) {
@@ -982,35 +986,96 @@ return Walker_Continue;
 }
 
 // PostPBVWalker function
+Term isMod(Term x, Term mod) {
+    Op x_op = x->get_op();
+    PrimOp x_primop = x_op.prim_op;
+    if (x_primop == Mod) {
+        auto it = x->begin();
+        Term left = *it;
+        it++;
+        Term right = *it;
+        if(mod ==  right) {
+            return left;
+        }
+    }
+    return NULL;
+}
+
 WalkerStepResult PostPBVWalker::visit_term(Term & term) {
-  if (!preorder_)
+ if (!preorder_)
   {
-    bool is_pbv = false;
+  if (((term->to_string()).find("div") == std::string::npos)) {
     Op op = term->get_op();
     if (!op.is_null())
     {
       TermVec cached_children;
       Term c;
-      for (auto t : term)
-      {
-        if(t->is_pbvterm()) {
-            is_pbv = true;
+      PrimOp primop = op.prim_op;
+      if (primop == Mod) {
+        auto it = term->begin();
+        Term x = (*it);
+        it++;
+        Term y = (*it);
+        Op x_op = x->get_op();
+        PrimOp x_primop = x_op.prim_op;
+        if (!x_op.is_null() && (x_primop == Plus || x_primop == Minus || x_primop == Mult)) {
+            auto x_it = x->begin();
+            Term left = *x_it;
+            x_it++;
+            Term right = *x_it;
+            Term ef_left = isMod(left, y);
+            if (ef_left) {
+                c = ef_left;
+                query_cache(ef_left, c);
+                cached_children.push_back(c);
+            } else {
+                c = left;
+                query_cache(left, c);
+                cached_children.push_back(c);
+            }
+            Term ef_right = isMod(right, y);
+            if (ef_right) {
+                c = ef_right;
+                query_cache(ef_right, c);
+                cached_children.push_back(c);
+            } else {
+                c = right;
+                query_cache(right, c);
+                cached_children.push_back(c);
+            }  
+            Term ef_term = solver_->make_term(x_op, cached_children);
+            save_in_cache(term, solver_->make_term(op, TermVec{ef_term, y}));
+        } else if (!x_op.is_null()) {
+            for (auto t : term)
+            {
+                c = t;
+                query_cache(t, c);
+                cached_children.push_back(c);
+            }
+            save_in_cache(term, solver_->make_term(op, cached_children));
+        } else {
+            save_in_cache(term, term);
         }
-        // TODO: see if we can pass the same term as both arguments
-        c = t;
-        query_cache(t, c);
-        cached_children.push_back(c);
+      } else {
+        for (auto t : term)
+        {
+            c = t;
+            query_cache(t, c);
+            cached_children.push_back(c);
+        }
+        save_in_cache(term, solver_->make_term(op, cached_children));
       }
-      save_in_cache(term, solver_->make_term(op, cached_children));
     }
     else
     {
         save_in_cache(term, term);
     }
+  } else {
+    save_in_cache(term, term);
+  }
   }
 return Walker_Continue;
 }
-
 
 // PBVConstantWalker function
 WalkerStepResult PBVConstantWalker::visit_term(Term & term) {
@@ -1048,6 +1113,7 @@ WalkerStepResult PBVConstantWalker::visit_term(Term & term) {
       }
       save_in_cache(term, res);
     }
+    
   }
 return Walker_Continue;
 }

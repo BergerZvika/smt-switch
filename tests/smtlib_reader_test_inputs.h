@@ -161,8 +161,14 @@ const std::unordered_map<std::string, std::vector<smt::Result>> qf_pbv_tests(
       { "test-pbvor-unsat.smt2",
         { smt::Result(smt::UNSAT)}},
 
+      { "test-postwalk-unsat.smt2",
+        { smt::Result(smt::UNSAT)}},
+      { "test-postwalk-sat.smt2",
+        { smt::Result(smt::SAT)}},
+
       // { "test-pbvxor-sat.smt2",
       //   { smt::Result(smt::SAT)}},
       { "test-pbvxor-unsat.smt2",
         { smt::Result(smt::UNSAT)}}
+        
     });
