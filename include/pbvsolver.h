@@ -133,6 +133,7 @@ class AbstractPBVSolver : public AbsSmtSolver
    TermVec operator_rules;
    AbstractPBVWalker* walker;
    int debug = 0;
+   int postwalk = 0;
   public:
     AbstractPBVSolver(SmtSolver s);
     AbstractPBVSolver(SmtSolver s, int debug);
@@ -220,6 +221,7 @@ class PBVSolver : public AbstractPBVSolver
     PBVSolver(SmtSolver s);
     PBVSolver(SmtSolver s, int debug);
     PBVSolver(SmtSolver s, int debug, int walker);
+    PBVSolver(SmtSolver s, int debug, int walker, int postwalk);
     ~PBVSolver(){};
 
     void assert_formula(const Term & t) override;

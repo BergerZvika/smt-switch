@@ -44,6 +44,7 @@ class SmtLibReaderTester : public SmtLibReader
 int help = 0;
 int debug = 0;
 int pbvsolver = 1;
+int postwalk = 0;
 
 
 void parse_args(int argc, char** argv) {
@@ -58,17 +59,20 @@ void parse_args(int argc, char** argv) {
         cout << "\t-c / --comb\tuse PBVSolver with comb (default)." << endl;
         cout << "\t-f / --full\tuse PBVSolver with full." << endl;
         cout << "\t-p / --partial\tuse PBVSolver with partial." << endl;
+        cout << "\t-w / --postwalk\tuse postwalk to optimize your benchmark." << endl;
         //cout << "\t--pbv\tpbvsolver" << endl;
       } else if (!(*i).compare("-d") ||  !(*i).compare("--debug")) {
         debug = 1;
       } else if (!(*i).compare("--pbvsolver")) {
-        pbvsolver = 0;
+        pbvsolver = 0; // efficient pbvsolver
       }  else if (!(*i).compare("-c") ||  !(*i).compare("--comb")) {
-        pbvsolver = 1;
+        pbvsolver = 1; // combine
       } else if (!(*i).compare("-f") ||  !(*i).compare("--full")) {
-        pbvsolver = 2;
+        pbvsolver = 2; // full
       }  else if (!(*i).compare("-p") ||  !(*i).compare("--partial")) {
-        pbvsolver = 3;
+        pbvsolver = 3; //partial
+      } else if (!(*i).compare("-w") ||  !(*i).compare("--postwalk")) {
+        postwalk = 1;
       }
     }
 }
@@ -100,7 +104,7 @@ int main(int argc, char** argv){
     if (debug) {
       cout << "PBVSolver:" << endl;
     }
-    s = std::make_shared<PBVSolver>(cvc5, debug, pbvsolver);
+    s = std::make_shared<PBVSolver>(cvc5, debug, pbvsolver, postwalk);
   }
   s->set_opt("produce-models", "true");
   s->set_opt("nl-ext-tplanes", "true");

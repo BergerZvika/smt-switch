@@ -71,7 +71,7 @@ class ReaderTests
     SolverConfiguration sc = get<0>(GetParam());
     SmtSolver solve = create_solver(sc);
     cout << sc << endl;
-    s = std::make_shared<PBVSolver>(solve, 1);
+    s = std::make_shared<PBVSolver>(solve, 1, 1, 1); // debug, combine and postwalk
     s->set_opt("produce-models", "true");
     s->set_opt("nl-ext-tplanes", "true");
     // s->set_opt("finite-model-find", "true");

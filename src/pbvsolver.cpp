@@ -239,16 +239,19 @@ namespace smt {
     }
 
 Term AbstractPBVSolver::translate_term( const Term & t) {
+        Term res;
         // PBVConstantWalker* walker = new PBVConstantWalker(wrapped_solver);
         Term& t1 = const_cast<Term&>(t);
         PrePBVWalker* prewalk = new PrePBVWalker(wrapped_solver);
         Term term = prewalk->visit(t1);
-        // Term res = this->walker->visit(term);
         // postwalk
-        Term pre_res = this->walker->visit(term);
-        PostPBVWalker* postwalk = new PostPBVWalker(wrapped_solver);
-        Term res = postwalk->visit(pre_res);
-        // Term res = this->walker->visit(t1);
+        if (this->postwalk) {
+            Term pre_res = this->walker->visit(term);
+            PostPBVWalker* postwalk = new PostPBVWalker(wrapped_solver);
+            res = postwalk->visit(pre_res);
+        } else {
+            res = this->walker->visit(term);
+        }
         // res /\ set rules
         for (Term r : term_rules) {
             // cout << r << endl;
@@ -278,13 +281,27 @@ Term AbstractPBVSolver::translate_term( const Term & t) {
 
     PBVSolver::PBVSolver(SmtSolver s, int debug, int choose_walker): AbstractPBVSolver(s, debug) {
         if (choose_walker == 1) {
-            this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+            this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2); // combine
         } else if (choose_walker == 2) {
             this->walker = new FullPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
         } else if (choose_walker == 3) {
             this->walker = new PartialPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
         }
     }
+
+        PBVSolver::PBVSolver(SmtSolver s, int debug, int choose_walker, int postwalk): AbstractPBVSolver(s, debug) {
+        if (choose_walker == 1) {
+            this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+        } else if (choose_walker == 2) {
+            this->walker = new FullPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+        } else if (choose_walker == 3) {
+            this->walker = new PartialPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+        }
+        this->postwalk = postwalk;
+    }
+
+
+
     void PBVSolver::assert_formula(const Term & t) { 
         Term res = translate_term(t);
         wrapped_solver->assert_formula(res);
