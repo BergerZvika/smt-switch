@@ -23,7 +23,7 @@ $ bash install.sh
 $ cd build
 $ ./pbvsolver <path to smt2 file>
 ```
-For an example, you can run: ./pbvsolver ../qf_pbv/test-pbvsub-unsat.smt2
+For an example, you can run:  ./pbvsolver ../benchmarks/validation/test-pbvmul-unsat.smt2
 
 # Architecture Overview
 
