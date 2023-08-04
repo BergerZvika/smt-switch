@@ -6,5 +6,6 @@
 (declare-const y (_ BitVec k))
 (assert (bvsle x y))
 (assert (bvsle y x))
+(assert (= y x))
 (check-sat)
 (exit)

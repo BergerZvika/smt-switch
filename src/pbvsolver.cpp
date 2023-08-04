@@ -334,7 +334,8 @@ Term AbstractPBVWalker::uts(Term t) {
     }
     // uts translate
     Term one =  solver_->make_term(1, intsort);
-    Term power2_k_minus_one = solver_->make_term(Minus, power2_k, one);
+    Term k_minus_one = solver_->make_term(Minus, bit_width_term, one);
+    Term power2_k_minus_one = solver_->make_term(Pow, this->two, k_minus_one);
     Term x_mod_power_2 = solver_->make_term(Mod, k, power2_k_minus_one);
     Term two_mul_x_mod_power_2 =  solver_->make_term(Mult, this->two, x_mod_power_2);
     return solver_->make_term(Minus, two_mul_x_mod_power_2, k);
@@ -402,8 +403,12 @@ void AbstractPBVWalker::make_bit_width_term(TermIter it) {
         Term width_left = extractSort(t0);
         Term width_right = extractSort(t1);
         Term bitWidth = solver_->make_term(Equal, width_left, width_right);
-        // cout << bitWidth << endl;
         operator_rules->push_back(bitWidth);
+        // width > 0
+        Sort intsort = solver_->make_sort(INT);
+        Term zero =  solver_->make_term(0, intsort);
+        Term greater = solver_->make_term(Gt, width_left, zero);
+        operator_rules->push_back(greater);
     }
 }
 
@@ -867,8 +872,9 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                               Term x_or_y = solver_->make_term(int_op, x_plus_y, x_and_y);
                               save_in_cache(term, solver_->make_term(int_op, x_or_y, x_and_y));
                             } break;
-                // Ite is not a translation!
-                case Ite: { int_op = Ite;
+                // Operators that do not need a translation!
+                case Not:
+                case Ite: {
                     TermVec cached_children;
                     Term c;
                     for (auto t : term)
@@ -877,21 +883,12 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                         query_cache(t, c);
                         cached_children.push_back(c);
                     }
-                    save_in_cache(term, solver_->make_term(int_op, cached_children));
+                    save_in_cache(term, solver_->make_term(op, cached_children));
                 } break;
                 default: 
-                    TermVec cached_children;
-                    Term c;
-                    for (auto t : term)
-                    {
-                        c = t;
-                        query_cache(t, c);
-                        cached_children.push_back(c);
-                    }
-                    save_in_cache(term, solver_->make_term(int_op, cached_children));
                     // save_in_cache(term, term);
                     cout << "The Operator " << op <<  " is not support!!!" << endl;
-                    // assert(false);
+                    assert(false);
             }
       }
       // mod

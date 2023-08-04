@@ -6,6 +6,7 @@ DEPS=$DIR/../deps
 mkdir -p $DEPS
 
 CVC5_VERSION=77d0bec48a745e3c4acd65085f9c59bdfceed6c0
+# CVC5_VERSION=
 
 if [ "$(uname)" == "Darwin" ]; then
     NUM_CORES=$(sysctl -n hw.logicalcpu)
@@ -18,6 +19,7 @@ fi
 if [ ! -d "$DEPS/cvc5" ]; then
     cd $DEPS
     git clone https://github.com/cvc5/cvc5.git
+    # git clone git@github.com:BergerZvika/cvc5.git
     chmod -R 777 cvc5
     cd cvc5
     git checkout -f ${CVC5_VERSION}

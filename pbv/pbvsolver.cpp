@@ -81,19 +81,15 @@ void parse_args(int argc, char** argv) {
 
 int main(int argc, char** argv){
   parse_args(argc, argv);
-    if (help) {
+  if (help) {
     return 0;
   }
   string test = argv[1];
   if (debug) {
     cout << "test path: " << test << endl;
   }
-    SmtSolver cvc5 = Cvc5SolverFactory::create(false);
-  // SmtSolver cvc5_1 = Cvc5SolverFactory::create(false);
-  // ostream os1(&strbuf1);
-  // SmtSolver cvc5 =
-  //     create_printing_solver(cvc5_1, &os1, PrintingStyleEnum::DEFAULT_STYLE);
   SmtSolver s;
+  SmtSolver cvc5 = Cvc5SolverFactory::create(false);
   if (pbvsolver == 0) {
     if (debug) {
       cout << "EfficientPBVSolver:" << endl;
