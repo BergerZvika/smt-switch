@@ -238,15 +238,18 @@ namespace smt {
         return wrapped_solver->make_term(op, t0, t1);
     }
 
-Term AbstractPBVSolver::translate_term( const Term & t) {
-        Term res;
+int postwalker;
+Term AbstractPBVSolver::translate_term(const Term & t) {
+        Term res, pre_res;
+        postwalker = 0;
         // PBVConstantWalker* walker = new PBVConstantWalker(wrapped_solver);
         Term& t1 = const_cast<Term&>(t);
         PrePBVWalker* prewalk = new PrePBVWalker(wrapped_solver);
         Term term = prewalk->visit(t1);
         // postwalk
         if (this->postwalk) {
-            Term pre_res = this->walker->visit(term);
+            postwalker = 1;
+            pre_res = this->walker->visit(term);
             PostPBVWalker* postwalk = new PostPBVWalker(wrapped_solver);
             res = postwalk->visit(pre_res);
         } else {
@@ -264,6 +267,9 @@ Term AbstractPBVSolver::translate_term( const Term & t) {
         if (this->debug) {
             cout << "original term: " << t << endl;
             cout << "translate term: " << res << endl;
+            // if (this->postwalk) {
+            //     cout << "pbvsolver term: " << pre_res << endl;
+            // }
         }
         term_rules.clear();
         operator_rules.clear();
@@ -349,6 +355,9 @@ Term AbstractPBVWalker::bvlshr(Term t_left, Term t_right) {
     Term power2_y = solver_->make_term(Pow, this->two, translate_y);
     Term int_term =  solver_->make_term(IntDiv, translate_x , power2_y);
     Term power2_k = solver_->make_term(Pow, this->two, bit_width);
+    if (postwalker) {
+        return int_term;
+    }
     return solver_->make_term(Mod, int_term, power2_k);
 }
 
@@ -403,8 +412,15 @@ void AbstractPBVWalker::make_bit_width_term(TermIter it) {
         Term width_left = extractSort(t0);
         Term width_right = extractSort(t1);
         Term bitWidth = solver_->make_term(Equal, width_left, width_right);
+        //remove duplicates rules
+        for (Term rule : *operator_rules) {
+            if(rule == bitWidth) {
+                return;
+            }
+        } 
+        // add leemas 
         operator_rules->push_back(bitWidth);
-        // width > 0
+        // lemma: width > 0
         Sort intsort = solver_->make_sort(INT);
         Term zero =  solver_->make_term(0, intsort);
         Term greater = solver_->make_term(Gt, width_left, zero);
@@ -873,6 +889,8 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                               save_in_cache(term, solver_->make_term(int_op, x_or_y, x_and_y));
                             } break;
                 // Operators that do not need a translation!
+                case Pow:
+                case And:
                 case Not:
                 case Ite: {
                     TermVec cached_children;
@@ -1000,7 +1018,7 @@ return Walker_Continue;
 }
 
 // PostPBVWalker function
-Term isMod(Term x, Term mod) {
+Term rmMod(Term x, Term mod) {
     Op x_op = x->get_op();
     PrimOp x_primop = x_op.prim_op;
     if (x_primop == Mod) {
@@ -1012,13 +1030,14 @@ Term isMod(Term x, Term mod) {
             return left;
         }
     }
-    return NULL;
+    return x;
 }
 
 WalkerStepResult PostPBVWalker::visit_term(Term & term) {
  if (!preorder_)
   {
-  if (((term->to_string()).find("div") == std::string::npos)) {
+    // cout << "term: " << term << endl; 
+  if ((term->to_string()).substr(1, 3) != "div") {
     Op op = term->get_op();
     if (!op.is_null())
     {
@@ -1030,45 +1049,40 @@ WalkerStepResult PostPBVWalker::visit_term(Term & term) {
         Term x = (*it);
         it++;
         Term y = (*it);
-        Op x_op = x->get_op();
-        PrimOp x_primop = x_op.prim_op;
-        if (!x_op.is_null() && (x_primop == Plus || x_primop == Minus || x_primop == Mult)) {
-            auto x_it = x->begin();
-            Term left = *x_it;
-            x_it++;
-            Term right = *x_it;
-            Term ef_left = isMod(left, y);
-            if (ef_left) {
-                c = ef_left;
-                query_cache(ef_left, c);
-                cached_children.push_back(c);
+        if ((x->to_string()).substr(1, 3) != "div") {
+            Op x_op = x->get_op();
+            // cout << "op: " << x_op << endl;
+            PrimOp x_primop = x_op.prim_op;
+            if (!x_op.is_null() && (x_primop == Plus || x_primop == Minus || x_primop == Mult)) {
+                Term ef_left, ef_right;
+                int ismod_left = 0, ismod_right = 0;  
+                auto x_it = x->begin();
+                Term left = *x_it;
+                x_it++;
+                Term right = *x_it;
+                Term k = NULL;
+                query_cache(left ,ef_left);
+                ef_left = rmMod(ef_left, y);
+                save_in_cache(left, ef_left);
+                cached_children.push_back(ef_left);
+                query_cache(right, ef_right);
+                ef_right = rmMod(ef_right, y);
+                save_in_cache(right, ef_right);
+                cached_children.push_back(ef_right);
+                Term ef_term = solver_->make_term(x_op, cached_children);
+                Term trans = solver_->make_term(op, TermVec{ef_term, y});
+                save_in_cache(term, trans);
+            } else if (!x_op.is_null()) {
+                for (auto t : term)
+                {
+                    c = t;
+                    query_cache(t, c);
+                    cached_children.push_back(c);
+                }
+                save_in_cache(term, solver_->make_term(op, cached_children));
             } else {
-                c = left;
-                query_cache(left, c);
-                cached_children.push_back(c);
+                save_in_cache(term, term);
             }
-            Term ef_right = isMod(right, y);
-            if (ef_right) {
-                c = ef_right;
-                query_cache(ef_right, c);
-                cached_children.push_back(c);
-            } else {
-                c = right;
-                query_cache(right, c);
-                cached_children.push_back(c);
-            }  
-            Term ef_term = solver_->make_term(x_op, cached_children);
-            save_in_cache(term, solver_->make_term(op, TermVec{ef_term, y}));
-        } else if (!x_op.is_null()) {
-            for (auto t : term)
-            {
-                c = t;
-                query_cache(t, c);
-                cached_children.push_back(c);
-            }
-            save_in_cache(term, solver_->make_term(op, cached_children));
-        } else {
-            save_in_cache(term, term);
         }
       } else {
         for (auto t : term)
