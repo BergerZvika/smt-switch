@@ -4,5 +4,4 @@
 (declare-fun %a () (_ BitVec k))
 (declare-fun C1 () (_ BitVec k))
 (assert (and (not (= C1 C2)) (= %a C1) (= %a C2)))
-(assert true)
 (check-sat)

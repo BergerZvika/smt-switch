@@ -3,5 +3,4 @@
 (declare-fun %B () (_ BitVec k))
 (declare-fun %A () (_ BitVec k))
 (assert (not (= (bvor (bvand (bvxor %A (_ bv15 k)) %B) %A) (bvor %A %B))))
-(assert true)
 (check-sat)

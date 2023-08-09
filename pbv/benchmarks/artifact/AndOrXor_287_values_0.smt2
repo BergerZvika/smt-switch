@@ -4,5 +4,4 @@
 (declare-fun %X () (_ BitVec k))
 (declare-fun C1 () (_ BitVec k))
 (assert (and (bvsle C1 C2) (= C1 C2) (not (or (bvslt %X C1) (bvsge %X C2)))))
-(assert true)
 (check-sat)

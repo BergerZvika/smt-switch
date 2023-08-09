@@ -2,5 +2,4 @@
 (declare-const k Int)
 (declare-fun %x () (_ BitVec k))
 (assert (not (= (bvmul %x (_ bv15 k)) (bvsub (_ bv0 k) %x))))
-(assert true)
 (check-sat)
