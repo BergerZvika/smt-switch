@@ -663,7 +663,12 @@ void EfficientPBVWalker::bvand_handle() {
 WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
   if (!preorder_)
   {
-    Op op = term->get_op();
+    Op op;
+    if ((x->to_string()).substr(1, 3) != "div") {
+        op = term->get_op();
+    } else {
+        op = IntDiv;
+    }
     if (!op.is_null())
     {
       TermVec cached_children;
@@ -1034,15 +1039,17 @@ return Walker_Continue;
 
 // PostPBVWalker function
 Term rmMod(Term x, Term mod) {
-    Op x_op = x->get_op();
-    PrimOp x_primop = x_op.prim_op;
-    if (x_primop == Mod) {
-        auto it = x->begin();
-        Term left = *it;
-        it++;
-        Term right = *it;
-        if(mod ==  right) {
-            return left;
+    if ((x->to_string()).substr(1, 3) != "div") {
+        Op x_op = x->get_op();
+        PrimOp x_primop = x_op.prim_op;
+        if (x_primop == Mod) {
+            auto it = x->begin();
+            Term left = *it;
+            it++;
+            Term right = *it;
+            if(mod ==  right) {
+                return left;
+            }
         }
     }
     return x;
