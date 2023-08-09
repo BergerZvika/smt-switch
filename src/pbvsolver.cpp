@@ -889,10 +889,26 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                               save_in_cache(term, solver_->make_term(int_op, x_or_y, x_and_y));
                             } break;
                 // Operators that do not need a translation!
+                case Lt:
+                case Le:
+                case Gt:
+                case Ge:
+                case Plus:
+                case Minus:
+                case Negate:
+                case Mult:
+                case Div:
+                case IntDiv:
+                case Mod:
                 case Pow:
                 case And:
+                case Or:
+                case Xor:
                 case Not:
-                case Ite: {
+                case Implies:
+                case Ite:
+                case Forall:
+                case Exists: {
                     TermVec cached_children;
                     Term c;
                     for (auto t : term)
@@ -904,7 +920,6 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                     save_in_cache(term, solver_->make_term(op, cached_children));
                 } break;
                 default: 
-                    // save_in_cache(term, term);
                     cout << "The Operator " << op <<  " is not support!!!" << endl;
                     assert(false);
             }

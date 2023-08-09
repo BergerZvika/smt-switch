@@ -1,0 +1,7 @@
+(set-logic ALL)
+(set-option :produce-models true)
+(declare-const k Int)
+(declare-const x (_ BitVec k))
+(assert (not (= x x)))
+(check-sat)
+(exit)
