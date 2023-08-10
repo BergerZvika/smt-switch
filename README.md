@@ -25,6 +25,15 @@ $ ./pbvsolver <path to smt2 file>
 ```
 For an example, you can run:  ./pbvsolver ../benchmarks/validation/test-pbvmul-unsat.smt2
 
+## Install Pbv-Solver by Fockerfile
+```
+$ git clone -b pbv-master https://github.com/BergerZvika/smt-switch.git
+$ cd smt-switch/pbv
+$ docker build -t smt .
+$ docker run smt <path to smt2 file>
+```
+For an example, you can run:  docker run smt ../benchmarks/validation/test-pbvmul-unsat.smt2
+
 # Architecture Overview
 
 There are three abstract classes:
