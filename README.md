@@ -25,14 +25,13 @@ $ ./pbvsolver <path to smt2 file>
 ```
 For an example, you can run:  ./pbvsolver ../benchmarks/validation/test-pbvmul-unsat.smt2
 
-## Install Pbv-Solver by Fockerfile
+## Install Pbv-Solver by Dockerfile
 ```
-$ git clone -b pbv-master https://github.com/BergerZvika/smt-switch.git
-$ cd smt-switch/pbv
-$ docker build -t smt .
-$ docker run smt <path to smt2 file>
+$ wget 'https://raw.githubusercontent.com/BergerZvika/smt-switch/pbv-master/pbv/Dockerfile' -O Dockerfile
+$ docker build -t pbvsolver .
+$ docker run pbvsolver <path to smt2 file>
 ```
-For an example, you can run:  docker run smt ../benchmarks/validation/test-pbvmul-unsat.smt2
+For an example, you can run:  docker run pbvsolver ../benchmarks/validation/test-pbvmul-unsat.smt2
 
 # Architecture Overview
 
