@@ -45,6 +45,7 @@ int help = 0;
 int debug = 0;
 int pbvsolver = 1;
 int postwalk = 0;
+string test = "";
 
 
 void parse_args(int argc, char** argv) {
@@ -73,6 +74,8 @@ void parse_args(int argc, char** argv) {
         pbvsolver = 3; //partial
       } else if (!(*i).compare("-w") ||  !(*i).compare("--postwalk")) {
         postwalk = 1;
+      } else if ((*i).compare((*i).length() - 5, 5, ".smt2") == 0) {
+        test = (*i);
       }
     }
 }
@@ -84,7 +87,10 @@ int main(int argc, char** argv){
   if (help) {
     return 0;
   }
-  string test = argv[1];
+  if (!test.compare("")) {
+    cout << "Missing path to .smt2 file!" << endl;
+    return 0;
+  }
   if (debug) {
     cout << "test path: " << test << endl;
   }
