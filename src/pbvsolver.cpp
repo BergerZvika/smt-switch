@@ -1,3 +1,4 @@
+
 #include "pbvsolver.h"
 // #include <typeinfo>
 
@@ -1071,7 +1072,7 @@ WalkerStepResult PostPBVWalker::visit_term(Term & term) {
         Term x = (*it);
         it++;
         Term y = (*it);
-        if ((x->to_string()).substr(1, 3) != "div") {
+        if ((x->to_string()).substr(1, 3) != "div" && (x->to_string()).substr(1, 2) != "^") {
             Op x_op = x->get_op();
             // cout << "op: " << x_op << endl;
             PrimOp x_primop = x_op.prim_op;
