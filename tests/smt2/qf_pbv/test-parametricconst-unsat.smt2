@@ -1,0 +1,5 @@
+(set-logic ALL)
+(declare-const k Int)
+(declare-const x (_ BitVec k))
+(assert (= (_ bvk k) (_ bv0 k)))
+(check-sat)

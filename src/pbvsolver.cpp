@@ -107,7 +107,12 @@ namespace smt {
         return wrapped_solver->make_term(val, sort, base);
     }
     Term AbstractPBVSolver::make_term(const Term & val, const Sort & sort) const {
-        return wrapped_solver->make_term(val, sort);
+        Sort pbvs = make_sort(BV, val);
+        // return wrapped_solver->make_term(val, sort);
+        // return std::make_shared<PBVTerm>(sort, TermVec{val});
+        Term pbvt = std::make_shared<PBVTerm>(pbvs, TermVec{val});
+        cout << pbvt << endl;
+        return pbvt;
     }
     Term AbstractPBVSolver::make_symbol(const std::string name, const Sort & sort) {
         if(sort->get_sort_kind() == BV) {
@@ -391,8 +396,8 @@ Term AbstractPBVWalker::extractSort(Term t) {
             it++;
             Term t1 = (*it);
             return solver_->make_term(Plus, extractSort(t0), extractSort(t1));
-        } else if (t->get_op() == Extract){
-            
+        } else if (t->get_op() == Extract) {
+            // todo
         } else {
             return pbvs->get_term();
         }
@@ -945,21 +950,23 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
       if(term->is_pbvterm() && !term->is_value()) {
         Sort intsort = solver_->make_sort(INT);
         Term k = NULL;
+        Sort pbv_sort = term->get_sort();
+        shared_ptr<PBVSort> bv_sort = static_pointer_cast<PBVSort>(pbv_sort);
+        Term bit_width = bv_sort->get_term();
         // cout << "term: " << term << endl;
         if (query_cache(term, k)){
             cout << "k: " << k << endl;
         }
-        if (!query_cache(term, k)){
+        if (!query_cache(term, k) && term->to_string() != bit_width->to_string()){
             k = solver_->make_symbol("_pbv_" + term->to_string() ,intsort);
+        } else {
+            k = bit_width;
         }
         res = k;
         // 0 <= k <= pow2(k)
         Term zero =  solver_->make_term(0, intsort);
         Term ge = solver_->make_term(Ge, k, zero);
         term_rules->push_back(ge);
-        Sort pbv_sort = term->get_sort();
-        shared_ptr<PBVSort> bv_sort = static_pointer_cast<PBVSort>(pbv_sort);
-        Term bit_width = bv_sort->get_term();
         try {
             Sort intsort = solver_->make_sort(INT);
             Term constbv = solver_->make_term(stoi(bit_width->to_string()), intsort);

@@ -45,6 +45,7 @@ int help = 0;
 int debug = 0;
 int pbvsolver = 1;
 int postwalk = 0;
+int produce_model = 0;
 string test = "";
 
 
@@ -61,6 +62,7 @@ void parse_args(int argc, char** argv) {
         cout << "\t-f / --full\tuse PBVSolver with full." << endl;
         cout << "\t-p / --partial\tuse PBVSolver with partial." << endl;
         cout << "\t-w / --postwalk\tuse postwalk to optimize your benchmark." << endl;
+        cout << "\t--produce-model\tuse produce model solver." << endl;
         //cout << "\t--pbv\tpbvsolver" << endl;
       } else if (!(*i).compare("-d") ||  !(*i).compare("--debug")) {
         debug = 1;
@@ -74,6 +76,8 @@ void parse_args(int argc, char** argv) {
         pbvsolver = 3; //partial
       } else if (!(*i).compare("-w") ||  !(*i).compare("--postwalk")) {
         postwalk = 1;
+      }  else if (!(*i).compare("--produce-model")) {
+        produce_model = 1;
       } else if ((*i).compare((*i).length() - 5, 5, ".smt2") == 0) {
         test = (*i);
       }
@@ -83,6 +87,7 @@ void parse_args(int argc, char** argv) {
 
 
 int main(int argc, char** argv){
+  // parse arguments
   parse_args(argc, argv);
   if (help) {
     return 0;
@@ -94,6 +99,7 @@ int main(int argc, char** argv){
   if (debug) {
     cout << "test path: " << test << endl;
   }
+  // create pbvsolver
   SmtSolver s;
   SmtSolver cvc5 = Cvc5SolverFactory::create(false);
   if (pbvsolver == 0) {
@@ -108,10 +114,13 @@ int main(int argc, char** argv){
     }
     s = std::make_shared<PBVSolver>(cvc5, debug, pbvsolver, postwalk);
   }
-  s->set_opt("produce-models", "true");
+  // solver options
   s->set_opt("nl-ext-tplanes", "true");
-  // s->set_opt("finite-model-find", "true");
   s->set_opt("full-saturate-quant", "true");
+  if (produce_model) {
+      s->set_opt("produce-models", "true");
+  }
+  // run solver on test.
   SmtLibReaderTester* reader = new SmtLibReaderTester(s);
   reader->parse(test);
   auto results = reader->get_results();
