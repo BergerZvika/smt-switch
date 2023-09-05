@@ -406,6 +406,23 @@ Term AbstractPBVWalker::extractSort(Term t) {
     }
 }
 
+bool AbstractPBVWalker::minumum_sign(TermIter it) {
+    //(bvshl (_ bv1 k) (bvsub (_ bvk k) (_ bv1 k) 
+    Term left = *it;
+    it++;
+    Term right = *it;
+    //Term width = get_bit_width_term(left);
+    if (left->to_string() == "1" && right->get_op() == BVSub) {
+         auto right_it = right->begin();
+         Term left_right = *right_it;
+         right_it++;
+         Term right_right = *right_it;
+         if (left_right->to_string() == get_bit_width_term(left_right)->to_string() && right_right->to_string() == "1") {
+            return true;
+         }
+    }
+    return false;
+}
 
 // PBVWalker function
 void AbstractPBVWalker::make_bit_width_term(TermIter it) {
@@ -813,16 +830,27 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                               query_cache(x, translate_x);
                               int_term = solver_->make_term(Minus, power2_k, translate_x);
                             } break;
-                case BVShl: { int_op = Mod;
+                case BVShl: { 
                               bit_width = get_bit_width_term(*it);
-                              Term x = *it;
-                              Term translate_x;
-                              query_cache(x, translate_x);
-                              Term y = *(++it);
-                              Term translate_y;
-                              query_cache(y, translate_y);
-                              Term power2_y = solver_->make_term(Pow, this->two, translate_y);
-                              int_term =  solver_->make_term(Mult, translate_x , power2_y);
+                              if (minumum_sign(it)) {
+                                int_op = NULL;
+                                Sort intsort = solver_->make_sort(INT);
+                                Term one =  solver_->make_term(1, intsort);
+                                Term bit_width_minus_one = solver_->make_term(Minus, bit_width, one);
+                                Term minumum_sign_term = solver_->make_term(Pow, this->two, bit_width_minus_one);
+                                save_in_cache(term, minumum_sign_term);
+                              } else {
+                                int_op = Mod;
+                                Term x = *it;
+                                Term translate_x;
+                                query_cache(x, translate_x);
+                                Term y = *(++it);
+                                Term translate_y;
+                                query_cache(y, translate_y);
+                                Term power2_y = solver_->make_term(Pow, this->two, translate_y);
+                                int_term =  solver_->make_term(Mult, translate_x , power2_y);
+                              }
+                              
                             } break;
                 case BVLshr: { int_op = Div; // Mod
                               bit_width = get_bit_width_term(*it);

@@ -37,6 +37,7 @@ namespace smt {
     Term bvnot(Term t);
     Term extract(Term x, Term i, Term j);
     Term get_bit_width_term(Term t);
+    bool minumum_sign(TermIter it);
     virtual void bvand_handle() = 0;
     Term bvand_fullaxiom();
     Term bvand_basecase();
