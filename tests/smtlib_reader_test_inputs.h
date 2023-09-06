@@ -71,6 +71,8 @@ const std::unordered_map<std::string, std::vector<smt::Result>> qf_pbv_tests(
           { smt::Result(smt::SAT)}},
       { "test-parametricconst-unsat.smt2",
           { smt::Result(smt::UNSAT)}},
+      { "test-pbvminimumsign-sat.smt2",
+          { smt::Result(smt::SAT)}},
       { "test-pbvconstant-unsat.smt2",
           { smt::Result(smt::UNSAT)}},
       { "test-pbvconstant-sat.smt2",

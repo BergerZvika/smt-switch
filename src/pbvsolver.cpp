@@ -833,7 +833,7 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                 case BVShl: { 
                               bit_width = get_bit_width_term(*it);
                               if (minumum_sign(it)) {
-                                int_op = NULL;
+                                int_op = Minus;
                                 Sort intsort = solver_->make_sort(INT);
                                 Term one =  solver_->make_term(1, intsort);
                                 Term bit_width_minus_one = solver_->make_term(Minus, bit_width, one);
