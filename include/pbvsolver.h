@@ -37,7 +37,7 @@ namespace smt {
     Term bvnot(Term t);
     Term extract(Term x, Term i, Term j);
     Term get_bit_width_term(Term t);
-    bool minumum_sign(TermIter it);
+    bool minimum_sign(TermIter it);
     virtual void bvand_handle() = 0;
     Term bvand_fullaxiom();
     Term bvand_basecase();
@@ -118,8 +118,11 @@ class PrePBVWalker : public IdentityWalker
 // PostPBVWalker
 class PostPBVWalker : public IdentityWalker
 {
+  TermVec* operator_rules;
   public:
-    PostPBVWalker(const SmtSolver & solver)  : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {}
+    PostPBVWalker(const SmtSolver & solver, TermVec* operator_rules)  : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {
+      this->operator_rules = operator_rules;
+    }
     WalkerStepResult visit_term(Term & term) override; 
 };
 
