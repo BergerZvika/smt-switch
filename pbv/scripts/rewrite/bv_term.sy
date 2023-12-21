@@ -1,0 +1,17 @@
+(set-logic BV)
+
+(synth-fun f ((s (_ BitVec 4)) (t (_ BitVec 4))) (_ BitVec 4)
+((Start (_ BitVec 4)))
+  (
+   (Start (_ BitVec 4) (
+     s
+     t
+     #b0000
+     #b0001
+     (bvshl  Start Start)
+     (bvadd  Start Start)
+     (bvsub  Start Start)
+   ))
+))
+
+(check-synth)

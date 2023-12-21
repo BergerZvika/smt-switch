@@ -1,0 +1,9 @@
+ # in cvc5 directory smt-switch/deps/cvc5/build/bin
+ ./cvc5 ~/rewrite/bv_formula.sy --sygus-rr-synth --sygus-abort-size=3 --dag-thresh=0 |grep "rewrite" > temp
+  ./cvc5 ~/rewrite/bv_term.sy --sygus-rr-synth --sygus-abort-size=3 --dag-thresh=0 |grep "rewrite" > temp
+
+ # convert to smt lib
+ python3 rewrite_to_smt2.py temp
+
+ # add to tests in smt-switch
+ python3 add_test.py

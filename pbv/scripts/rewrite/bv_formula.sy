@@ -1,0 +1,23 @@
+(set-logic BV)
+
+(synth-fun f ((s (_ BitVec 4)) (t (_ BitVec 4))) Bool
+((Start Bool) (StartBV (_ BitVec 4)))
+  (
+   (Start Bool (
+     (distinct StartBV StartBV)
+     (= StartBV StartBV)
+     (bvult StartBV StartBV)
+     (bvule StartBV StartBV)
+   ))
+   (StartBV (_ BitVec 4) (
+     s
+     t
+     #b0000
+     #b0001
+     (bvshl  StartBV StartBV)
+     (bvadd  StartBV StartBV)
+     (bvsub  StartBV StartBV)
+   ))
+))
+
+(check-synth)

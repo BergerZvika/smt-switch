@@ -58,7 +58,7 @@ void parse_args(int argc, char** argv) {
         cout << "\t-h / --help\t\tprint help command line arrgument on screen." << endl;
         cout << "\t-d / --debug\t\tprint debug on screen." << endl;
         cout << "\t--pbvsolver\tuse Efficient PBVSolver." << endl;
-        cout << "\t-c / --comb\tuse PBVSolver with comb (default)." << endl;
+        cout << "\t-c / --comb\tuse PBVSolver with combaine (default)." << endl;
         cout << "\t-f / --full\tuse PBVSolver with full." << endl;
         cout << "\t-p / --partial\tuse PBVSolver with partial." << endl;
         cout << "\t-w / --postwalk\tuse postwalk to optimize your benchmark." << endl;
@@ -93,12 +93,13 @@ int main(int argc, char** argv){
     return 0;
   }
   if (!test.compare("")) {
-    cout << "Missing path to .smt2 file!" << endl;
+    cout << "Missing path to smt2 file!" << endl;
     return 0;
   }
   if (debug) {
     cout << "test path: " << test << endl;
   }
+
   // create pbvsolver
   SmtSolver s;
   SmtSolver cvc5 = Cvc5SolverFactory::create(false);
@@ -114,12 +115,14 @@ int main(int argc, char** argv){
     }
     s = std::make_shared<PBVSolver>(cvc5, debug, pbvsolver, postwalk);
   }
+
   // solver options
   s->set_opt("nl-ext-tplanes", "true");
   s->set_opt("full-saturate-quant", "true");
   if (produce_model) {
       s->set_opt("produce-models", "true");
   }
+
   // run solver on test.
   SmtLibReaderTester* reader = new SmtLibReaderTester(s);
   reader->parse(test);

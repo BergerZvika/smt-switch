@@ -273,9 +273,6 @@ Term AbstractPBVSolver::translate_term(const Term & t) {
         if (this->debug) {
             cout << "original term: " << t << endl;
             cout << "translate term: " << res << endl;
-            // if (this->postwalk) {
-            //     cout << "pbvsolver term: " << pre_res << endl;
-            // }
         }
         term_rules.clear();
         operator_rules.clear();
@@ -411,7 +408,6 @@ bool AbstractPBVWalker::minimum_sign(TermIter it) {
     Term left = *it;
     it++;
     Term right = *it;
-    //Term width = get_bit_width_term(left);
     if (left->to_string() == "1" && right->get_op() == BVSub) {
          auto right_it = right->begin();
          Term left_right = *right_it;
@@ -831,24 +827,59 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                               int_term = solver_->make_term(Minus, power2_k, translate_x);
                             } break;
                 case BVShl: { 
+                              Sort intsort = solver_->make_sort(INT);
                               bit_width = get_bit_width_term(*it);
                               if (minimum_sign(it)) {
                                 int_op = Minus;
-                                Sort intsort = solver_->make_sort(INT);
                                 Term one =  solver_->make_term(1, intsort);
                                 Term bit_width_minus_one = solver_->make_term(Minus, bit_width, one);
-                                Term minumum_sign_term = solver_->make_term(Pow, this->two, bit_width_minus_one);
-                                save_in_cache(term, minumum_sign_term);
+                                Term minimum_sign_term = solver_->make_term(Pow, this->two, bit_width_minus_one);
+                                save_in_cache(term, minimum_sign_term);
                               } else {
-                                int_op = Mod;
                                 Term x = *it;
                                 Term translate_x;
                                 query_cache(x, translate_x);
                                 Term y = *(++it);
                                 Term translate_y;
                                 query_cache(y, translate_y);
-                                Term power2_y = solver_->make_term(Pow, this->two, translate_y);
-                                int_term =  solver_->make_term(Mult, translate_x , power2_y);
+
+                                //naive
+                                int_op = Mod;
+                                Term power2_y = solver_->make_term(Pow, this->two, translate_y);                                
+                                Term mult = solver_->make_term(Mult, translate_x, power2_y);
+                                int_term = mult;
+
+                                //ite - 
+                                // int_op = Ite;
+                                // Op y_op = translate_y->get_op();
+                                // if (!y_op.is_null() && y_op.prim_op == Mod) {
+                                //     auto y_it = translate_y->begin();
+                                //     Term val = *y_it;
+                                //     y_it++;
+                                //     Term modulo = *y_it;
+                                //     Term power2_y = solver_->make_term(Pow, this->two, val);
+                                //     Term power2_full_y = solver_->make_term(Pow, this->two, translate_y);
+                                //     Term mult = solver_->make_term(Mult, translate_x, power2_y);
+                                //     Term power2_k = solver_->make_term(Pow, this->two, bit_width);
+                                //     Term condition = solver_->make_term(Lt, val, bit_width);
+                                //     Term then_branch =  solver_->make_term(Mod, mult, power2_k);
+                                //     Term gt_cond = solver_->make_term(Ge, val, power2_k);
+                                //     Term zero = solver_->make_term(0, intsort);
+                                //     Term full_mult = solver_->make_term(Mult, translate_x, power2_full_y);
+                                //     Term full_mult_branch = solver_->make_term(Mod, full_mult, power2_k);
+                                //     Term else_branch = solver_->make_term(Ite, gt_cond, full_mult_branch, zero);
+                                //     Term ite =  solver_->make_term(Ite, condition ,then_branch, else_branch);
+                                //     save_in_cache(term, ite);
+                                // } else {
+                                //     Term power2_y = solver_->make_term(Pow, this->two, translate_y);
+                                //     Term mult = solver_->make_term(Mult, translate_x, power2_y);
+                                //     Term power2_k = solver_->make_term(Pow, this->two, bit_width);
+                                //     Term condition = solver_->make_term(Ge, translate_y, bit_width);
+                                //     Term then_branch = solver_->make_term(0, intsort);
+                                //     Term else_branch = solver_->make_term(Mod, mult, power2_k);
+                                //     Term ite =  solver_->make_term(Ite, condition ,then_branch, else_branch);
+                                //     save_in_cache(term, ite);
+                                // }
                               }
                               
                             } break;
@@ -1030,8 +1061,8 @@ WalkerStepResult PrePBVWalker::visit_term(Term & term) {
     if (!op.is_null())
     {
       PrimOp primop = op.prim_op;
+      auto it = term->begin();
       if (primop == BVAshr) {
-        auto it = term->begin();
         Term x = (*it);
         it++;
         Term y = (*it);
@@ -1040,7 +1071,7 @@ WalkerStepResult PrePBVWalker::visit_term(Term & term) {
         Term zero =  solver_->make_term(0, intsort);
         Term one =  solver_->make_term(1, intsort);
         Term k_minus_one = solver_->make_term(Minus, k, one);
-        Term extract_bit = std::make_shared<PBVTerm>(Extract, TermVec{x, k_minus_one, zero});
+        Term extract_bit = std::make_shared<PBVTerm>(Extract, TermVec{x, k_minus_one, one});
         Term condition = std::make_shared<PBVTerm>(Equal, TermVec{extract_bit, zero});
         Term then_branch = std::make_shared<PBVTerm>(BVLshr, TermVec{x, y});
         Term bvnot = std::make_shared<PBVTerm>(BVNot, TermVec{x});
@@ -1048,6 +1079,13 @@ WalkerStepResult PrePBVWalker::visit_term(Term & term) {
         Term else_branch = std::make_shared<PBVTerm>(BVNot, TermVec{bvlshr_bvnot});
         Term ite = std::make_shared<PBVTerm>(Ite, TermVec{condition, then_branch, else_branch});
         save_in_cache(term, ite);
+    //   } else if (primop == BVSub) {
+    //     Term x = (*it);
+    //     it++;
+    //     Term y = (*it);
+    //     Term neg_y = std::make_shared<PBVTerm>(BVNeg, TermVec{y});
+    //     Term bvadd = std::make_shared<PBVTerm>(BVAdd, TermVec{x, neg_y});
+    //     save_in_cache(term, bvadd);
       } else {
         TermVec cached_children;
         Term c;
@@ -1074,6 +1112,21 @@ return Walker_Continue;
 }
 
 // PostPBVWalker function
+bool isOp(Term x, PrimOp op) {
+    if ((x->to_string()).substr(1, 3) != "div") {
+        Op x_op = x->get_op();
+        if (!x_op.is_null()) {
+            PrimOp prim = x_op.prim_op;
+            if (prim == op) {
+                return true;
+            }
+        }
+    } else if (op == BVUdiv) {
+        return true;
+    }
+    return false;
+}
+
 Term rmMod(Term x, Term mod) {
     if ((x->to_string()).substr(1, 3) != "div") {
         Op x_op = x->get_op();
@@ -1084,12 +1137,16 @@ Term rmMod(Term x, Term mod) {
             it++;
             Term right = *it;
             if(mod ==  right) {
+                // cout << "before rmMod: " << x << endl;
+                // cout << "after rmMod: " << left << endl;
                 return left;
             }
         }
     }
     return x;
 }
+
+
 
 WalkerStepResult PostPBVWalker::visit_term(Term & term) {
  if (!preorder_)
@@ -1102,7 +1159,7 @@ WalkerStepResult PostPBVWalker::visit_term(Term & term) {
       TermVec cached_children;
       Term c;
       PrimOp primop = op.prim_op;
-      if (primop == Mod) {
+      if (primop == Mod) { // remove unnecessary mod
         auto it = term->begin();
         Term x = (*it);
         it++;
@@ -1112,20 +1169,35 @@ WalkerStepResult PostPBVWalker::visit_term(Term & term) {
             // cout << "op: " << x_op << endl;
             PrimOp x_primop = x_op.prim_op;
             if (!x_op.is_null() && (x_primop == Plus || x_primop == Minus || x_primop == Mult)) {
-                Term ef_left, ef_right;
-                int ismod_left = 0, ismod_right = 0;  
-                auto x_it = x->begin();
+                Term ef_x, ef_left, ef_right;
+                query_cache(x ,ef_x);
+                auto x_it = ef_x->begin();
                 Term left = *x_it;
                 x_it++;
                 Term right = *x_it;
-                Term k = NULL;
-                query_cache(left ,ef_left);
-                ef_left = rmMod(ef_left, y);
-                save_in_cache(left, ef_left);
+                if (isOp(left, Ite)) {
+                    auto ite_it = left->begin();
+                    Term condition = *ite_it;
+                    ++ite_it;
+                    Term then_branch =  *ite_it;
+                    ++ite_it;
+                    Term else_branch =  *ite_it;
+                    ef_left = solver_->make_term(Ite, condition, rmMod(then_branch, y), rmMod(else_branch, y));
+                } else {
+                    ef_left = rmMod(left, y);
+                }
                 cached_children.push_back(ef_left);
-                query_cache(right, ef_right);
-                ef_right = rmMod(ef_right, y);
-                save_in_cache(right, ef_right);
+                if (isOp(right, Ite)) {
+                    auto ite_it = right->begin();
+                    Term condition = *ite_it;
+                    ++ite_it;
+                    Term then_branch =  *ite_it;
+                    ++ite_it;
+                    Term else_branch =  *ite_it;
+                    ef_right = solver_->make_term(Ite, condition, rmMod(then_branch, y), rmMod(else_branch, y));
+                } else {
+                    ef_right = rmMod(right, y);
+                }
                 cached_children.push_back(ef_right);
                 Term ef_term = solver_->make_term(x_op, cached_children);
                 Term trans = solver_->make_term(op, TermVec{ef_term, y});
@@ -1133,7 +1205,7 @@ WalkerStepResult PostPBVWalker::visit_term(Term & term) {
                 return Walker_Continue;
             }
         }
-      } else if (primop == Equal) { // s = s*s mod n -> s <= 1
+      } else if (primop == Equal || primop == Distinct) { // s = s*s mod 2^n -> s <= 1
         auto it = term->begin();
         Term x = (*it);
         it++;
@@ -1154,8 +1226,21 @@ WalkerStepResult PostPBVWalker::visit_term(Term & term) {
                     if (x->to_string() == right->to_string() && x->to_string() == left->to_string()) {
                         Sort intsort = solver_->make_sort(INT);
                         Term one =  solver_->make_term(1, intsort);
-                        Term x_le_1 = solver_->make_term(Le, x, one);
-                        operator_rules->push_back(x_le_1);
+                        Term implies;
+                        Term x_le_one = solver_->make_term(Le, x, one);
+                        if (primop == Distinct) {
+                            for (auto t : term)
+                            {
+                                c = t;
+                                query_cache(t, c);
+                                cached_children.push_back(c);
+                            }
+                            Term equal_term = solver_->make_term(Equal, cached_children);
+                            implies = solver_->make_term(Implies, equal_term, x_le_one);
+                        } else if (primop == Equal) {
+                            implies = solver_->make_term(Implies, term, x_le_one);
+                        }
+                        operator_rules->push_back(implies);
                         return Walker_Continue;
                     }
                 }
