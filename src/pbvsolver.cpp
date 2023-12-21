@@ -1,6 +1,5 @@
 
 #include "pbvsolver.h"
-// #include <typeinfo>
 
 using namespace std;
 
@@ -356,7 +355,7 @@ Term AbstractPBVWalker::bvlshr(Term t_left, Term t_right) {
     query_cache(t_left, translate_x);
     query_cache(t_right, translate_y);
     Term power2_y = solver_->make_term(Pow, this->two, translate_y);
-    Term int_term =  solver_->make_term(IntDiv, translate_x , power2_y);
+    Term int_term = solver_->make_term(IntDiv, translate_x , power2_y);
     Term power2_k = solver_->make_term(Pow, this->two, bit_width);
     if (postwalker) {
         return int_term;
@@ -888,7 +887,6 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                               Term x = *it;
                               Term y = *(++it);
                               save_in_cache(term, bvlshr(x, y));
-                            // save_in_cache(term, int_term);
                             } break;
                 case Extract: { int_op = Ite;
                                Term x = *it;
@@ -1210,12 +1208,18 @@ WalkerStepResult PostPBVWalker::visit_term(Term & term) {
         Term x = (*it);
         it++;
         Term y = (*it);
+        if ((y->to_string()).substr(1, 3) == "div") {
+            return Walker_Continue;
+        }
         Op y_op = y->get_op();
         if (!y_op.is_null()) {
             PrimOp y_primop = y_op.prim_op;
             if (y_primop == Mod) {
                 auto y_it = y->begin();
                 Term inmod = *y_it;
+                if ((inmod->to_string()).substr(1, 3) == "div") {
+                    return Walker_Continue;
+                }
                 Op inmod_op = inmod->get_op();
                 PrimOp inmod_primop = inmod_op.prim_op;
                 if (inmod_primop == Mult) {

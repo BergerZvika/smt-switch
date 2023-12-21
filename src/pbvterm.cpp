@@ -40,8 +40,7 @@ PBVTerm::PBVTerm(std::string name, Sort s1) : repr(name), s(s1) {
     is_sym = true;
     op = Op();
     is_pbv = true;
-    // repr = compute_string();
-    // children = TermVec();
+    repr = compute_string();
 }
 
 PBVTerm::PBVTerm(Op op1, TermVec t) : op(op1), children(t) {
@@ -79,7 +78,12 @@ PBVTerm::PBVTerm(Op op1, TermVec t) : op(op1), children(t) {
   }
 
 Sort PBVTerm::get_sort() const { return s; }
-Op PBVTerm::get_op() const { return op; }
+Op PBVTerm::get_op() const { 
+  if (repr.substr(1, 3) == "div") {
+    return IntDiv;
+  }
+  return op; 
+}
 bool PBVTerm::is_symbol() const { return is_sym; }
 size_t PBVTerm::hash() const { return str_hash(compute_string()); }
 std::size_t PBVTerm::get_id() const { return id_; }
