@@ -15,6 +15,7 @@ namespace smt {
     TermVec* term_rules;
     TermVec* operator_rules;
     Term two, bvand, k, x, y;
+    int piand = 0;
   public:
     AbstractPBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {
       this->term_rules = term_rules;
@@ -91,6 +92,7 @@ class PartialPBVWalker : public AbstractPBVWalker
   public:
     EfficientPBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) 
         : AbstractPBVWalker(solver, term_rules, operator_rules, power2) {
+          this->piand = 1;
           // cout << "Efficiecd ntPBVWalker" << endl;
         }
 

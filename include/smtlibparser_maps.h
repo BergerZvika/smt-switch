@@ -37,6 +37,7 @@ const std::unordered_map<std::string, std::unordered_map<std::string, PrimOp>>
               { ">=", Ge },
               { "*", Mult },
               { "div", IntDiv },
+              { "piand", PIAnd },
               { "mod", Mod },
               { "abs", Abs } } },
           // Reals

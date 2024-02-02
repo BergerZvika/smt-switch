@@ -53,6 +53,7 @@ const std::unordered_map<PrimOp, std::string> primop2str(
       { BVNot, "bvnot" },
       { BVNeg, "bvneg" },
       { BVAnd, "bvand" },
+      { PIAnd, "piand" },
       { BVOr, "bvor" },
       { BVXor, "bvxor" },
       { BVNand, "bvnand" },

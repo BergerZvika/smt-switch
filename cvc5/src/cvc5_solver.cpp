@@ -38,6 +38,7 @@ const std::unordered_map<PrimOp, ::cvc5::Kind> primop2kind(
       { Mult, ::cvc5::MULT },
       { Div, ::cvc5::DIVISION },
       { IntDiv, ::cvc5::INTS_DIVISION },
+      { PIAnd, ::cvc5::PIAND },
       { Lt, ::cvc5::LT },
       { Le, ::cvc5::LEQ },
       { Gt, ::cvc5::GT },

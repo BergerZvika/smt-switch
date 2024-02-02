@@ -288,7 +288,9 @@ Term AbstractPBVSolver::translate_term(const Term & t) {
     };
 
     PBVSolver::PBVSolver(SmtSolver s, int debug, int choose_walker): AbstractPBVSolver(s, debug) {
-        if (choose_walker == 1) {
+        if (choose_walker == 0) {
+            this->walker = new EfficientPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+        } else if (choose_walker == 1) {
             this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2); // combine
         } else if (choose_walker == 2) {
             this->walker = new FullPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
@@ -298,7 +300,10 @@ Term AbstractPBVSolver::translate_term(const Term & t) {
     }
 
         PBVSolver::PBVSolver(SmtSolver s, int debug, int choose_walker, int postwalk): AbstractPBVSolver(s, debug) {
-        if (choose_walker == 1) {
+        if (choose_walker == 0) {
+            this->walker = new EfficientPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+        } 
+        else if (choose_walker == 1) {
             this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
         } else if (choose_walker == 2) {
             this->walker = new FullPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
@@ -673,9 +678,7 @@ void PartialPBVWalker::bvand_handle() {
     this->operator_rules->push_back(bvand_max_range());
 }
 
-void EfficientPBVWalker::bvand_handle() {
-    cout << "EfficientPBVWalker::bvand_handle " << endl;
-}
+void EfficientPBVWalker::bvand_handle() {}
 
 
 WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
@@ -917,9 +920,12 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                               Term y = *(++it);
                               Term translate_y;
                               query_cache(y, translate_y);
-                              bvand_handle();
-                              save_in_cache(term, solver_->make_term(int_op, {this->bvand, k, translate_x, translate_y}));
-                            //   save_in_cache(term, solver_->make_term(int_op, TermVec{this->bvand, k, cached_children}));
+                              if (this->piand) {
+                                save_in_cache(term, solver_->make_term(PIAnd, k, translate_x, translate_y));
+                              } else {
+                                bvand_handle();
+                                save_in_cache(term, solver_->make_term(int_op, {this->bvand, k, translate_x, translate_y}));
+                              }
                             } break;
                 case BVOr: {  int_op = Minus;
                               Term k = get_bit_width_term(*it);
@@ -934,8 +940,13 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                               query_cache(y, translate_y);
                               // translate to bvand
                               Term x_plus_y = solver_->make_term(Plus, cached_children);
-                              Term x_and_y = solver_->make_term(Apply, {this->bvand, k, translate_x, translate_y});
-                              bvand_handle();
+                              Term x_and_y;
+                              if (this->piand) {
+                                x_and_y = solver_->make_term(PIAnd, k, translate_x, translate_y);
+                              } else {
+                                x_and_y = solver_->make_term(Apply, {this->bvand, k, translate_x, translate_y});
+                                bvand_handle();
+                              }
                               save_in_cache(term, solver_->make_term(int_op, x_plus_y, x_and_y));
                             } break;
                 case BVXor: { int_op = Minus;
@@ -951,8 +962,13 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                               query_cache(y, translate_y);
                               // bvor and
                               Term x_plus_y = solver_->make_term(Plus, cached_children);
-                              Term x_and_y = solver_->make_term(Apply, {this->bvand, k, translate_x, translate_y});
-                              bvand_handle();
+                              Term x_and_y;
+                              if (this->piand) {
+                                x_and_y = solver_->make_term(PIAnd, k, translate_x, translate_y);
+                              } else {
+                                x_and_y = solver_->make_term(Apply, {this->bvand, k, translate_x, translate_y});
+                                bvand_handle();
+                              }
                               Term x_or_y = solver_->make_term(int_op, x_plus_y, x_and_y);
                               save_in_cache(term, solver_->make_term(int_op, x_or_y, x_and_y));
                             } break;
@@ -976,7 +992,8 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                 case Implies:
                 case Ite:
                 case Forall:
-                case Exists: {
+                case Exists:
+                case PIAnd: {
                     TermVec cached_children;
                     Term c;
                     for (auto t : term)

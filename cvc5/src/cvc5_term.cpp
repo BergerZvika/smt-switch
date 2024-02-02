@@ -60,6 +60,7 @@ const std::unordered_map<::cvc5::Kind, PrimOp> kind2primop(
       { ::cvc5::TO_REAL, To_Real },
       { ::cvc5::TO_INTEGER, To_Int },
       { ::cvc5::IS_INTEGER, Is_Int },
+      { ::cvc5::PIAND, PIAnd },
       /* Fixed Size BitVector Theory */
       { ::cvc5::BITVECTOR_CONCAT, Concat },
       // Indexed Op

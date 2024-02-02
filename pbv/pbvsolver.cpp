@@ -103,18 +103,10 @@ int main(int argc, char** argv){
   // create pbvsolver
   SmtSolver s;
   SmtSolver cvc5 = Cvc5SolverFactory::create(false);
-  if (pbvsolver == 0) {
-    if (debug) {
-      cout << "EfficientPBVSolver:" << endl;
-    }
-     s = std::make_shared<EfficientPBVSolver>(cvc5, debug);
-  }
-  else {
     if (debug) {
       cout << "PBVSolver:" << endl;
     }
     s = std::make_shared<PBVSolver>(cvc5, debug, pbvsolver, postwalk);
-  }
 
   // solver options
   s->set_opt("nl-ext-tplanes", "true");
