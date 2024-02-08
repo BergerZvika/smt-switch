@@ -84,6 +84,7 @@ Op PBVTerm::get_op() const {
   }
   return op; 
 }
+
 bool PBVTerm::is_symbol() const { return is_sym; }
 size_t PBVTerm::hash() const { return str_hash(compute_string()); }
 std::size_t PBVTerm::get_id() const { return id_; }

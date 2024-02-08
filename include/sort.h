@@ -65,6 +65,8 @@ std::string to_string(SortKind);
  */
 class AbsSort
 {
+ protected: 
+  std::string pbvsort = "";
  public:
   AbsSort() {};
   virtual ~AbsSort(){};

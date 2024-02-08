@@ -75,7 +75,12 @@ std::string AbsSort::to_string() const
   else if (sk == BV)
   {
     std::string res("(_ BitVec ");
-    res += std::to_string(get_width());
+    if (pbvsort.compare("")) { // if pbvsort is empty pbvsort.compare("") == 0
+      res += pbvsort;
+    } else {
+      res += std::to_string(get_width());
+    }
+    
     res += ")";
     return res;
   }

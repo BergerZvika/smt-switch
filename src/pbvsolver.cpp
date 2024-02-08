@@ -403,7 +403,10 @@ Term AbstractPBVWalker::extractSort(Term t) {
             return pbvs->get_term();
         }
     } else {
-        return solver_->make_term(pbvs->get_width(), intsort); 
+        cout << "before get_width" << endl;
+        Term a = solver_->make_term(pbvs->get_width(), intsort); 
+        cout << "before get_width" << endl;
+        return a;
     }
 }
 
