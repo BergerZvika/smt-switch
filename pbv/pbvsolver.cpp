@@ -43,7 +43,7 @@ class SmtLibReaderTester : public SmtLibReader
 
 int help = 0;
 int debug = 0;
-int pbvsolver = 1;
+int pbvsolver = 0;
 int postwalk = 0;
 int produce_model = 0;
 string test = "";
@@ -57,7 +57,7 @@ void parse_args(int argc, char** argv) {
         cout << "Syntax: ./pbvsolver <path/to/smt2>" << endl;
         cout << "\t-h / --help\t\tprint help command line arrgument on screen." << endl;
         cout << "\t-d / --debug\t\tprint debug on screen." << endl;
-        cout << "\t--pbvsolver\tuse Efficient PBVSolver." << endl;
+        cout << "\t--pbvsolver\tuse default Efficient PBVSolver." << endl;
         cout << "\t-c / --comb\tuse PBVSolver with combaine (default)." << endl;
         cout << "\t-f / --full\tuse PBVSolver with full." << endl;
         cout << "\t-p / --partial\tuse PBVSolver with partial." << endl;
@@ -104,7 +104,17 @@ int main(int argc, char** argv){
   SmtSolver s;
   SmtSolver cvc5 = Cvc5SolverFactory::create(false);
     if (debug) {
-      cout << "PBVSolver:" << endl;
+      switch(pbvsolver){
+        case 0: cout << "Piand PBVSolver:" << endl;
+          break;
+        case 1: cout << "Combine PBVSolver:" << endl;
+          break;
+        case 2: cout << "Full PBVSolver:" << endl;
+          break;
+        case 3: cout << "Partial PBVSolver:" << endl;
+          break;
+        default: break;
+      }
     }
     s = std::make_shared<PBVSolver>(cvc5, debug, pbvsolver, postwalk);
 
