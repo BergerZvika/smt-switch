@@ -110,13 +110,10 @@ namespace smt {
         // return wrapped_solver->make_term(val, sort);
         // return std::make_shared<PBVTerm>(sort, TermVec{val});
         Term pbvt = std::make_shared<PBVTerm>(pbvs, TermVec{val});
-        cout << pbvt << endl;
         return pbvt;
     }
     Term AbstractPBVSolver::make_symbol(const std::string name, const Sort & sort) {
         if(sort->get_sort_kind() == BV) {
-            //cout << "name: " << name << endl;
-            // cout << "sort: " << sort << endl;
             return make_pbv_symbol(name, sort);
         }
         return wrapped_solver->make_symbol(name, sort);
@@ -262,11 +259,9 @@ Term AbstractPBVSolver::translate_term(const Term & t) {
         }
         // res /\ set rules
         for (Term r : term_rules) {
-            // cout << r << endl;
             res = wrapped_solver->make_term(And, res, r);
         }
         for (Term r : operator_rules) {
-            // cout << "lemma: " << r << endl;
             res = wrapped_solver->make_term(And, res, r);
         }
         if (this->debug) {
@@ -381,9 +376,21 @@ Term AbstractPBVWalker::bvnot(Term t) {
 
 Term AbstractPBVWalker::extract(Term x, Term i, Term j) {
     Term power2_i = solver_->make_term(Pow, this->two, i);
-    Term x_div_power2_i = solver_->make_term(IntDiv, x, power2_i);
-    Term power2_j = solver_->make_term(Pow, this->two, j);
-    return solver_->make_term(Mod, x_div_power2_i, power2_j);
+    Term x_div_power2_i = solver_->make_term(IntDiv, x, power2_i); // x / 2^i
+    Sort intsort = solver_->make_sort(INT);
+    Term one =  solver_->make_term(1, intsort);
+    Term j_plus_one = solver_->make_term(Plus, j, one);
+    Term j_plus_one_minus_i = solver_->make_term(Minus, j_plus_one, i);
+    Term power2_j_plus_one_minus_i = solver_->make_term(Pow, this->two, j_plus_one_minus_i);
+    Term zero =  solver_->make_term(0, intsort);
+    if (i == zero) {
+        if (j == zero) {
+            return solver_->make_term(Mod, x, this->two); // i = 0 && j = 0 -> x mod 2
+        }
+        Term power2_j_plus_one = solver_->make_term(Pow, this->two, j_plus_one);
+        return solver_->make_term(Mod, x, power2_j_plus_one); // i = 0 -> x mod 2^(j+1)
+    }
+    return solver_->make_term(Mod, x_div_power2_i, power2_j_plus_one_minus_i); // (x / 2^i) mod 2^(j-i+1)
 }
 
 Term AbstractPBVWalker::extractSort(Term t) {
@@ -397,15 +404,26 @@ Term AbstractPBVWalker::extractSort(Term t) {
             it++;
             Term t1 = (*it);
             return solver_->make_term(Plus, extractSort(t0), extractSort(t1));
-        } else if (t->get_op() == Extract) {
-            // todo
+        } else if ((t->get_op()).prim_op == Extract) {
+            Sort intsort = solver_->make_sort(INT);
+            if ((t->get_op()).idx0 == -1 && (t->get_op()).idx1 == -1) {
+                Term i, j;
+                auto it = t->begin();
+                i = *(++it);
+                j = *(++it);
+                Term one =  solver_->make_term(1, intsort);
+                if (i == j) {
+                    return one;
+                }
+                Term j_plus_one = solver_->make_term(Plus, j, one);
+                return solver_->make_term(Minus, j_plus_one, i);
+            }
+            return solver_->make_term((t->get_op()).idx1 + 1 - (t->get_op()).idx0, intsort);
         } else {
             return pbvs->get_term();
         }
     } else {
-        cout << "before get_width" << endl;
         Term a = solver_->make_term(pbvs->get_width(), intsort); 
-        cout << "before get_width" << endl;
         return a;
     }
 }
@@ -434,7 +452,7 @@ void AbstractPBVWalker::make_bit_width_term(TermIter it) {
     Term t1 = (*it);
     Op op0 = t0->get_op();
     Op op1 = t1->get_op();
-    if ((t0->is_pbvterm() || t0->is_value()) && (t1->is_pbvterm() || t1->is_value()) && op0 != Extract && op1 != Extract) {
+    if ((t0->is_pbvterm() || t0->is_value()) && (t1->is_pbvterm() || t1->is_value())) {
         Term width_left = extractSort(t0);
         Term width_right = extractSort(t1);
         Term bitWidth = solver_->make_term(Equal, width_left, width_right);
@@ -709,11 +727,8 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
       Term int_term;
       Term bit_width;
       if(term->is_pbvterm()) {
-            // cout << op << endl;
             auto it = term->begin();
             PrimOp primop = op.prim_op;
-            // assert();
-            // cout << primop << endl;
             switch (primop) {
                 case Equal: { make_bit_width_term(it);
                             } break;
@@ -895,11 +910,18 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                               save_in_cache(term, bvlshr(x, y));
                             } break;
                 case Extract: { int_op = Ite;
+                               Term i, j;
                                Term x = *it;
+                               if (op.idx0 == -1 && op.idx1 == -1) {
+                                 i = *(++it);
+                                 j = *(++it);
+                               } else {
+                                 Sort intsort = solver_->make_sort(INT);
+                                 i = solver_->make_term(op.idx0, intsort);
+                                 j = solver_->make_term(op.idx1, intsort);
+                               }
                                Term translate_x;
                                query_cache(x, translate_x);
-                               Term i = *(++it);
-                               Term j = *(++it);
                                save_in_cache(term, extract(translate_x, i, j));
                             } break;
                 case Concat: { int_op = Plus;
@@ -1030,7 +1052,6 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
         Sort pbv_sort = term->get_sort();
         shared_ptr<PBVSort> bv_sort = static_pointer_cast<PBVSort>(pbv_sort);
         Term bit_width = bv_sort->get_term();
-        // cout << "term: " << term << endl;
         if (query_cache(term, k)){
             cout << "k: " << k << endl;
         }
@@ -1049,14 +1070,10 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
             Term constbv = solver_->make_term(stoi(bit_width->to_string()), intsort);
             bit_width = constbv;
         } catch (...) {}
-            // cout << "bit width: " << bit_width << endl;
             Term two_2 = solver_->make_term(2, intsort);
             Term power2_k = solver_->make_term(Pow, two_2, bit_width);
             Term lt = solver_->make_term(Lt, k, power2_k);
             term_rules->push_back(lt);
-            // for (Term r : *term_rules) {
-            //    cout << r << endl; 
-            // }
       } else {
           if (term->is_value()) { // translate constant bit-vectors like: bv0
             Sort intsort = solver_->make_sort(INT);
@@ -1088,9 +1105,12 @@ WalkerStepResult PrePBVWalker::visit_term(Term & term) {
         Sort intsort = solver_->make_sort(INT);
         Term zero =  solver_->make_term(0, intsort);
         Term one =  solver_->make_term(1, intsort);
+        Sort bv1 = solver_->make_sort(BV, 1);
         Term k_minus_one = solver_->make_term(Minus, k, one);
-        Term extract_bit = std::make_shared<PBVTerm>(Extract, TermVec{x, k_minus_one, one});
-        Term condition = std::make_shared<PBVTerm>(Equal, TermVec{extract_bit, zero});
+        Term extract_bit = std::make_shared<PBVTerm>(Extract, TermVec{x, k_minus_one, k_minus_one});
+        int64_t int_one = 1;
+        Term const_bit_one = solver_->make_term(int_one, bv1);
+        Term condition = std::make_shared<PBVTerm>(Equal, TermVec{extract_bit, const_bit_one});
         Term then_branch = std::make_shared<PBVTerm>(BVLshr, TermVec{x, y});
         Term bvnot = std::make_shared<PBVTerm>(BVNot, TermVec{x});
         Term bvlshr_bvnot = std::make_shared<PBVTerm>(BVLshr, TermVec{bvnot, y});
@@ -1155,8 +1175,6 @@ Term rmMod(Term x, Term mod) {
             it++;
             Term right = *it;
             if(mod ==  right) {
-                // cout << "before rmMod: " << x << endl;
-                // cout << "after rmMod: " << left << endl;
                 return left;
             }
         }
@@ -1169,7 +1187,6 @@ Term rmMod(Term x, Term mod) {
 WalkerStepResult PostPBVWalker::visit_term(Term & term) {
  if (!preorder_)
   {
-    // cout << "term: " << term << endl; 
   if ((term->to_string()).substr(1, 3) != "div") {
     Op op = term->get_op();
     if (!op.is_null())
@@ -1184,7 +1201,6 @@ WalkerStepResult PostPBVWalker::visit_term(Term & term) {
         Term y = (*it);
         if ((x->to_string()).substr(1, 3) != "div" && (x->to_string()).substr(1, 2) != "^") {
             Op x_op = x->get_op();
-            // cout << "op: " << x_op << endl;
             PrimOp x_primop = x_op.prim_op;
             if (!x_op.is_null() && (x_primop == Plus || x_primop == Minus || x_primop == Mult)) {
                 Term ef_x, ef_left, ef_right;

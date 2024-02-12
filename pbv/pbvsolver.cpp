@@ -120,7 +120,9 @@ int main(int argc, char** argv){
 
   // solver options
   s->set_opt("nl-ext-tplanes", "true");
-  s->set_opt("full-saturate-quant", "true");
+  if (pbvsolver != 0) {
+    s->set_opt("full-saturate-quant", "true");
+  }
   if (produce_model) {
       s->set_opt("produce-models", "true");
   }
