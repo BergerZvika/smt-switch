@@ -46,6 +46,7 @@ int debug = 0;
 int pbvsolver = 0;
 int postwalk = 0;
 int produce_model = 0;
+int type_check = 0;
 string test = "";
 
 
@@ -57,12 +58,13 @@ void parse_args(int argc, char** argv) {
         cout << "Syntax: ./pbvsolver <path/to/smt2>" << endl;
         cout << "\t-h / --help\t\tprint help command line arrgument on screen." << endl;
         cout << "\t-d / --debug\t\tprint debug on screen." << endl;
-        cout << "\t--pbvsolver\tuse default Efficient PBVSolver." << endl;
+        cout << "\t--pbvsolver\tuse default piand PBVSolver." << endl;
         cout << "\t-c / --comb\tuse PBVSolver with combaine (default)." << endl;
         cout << "\t-f / --full\tuse PBVSolver with full." << endl;
         cout << "\t-p / --partial\tuse PBVSolver with partial." << endl;
         cout << "\t-w / --postwalk\tuse postwalk to optimize your benchmark." << endl;
         cout << "\t--produce-model\tuse produce model solver." << endl;
+        cout << "\t-t / --type-check\ttype checking before solving formula." << endl;
         //cout << "\t--pbv\tpbvsolver" << endl;
       } else if (!(*i).compare("-d") ||  !(*i).compare("--debug")) {
         debug = 1;
@@ -78,10 +80,14 @@ void parse_args(int argc, char** argv) {
         postwalk = 1;
       }  else if (!(*i).compare("--produce-model")) {
         produce_model = 1;
-      } else if ((*i).compare((*i).length() - 5, 5, ".smt2") == 0) {
+      } else if (!(*i).compare("-t") ||  !(*i).compare("--type-check")) {
+        type_check = 1;
+      } else if ((*i).length() >= 5 && (*i).compare((*i).length() - 5, 5, ".smt2") == 0) {
         test = (*i);
+      } else {
+        throw std::runtime_error("Invalid Argument: " + *i + "\n\tplease run again with -h to show valid arguments.");
       }
-    }
+  }
 }
 
 
@@ -101,23 +107,9 @@ int main(int argc, char** argv){
   }
 
   // create pbvsolver
-  SmtSolver s;
+  SmtSolver s, type_checker;
   SmtSolver cvc5 = Cvc5SolverFactory::create(false);
-    if (debug) {
-      switch(pbvsolver){
-        case 0: cout << "Piand PBVSolver:" << endl;
-          break;
-        case 1: cout << "Combine PBVSolver:" << endl;
-          break;
-        case 2: cout << "Full PBVSolver:" << endl;
-          break;
-        case 3: cout << "Partial PBVSolver:" << endl;
-          break;
-        default: break;
-      }
-    }
-    s = std::make_shared<PBVSolver>(cvc5, debug, pbvsolver, postwalk);
-
+  s = std::make_shared<PBVSolver>(cvc5, debug, pbvsolver, postwalk, 0);
   // solver options
   s->set_opt("nl-ext-tplanes", "true");
   if (pbvsolver != 0) {
@@ -127,7 +119,32 @@ int main(int argc, char** argv){
       s->set_opt("produce-models", "true");
   }
 
+  // type checker
+  if (type_check) {
+    type_checker = std::make_shared<PBVSolver>(Cvc5SolverFactory::create(false), 0, pbvsolver, postwalk, type_check);
+    SmtLibReaderTester* type_reader = new SmtLibReaderTester(type_checker);
+    type_reader->parse(test);
+    auto type_results = type_reader->get_results();
+    if (type_results[0].is_unsat()) {
+        throw std::runtime_error("Type Checker Error!");
+    }
+    type_check = 0;
+  }
+  
   // run solver on test.
+  if (debug) {
+    switch(pbvsolver){
+      case 0: cout << "Piand PBVSolver:" << endl;
+        break;
+      case 1: cout << "Combine PBVSolver:" << endl;
+        break;
+      case 2: cout << "Full PBVSolver:" << endl;
+        break;
+      case 3: cout << "Partial PBVSolver:" << endl;
+        break;
+      default: break;
+    }
+  }
   SmtLibReaderTester* reader = new SmtLibReaderTester(s);
   reader->parse(test);
   auto results = reader->get_results();

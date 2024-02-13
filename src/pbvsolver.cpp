@@ -13,15 +13,11 @@ namespace smt {
 
     AbstractPBVSolver::AbstractPBVSolver(SmtSolver s) : AbsSmtSolver(s->get_solver_enum()),
       wrapped_solver(s) {
-        // term_rules = new TermVec();
-        // operator_rules = new TermVec();
           Sort intsort = s->make_sort(INT);
     }
 
     AbstractPBVSolver::AbstractPBVSolver(SmtSolver s, int debug) : AbsSmtSolver(s->get_solver_enum()),
       wrapped_solver(s), debug(debug) {
-        // term_rules = new TermVec();
-        // operator_rules = new TermVec();
           Sort intsort = s->make_sort(INT);
     }
 
@@ -242,7 +238,7 @@ namespace smt {
 
 int postwalker;
 Term AbstractPBVSolver::translate_term(const Term & t) {
-        Term res, pre_res;
+        Term res, pre_res, bit_width;
         postwalker = 0;
         // PBVConstantWalker* walker = new PBVConstantWalker(wrapped_solver);
         Term& t1 = const_cast<Term&>(t);
@@ -252,7 +248,7 @@ Term AbstractPBVSolver::translate_term(const Term & t) {
         if (this->postwalk) {
             postwalker = 1;
             pre_res = this->walker->visit(term);
-            PostPBVWalker* postwalk = new PostPBVWalker(wrapped_solver, &operator_rules);
+            PostPBVWalker* postwalk = new PostPBVWalker(wrapped_solver, &term_rules);
             res = postwalk->visit(pre_res);
         } else {
             res = this->walker->visit(term);
@@ -261,8 +257,16 @@ Term AbstractPBVSolver::translate_term(const Term & t) {
         for (Term r : term_rules) {
             res = wrapped_solver->make_term(And, res, r);
         }
+        int flag = 0;
         for (Term r : operator_rules) {
-            res = wrapped_solver->make_term(And, res, r);
+            if(!flag) {
+                flag++;
+                bit_width = r;
+            }
+            bit_width = wrapped_solver->make_term(And, bit_width, r);
+        }
+        if (flag) {
+            res = wrapped_solver->make_term(And, res, bit_width);
         }
         if (this->debug) {
             cout << "original term: " << t << endl;
@@ -270,6 +274,12 @@ Term AbstractPBVSolver::translate_term(const Term & t) {
         }
         term_rules.clear();
         operator_rules.clear();
+        if (this->type_check == 1) {
+            if (flag) {
+                return bit_width;
+            }
+            return NULL;
+        }
         return res;
     }
 
@@ -308,23 +318,31 @@ Term AbstractPBVSolver::translate_term(const Term & t) {
         this->postwalk = postwalk;
     }
 
+    PBVSolver::PBVSolver(SmtSolver s, int debug, int choose_walker, int postwalk, int type_check): AbstractPBVSolver(s, debug) {
+        if (type_check) {
+            this->walker = new TypeCheckerWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+        } else if (choose_walker == 0) {
+            this->walker = new EfficientPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+        } 
+        else if (choose_walker == 1) {
+            this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+        } else if (choose_walker == 2) {
+            this->walker = new FullPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+        } else if (choose_walker == 3) {
+            this->walker = new PartialPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+        }
+        this->postwalk = postwalk;
+        this->type_check = type_check;
+    }
+
+
 
 
     void PBVSolver::assert_formula(const Term & t) { 
         Term res = translate_term(t);
-        wrapped_solver->assert_formula(res);
-    }
-
-    // EfficientPBVSolver
-    EfficientPBVSolver::EfficientPBVSolver(SmtSolver s) : AbstractPBVSolver(s) {
-        this->walker = new EfficientPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-    };
-    EfficientPBVSolver::EfficientPBVSolver(SmtSolver s, int debug) : AbstractPBVSolver(s, debug) {
-        this->walker = new EfficientPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-    };
-    void EfficientPBVSolver::assert_formula(const Term & t) {   
-        Term res = translate_term(t);
-        wrapped_solver->assert_formula(res);
+        if (res) {
+            wrapped_solver->assert_formula(res);
+        }
     }
 
 
@@ -462,7 +480,7 @@ void AbstractPBVWalker::make_bit_width_term(TermIter it) {
                 return;
             }
         } 
-        // add leemas 
+        // add lemmas 
         operator_rules->push_back(bitWidth);
         // lemma: width > 0
         Sort intsort = solver_->make_sort(INT);
@@ -662,17 +680,17 @@ void PBVWalker::bvand_handle() {
     }
     singlenton_axiom = 1;
     // partial lemmas
-    this->operator_rules->push_back(bvand_basecase());
-    this->operator_rules->push_back(bvand_max());
-    this->operator_rules->push_back(bvand_min());
-    this->operator_rules->push_back(bvand_idempotence());
-    this->operator_rules->push_back(bvand_contradiction());
-    this->operator_rules->push_back(bvand_symmetry());
-    this->operator_rules->push_back(bvand_difference());
-    this->operator_rules->push_back(bvand_min_range());
-    this->operator_rules->push_back(bvand_max_range());
+    this->term_rules->push_back(bvand_basecase());
+    this->term_rules->push_back(bvand_max());
+    this->term_rules->push_back(bvand_min());
+    this->term_rules->push_back(bvand_idempotence());
+    this->term_rules->push_back(bvand_contradiction());
+    this->term_rules->push_back(bvand_symmetry());
+    this->term_rules->push_back(bvand_difference());
+    this->term_rules->push_back(bvand_min_range());
+    this->term_rules->push_back(bvand_max_range());
     // add full axiom
-    this->operator_rules->push_back(bvand_fullaxiom());
+    this->term_rules->push_back(bvand_fullaxiom());
 }
 
 void FullPBVWalker::bvand_handle() {
@@ -680,7 +698,7 @@ void FullPBVWalker::bvand_handle() {
         return;
     }
     singlenton_axiom = 1;
-    this->operator_rules->push_back(bvand_fullaxiom());
+    this->term_rules->push_back(bvand_fullaxiom());
 }
 
 void PartialPBVWalker::bvand_handle() {
@@ -688,18 +706,19 @@ void PartialPBVWalker::bvand_handle() {
         return;
     }
     singlenton_axiom = 1;
-    this->operator_rules->push_back(bvand_basecase());
-    this->operator_rules->push_back(bvand_max());
-    this->operator_rules->push_back(bvand_min());
-    this->operator_rules->push_back(bvand_idempotence());
-    this->operator_rules->push_back(bvand_contradiction());
-    this->operator_rules->push_back(bvand_symmetry());
-    this->operator_rules->push_back(bvand_difference());
-    this->operator_rules->push_back(bvand_min_range());
-    this->operator_rules->push_back(bvand_max_range());
+    this->term_rules->push_back(bvand_basecase());
+    this->term_rules->push_back(bvand_max());
+    this->term_rules->push_back(bvand_min());
+    this->term_rules->push_back(bvand_idempotence());
+    this->term_rules->push_back(bvand_contradiction());
+    this->term_rules->push_back(bvand_symmetry());
+    this->term_rules->push_back(bvand_difference());
+    this->term_rules->push_back(bvand_min_range());
+    this->term_rules->push_back(bvand_max_range());
 }
 
 void EfficientPBVWalker::bvand_handle() {}
+void TypeCheckerWalker::bvand_handle() {}
 
 
 WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
@@ -1280,7 +1299,7 @@ WalkerStepResult PostPBVWalker::visit_term(Term & term) {
                         } else if (primop == Equal) {
                             implies = solver_->make_term(Implies, term, x_le_one);
                         }
-                        operator_rules->push_back(implies);
+                        term_rules->push_back(implies);
                         return Walker_Continue;
                     }
                 }

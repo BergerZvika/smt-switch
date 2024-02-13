@@ -20,13 +20,8 @@ namespace smt {
     AbstractPBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {
       this->term_rules = term_rules;
       this->operator_rules = operator_rules;
-      Sort intsort = solver->make_sort(INT);
-      this->two = solver->make_term(2, intsort);
-      Sort funsort = solver->make_sort(FUNCTION, SortVec{intsort, intsort, intsort, intsort});
-      this->bvand = solver->make_symbol("bvand", funsort);
-      this->k = solver->make_param("k", intsort);
-      this->x = solver->make_param("x", intsort);
-      this->y = solver->make_param("y", intsort);
+      Sort sort = solver->make_sort(INT);
+      this->two = solver->make_term(2, sort);
     }
 
     WalkerStepResult visit_term(Term & term);
@@ -59,6 +54,12 @@ class PBVWalker : public AbstractPBVWalker
   public:
     PBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) 
         : AbstractPBVWalker(solver, term_rules, operator_rules, power2) {
+        Sort intsort = solver->make_sort(INT);
+        Sort funsort = solver->make_sort(FUNCTION, SortVec{intsort, intsort, intsort, intsort});
+        this->bvand = solver->make_symbol("bvand", funsort);
+        this->k = solver->make_param("k", intsort);
+        this->x = solver->make_param("x", intsort);
+        this->y = solver->make_param("y", intsort);
       }
       void bvand_handle();
 };
@@ -70,6 +71,12 @@ class PartialPBVWalker : public AbstractPBVWalker
   public:
     PartialPBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) 
         : AbstractPBVWalker(solver, term_rules, operator_rules, power2) {
+        Sort intsort = solver->make_sort(INT);
+        Sort funsort = solver->make_sort(FUNCTION, SortVec{intsort, intsort, intsort, intsort});
+        this->bvand = solver->make_symbol("bvand", funsort);
+        this->k = solver->make_param("k", intsort);
+        this->x = solver->make_param("x", intsort);
+        this->y = solver->make_param("y", intsort);
       }
       void bvand_handle();
 };
@@ -81,7 +88,12 @@ class PartialPBVWalker : public AbstractPBVWalker
   public:
     FullPBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) 
         : AbstractPBVWalker(solver, term_rules, operator_rules, power2) {
-          // cout << "Efficiecd ntPBVWalker" << endl;
+          Sort intsort = solver->make_sort(INT);
+          Sort funsort = solver->make_sort(FUNCTION, SortVec{intsort, intsort, intsort, intsort});
+          this->bvand = solver->make_symbol("bvand", funsort);
+          this->k = solver->make_param("k", intsort);
+          this->x = solver->make_param("x", intsort);
+          this->y = solver->make_param("y", intsort);
         }
 
     void bvand_handle();
@@ -93,8 +105,29 @@ class PartialPBVWalker : public AbstractPBVWalker
     EfficientPBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) 
         : AbstractPBVWalker(solver, term_rules, operator_rules, power2) {
           this->piand = 1;
-          // cout << "Efficiecd ntPBVWalker" << endl;
+          Sort intsort = solver->make_sort(INT);
+          Sort funsort = solver->make_sort(FUNCTION, SortVec{intsort, intsort, intsort, intsort});
+          this->bvand = solver->make_symbol("bvand", funsort);
+          this->k = solver->make_param("k", intsort);
+          this->x = solver->make_param("x", intsort);
+          this->y = solver->make_param("y", intsort);
         }
+
+    void bvand_handle();
+};
+
+class TypeCheckerWalker : public AbstractPBVWalker
+{
+  public:
+    TypeCheckerWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) 
+     : AbstractPBVWalker(solver, term_rules, operator_rules, power2) {
+      Sort intsort = solver->make_sort(INT);
+      Sort funsort = solver->make_sort(FUNCTION, SortVec{intsort, intsort, intsort, intsort});
+      this->bvand = solver->make_symbol("type_check_bvand", funsort);
+      this->k = solver->make_param("type_check_k", intsort);
+      this->x = solver->make_param("type_check_x", intsort);
+      this->y = solver->make_param("type_check_y", intsort);
+    }
 
     void bvand_handle();
 };
@@ -120,10 +153,10 @@ class PrePBVWalker : public IdentityWalker
 // PostPBVWalker
 class PostPBVWalker : public IdentityWalker
 {
-  TermVec* operator_rules;
+  TermVec* term_rules;
   public:
-    PostPBVWalker(const SmtSolver & solver, TermVec* operator_rules)  : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {
-      this->operator_rules = operator_rules;
+    PostPBVWalker(const SmtSolver & solver, TermVec* term_rules)  : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {
+      this->term_rules = term_rules;
     }
     WalkerStepResult visit_term(Term & term) override; 
 };
@@ -140,6 +173,7 @@ class AbstractPBVSolver : public AbsSmtSolver
    AbstractPBVWalker* walker;
    int debug = 0;
    int postwalk = 0;
+   int type_check = 0;
   public:
     AbstractPBVSolver(SmtSolver s);
     AbstractPBVSolver(SmtSolver s, int debug);
@@ -228,21 +262,10 @@ class PBVSolver : public AbstractPBVSolver
     PBVSolver(SmtSolver s, int debug);
     PBVSolver(SmtSolver s, int debug, int walker);
     PBVSolver(SmtSolver s, int debug, int walker, int postwalk);
+    PBVSolver(SmtSolver s, int debug, int walker, int postwalk, int type_check);
     ~PBVSolver(){};
 
     void assert_formula(const Term & t) override;
 };
-
-// EfficientPBVSolver
-class EfficientPBVSolver : public AbstractPBVSolver
-{
-    public:
-    EfficientPBVSolver(SmtSolver s);
-    EfficientPBVSolver(SmtSolver s, int debug);
-    ~EfficientPBVSolver(){};
-
-    void assert_formula(const Term & t) override;
-};
-
 
 } // namespace smt
