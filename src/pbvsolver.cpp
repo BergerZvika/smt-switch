@@ -240,7 +240,6 @@ int postwalker;
 Term AbstractPBVSolver::translate_term(const Term & t) {
         Term res, pre_res, bit_width;
         postwalker = 0;
-        // PBVConstantWalker* walker = new PBVConstantWalker(wrapped_solver);
         Term& t1 = const_cast<Term&>(t);
         PrePBVWalker* prewalk = new PrePBVWalker(wrapped_solver);
         Term term = prewalk->visit(t1);
@@ -262,6 +261,7 @@ Term AbstractPBVSolver::translate_term(const Term & t) {
             if(!flag) {
                 flag++;
                 bit_width = r;
+                continue;
             }
             bit_width = wrapped_solver->make_term(And, bit_width, r);
         }
@@ -393,22 +393,22 @@ Term AbstractPBVWalker::bvnot(Term t) {
 }
 
 Term AbstractPBVWalker::extract(Term x, Term i, Term j) {
-    Term power2_i = solver_->make_term(Pow, this->two, i);
-    Term x_div_power2_i = solver_->make_term(IntDiv, x, power2_i); // x / 2^i
+    Term power2_j = solver_->make_term(Pow, this->two, j);
+    Term x_div_power2_j = solver_->make_term(IntDiv, x, power2_j); // x / 2^j
     Sort intsort = solver_->make_sort(INT);
     Term one =  solver_->make_term(1, intsort);
-    Term j_plus_one = solver_->make_term(Plus, j, one);
-    Term j_plus_one_minus_i = solver_->make_term(Minus, j_plus_one, i);
-    Term power2_j_plus_one_minus_i = solver_->make_term(Pow, this->two, j_plus_one_minus_i);
+    Term i_plus_one = solver_->make_term(Plus, i, one);
+    Term i_plus_one_minus_j = solver_->make_term(Minus, i_plus_one, j);
+    Term power2_i_plus_one_minus_j = solver_->make_term(Pow, this->two, i_plus_one_minus_j);
     Term zero =  solver_->make_term(0, intsort);
-    if (i == zero) {
-        if (j == zero) {
-            return solver_->make_term(Mod, x, this->two); // i = 0 && j = 0 -> x mod 2
+    if (j == zero) {
+        if (i == zero) {
+            return solver_->make_term(Mod, x, this->two); // j = 0 && i = 0 -> x mod 2
         }
-        Term power2_j_plus_one = solver_->make_term(Pow, this->two, j_plus_one);
-        return solver_->make_term(Mod, x, power2_j_plus_one); // i = 0 -> x mod 2^(j+1)
+        Term power2_i_plus_one = solver_->make_term(Pow, this->two, i_plus_one);
+        return solver_->make_term(Mod, x, power2_i_plus_one); // j = 0 -> x mod 2^(i+1)
     }
-    return solver_->make_term(Mod, x_div_power2_i, power2_j_plus_one_minus_i); // (x / 2^i) mod 2^(j-i+1)
+    return solver_->make_term(Mod, x_div_power2_j, power2_i_plus_one_minus_j); // (x / 2^j) mod 2^(i-j+1)
 }
 
 Term AbstractPBVWalker::extractSort(Term t) {
@@ -433,10 +433,10 @@ Term AbstractPBVWalker::extractSort(Term t) {
                 if (i == j) {
                     return one;
                 }
-                Term j_plus_one = solver_->make_term(Plus, j, one);
-                return solver_->make_term(Minus, j_plus_one, i);
+                Term i_plus_one = solver_->make_term(Plus, i, one);
+                return solver_->make_term(Minus, i_plus_one, j);
             }
-            return solver_->make_term((t->get_op()).idx1 + 1 - (t->get_op()).idx0, intsort);
+            return solver_->make_term((t->get_op()).idx0 + 1 - (t->get_op()).idx1, intsort);
         } else {
             return pbvs->get_term();
         }
@@ -474,19 +474,31 @@ void AbstractPBVWalker::make_bit_width_term(TermIter it) {
         Term width_left = extractSort(t0);
         Term width_right = extractSort(t1);
         Term bitWidth = solver_->make_term(Equal, width_left, width_right);
-        //remove duplicates rules
+        // add lemmacd bu   
+        int exists = 0;
         for (Term rule : *operator_rules) {
             if(rule == bitWidth) {
-                return;
+                exists = 1;
+                break;
             }
-        } 
-        // add lemmas 
-        operator_rules->push_back(bitWidth);
+        }
+        if (!exists) {
+            operator_rules->push_back(bitWidth);
+        }
         // lemma: width > 0
+        exists = 0;
         Sort intsort = solver_->make_sort(INT);
         Term zero =  solver_->make_term(0, intsort);
         Term greater = solver_->make_term(Gt, width_left, zero);
-        operator_rules->push_back(greater);
+        for (Term rule : *operator_rules) {
+            if(rule == greater) {
+                exists = 1;
+                break;
+            }
+        }
+        if (!exists) {
+            operator_rules->push_back(greater);
+        } 
     }
 }
 
@@ -1071,6 +1083,18 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
         Sort pbv_sort = term->get_sort();
         shared_ptr<PBVSort> bv_sort = static_pointer_cast<PBVSort>(pbv_sort);
         Term bit_width = bv_sort->get_term();
+        Term zero =  solver_->make_term(0, intsort);
+        Term positive = solver_->make_term(Gt, bit_width, zero);
+        int exists = 0;
+        for (Term rule : *operator_rules) {
+            if(rule == positive) {
+                exists = 1;
+                break;
+            }
+        }
+        if (!exists) {
+            operator_rules->push_back(positive);
+        }
         if (query_cache(term, k)){
             cout << "k: " << k << endl;
         }
@@ -1081,7 +1105,6 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
         }
         res = k;
         // 0 <= k <= pow2(k)
-        Term zero =  solver_->make_term(0, intsort);
         Term ge = solver_->make_term(Ge, k, zero);
         term_rules->push_back(ge);
         try {

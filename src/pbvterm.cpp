@@ -9,7 +9,12 @@ namespace smt {
 PBVTerm::PBVTerm(Sort s1, TermVec t) : s(s1), children(t) {
     is_sym = false;
     op = Op();
-    repr = compute_string();
+    for (auto term : t)
+    {
+      auto it = term->begin();
+      repr = (*it)->to_string();
+      break;
+    }
     is_pbv = true;
 }
 
@@ -18,7 +23,12 @@ PBVTerm::PBVTerm(Term t) {
   children = {t};
   is_sym = false;
   op = Op();
-  repr = compute_string();
+  for (auto term : t)
+    {
+      auto it = term->begin();
+      repr = (*it)->to_string();
+      break;
+  }
   is_pbv = true;
 }
 
@@ -32,7 +42,6 @@ PBVTerm::PBVTerm(std::string name, TermVec t) : repr(name), children(t) {
     s = t[0]->get_sort();
     is_sym = true;
     op = Op();
-    repr = compute_string();
     is_pbv = true;
 }
 
@@ -40,7 +49,6 @@ PBVTerm::PBVTerm(std::string name, Sort s1) : repr(name), s(s1) {
     is_sym = true;
     op = Op();
     is_pbv = true;
-    repr = compute_string();
 }
 
 PBVTerm::PBVTerm(Op op1, TermVec t) : op(op1), children(t) {
@@ -118,13 +126,13 @@ string PBVTerm::compute_string() const
     return repr;
   }
   // Assert(!op.is_null());
-  string result = "(";
-  result += op.to_string();
-  for (auto c : children)
-  {
-    result += " " + c->to_string();
-  }
-  result += ")";
+    string result = "(";
+    result += op.to_string();
+    for (auto c : children)
+    {
+      result += " " + c->to_string();
+   }
+    result += ")";
   return result;
 }
 
