@@ -4,6 +4,8 @@
 #include "pbvterm.h"
 #include "pbvsort.h"
 
+#pragma once
+
 using namespace std;
 
 namespace smt {
@@ -16,6 +18,7 @@ namespace smt {
     TermVec* operator_rules;
     Term two, bvand, k, x, y;
     int piand = 0;
+    int nonpure = 0;
   public:
     AbstractPBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {
       this->term_rules = term_rules;
@@ -112,7 +115,16 @@ class PartialPBVWalker : public AbstractPBVWalker
           this->x = solver->make_param("x", intsort);
           this->y = solver->make_param("y", intsort);
         }
+    void bvand_handle();
+};
 
+  class NonPurePBVWalker : public EfficientPBVWalker
+{
+  public:
+    NonPurePBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) 
+        : EfficientPBVWalker(solver, term_rules, operator_rules, power2) {
+          this->nonpure = 1;
+        }
     void bvand_handle();
 };
 

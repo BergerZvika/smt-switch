@@ -19,6 +19,8 @@
 
 #include "exceptions.h"
 #include "sort_inference.h"
+#include "pbvterm.h"
+#include "pbvsort.h"
 
 using namespace std;
 
@@ -54,7 +56,10 @@ const std::unordered_map<PrimOp, std::function<bool(const SortVec & sorts)>>
                           { Pow, int_sorts },
                           { IntDiv, int_sorts },
                           { PIAnd, int_sorts },
-                          { To_Real, int_sorts },
+                          { PExtract, bv_sorts },
+                          { PZero_Extend, bv_sorts },
+                          { PSign_Extend, int_pbv_sorts },
+                          { To_Real, bv_sorts },
                           { To_Int, real_sorts },
                           { Is_Int, int_sorts },
                           { Concat, bv_sorts },
@@ -87,8 +92,8 @@ const std::unordered_map<PrimOp, std::function<bool(const SortVec & sorts)>>
                           { BVSle, eq_bv_sorts },
                           { BVSgt, eq_bv_sorts },
                           { BVSge, eq_bv_sorts },
-                          { Zero_Extend, bv_sorts },
-                          { Sign_Extend, bv_sorts },
+                          { Zero_Extend, int_sorts },
+                          { Sign_Extend, int_sorts },
                           { Repeat, bv_sorts },
                           { Rotate_Left, bv_sorts },
                           { Rotate_Right, bv_sorts },
@@ -172,6 +177,9 @@ const std::unordered_map<
         { BVSge, bool_sort },
         { Zero_Extend, extend_sort },
         { Sign_Extend, extend_sort },
+        { PExtract, extract_sort },
+        { PZero_Extend, parametric_extend_sort },
+        { PSign_Extend, parametric_extend_sort },
         { Repeat, repeat_sort },
         { Rotate_Left, same_sort },
         { Rotate_Right, same_sort },
@@ -202,8 +210,10 @@ bool check_sortedness(Op op, const TermVec & terms)
   sorts.reserve(terms.size());
   for (auto t : terms)
   {
+    cout << "term: " << t << endl;
     sorts.push_back(t->get_sort());
   }
+  cout << "end" << endl;
   return check_sortedness(op, sorts);
 }
 
@@ -231,6 +241,15 @@ bool check_sortedness(Op op, const SortVec & sorts)
 Sort compute_sort(Op op, const AbsSmtSolver * solver, const TermVec & terms)
 {
   assert(terms.size());
+  if (op.prim_op == PSign_Extend || op.prim_op == PZero_Extend) {
+    auto it = terms.begin();
+    Term k = *it;
+    it++;
+    PBVTerm x = *it;
+    shared_ptr<PBVSort> pbvsort = static_pointer_cast<PBVSort>(x.get_sort());
+    Term plus = solver->make_term(Plus, k, pbvsort->get_term());
+    return std::make_shared<PBVSort>(BV, plus);
+  }
   SortVec sorts;
   for (auto t : terms)
   {
@@ -448,6 +467,12 @@ bool bv_sorts(const SortVec & sorts)
   return check_sortkind_matches(BV, sorts);
 };
 
+bool int_pbv_sorts(const SortVec & sorts)
+{
+  return sorts[1]->get_sort_kind() == BV;
+  // return check_sortkind_matches(INT, SortVec{sorts[0]}) && check_sortkind_matches(BV, SortVec{sorts[1]});
+};
+
 bool eq_bv_sorts(const SortVec & sorts)
 {
   assert(sorts.size());
@@ -531,8 +556,17 @@ Sort concat_sort(Op op, const AbsSmtSolver * solver, const SortVec & sorts)
 
 Sort extend_sort(Op op, const AbsSmtSolver * solver, const SortVec & sorts)
 {
+  if (op.idx0 == -1) {
+    solver->make_sort(BV, 2);
+  }
   return solver->make_sort(BV, op.idx0 + sorts[0]->get_width());
 }
+
+Sort parametric_extend_sort(Op op, const AbsSmtSolver * solver, const SortVec & sorts)
+{
+  return solver->make_sort(BV, sorts[1]->get_width());
+}
+
 
 Sort repeat_sort(Op op, const AbsSmtSolver * solver, const SortVec & sorts)
 {

@@ -7,4 +7,5 @@
 
 (assert (= t (bvmul x s)))
 (assert (not (lemma_MUL_ODD x s t)))
+(assert (>= k 4))
 (check-sat)

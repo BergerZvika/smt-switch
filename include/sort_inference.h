@@ -167,6 +167,8 @@ bool bool_sorts(const SortVec & sorts);
 
 bool bv_sorts(const SortVec & sorts);
 
+bool int_pbv_sorts(const SortVec & sorts);
+
 bool eq_bv_sorts(const SortVec & sorts);
 
 bool real_sorts(const SortVec & sorts);
@@ -198,6 +200,8 @@ Sort extract_sort(Op op, const AbsSmtSolver * solver, const SortVec & sorts);
 Sort concat_sort(Op op, const AbsSmtSolver * solver, const SortVec & sorts);
 
 Sort extend_sort(Op op, const AbsSmtSolver * solver, const SortVec & sorts);
+
+Sort parametric_extend_sort(Op op, const AbsSmtSolver * solver, const SortVec & sorts);
 
 Sort repeat_sort(Op op, const AbsSmtSolver * solver, const SortVec & sorts);
 

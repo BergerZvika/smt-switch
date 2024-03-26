@@ -452,6 +452,18 @@ cdef PrimOp Sign_Extend = PrimOp()
 Sign_Extend.po = c_Sign_Extend
 setattr(primops, 'Sign_Extend', Sign_Extend)
 
+cdef PrimOp PZero_Extend = PrimOp()
+PZero_Extend.po = c_PZero_Extend
+setattr(primops, 'PZero_Extend', PZero_Extend)
+
+cdef PrimOp PSign_Extend = PrimOp()
+PSign_Extend.po = c_PSign_Extend
+setattr(primops, 'PSign_Extend', PSign_Extend)
+
+cdef PrimOp PExtract = PrimOp()
+PExtract.po = c_Extract
+setattr(primops, 'PExtract', PExtract)
+
 cdef PrimOp Repeat = PrimOp()
 Repeat.po = c_Repeat
 setattr(primops, 'Repeat', Repeat)

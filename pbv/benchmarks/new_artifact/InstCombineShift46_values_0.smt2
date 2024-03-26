@@ -1,0 +1,7 @@
+(set-logic ALL)
+(declare-const k Int)
+(declare-fun C () (_ BitVec 31))
+(declare-fun %A () (_ BitVec 31))
+(declare-fun %Op0 () (_ BitVec 31))
+(assert (let ((_let_0 (bvsub C (_ bv1 31)))) (let ((_let_1 (bvurem (ite (= ((_ extract 30 30) %A) (_ bv1 1)) (bvneg %A) %A) (ite (= ((_ extract 30 30) C) (_ bv1 1)) (bvneg C) C)))) (let ((_let_2 (ite (= ((_ extract 30 30) %A) (_ bv1 1)) (bvneg _let_1) _let_1))) (and (or (not (= %A (_ bv1073741824 31))) (not (= C (_ bv2147483647 31)))) (bvult _let_2 (_ bv31 31)) (not (= C (_ bv0 31))) (= (bvand C _let_0) (_ bv0 31)) (not (= (bvshl %Op0 _let_2) (bvshl %Op0 (bvand %A _let_0)))))))))
+(check-sat)

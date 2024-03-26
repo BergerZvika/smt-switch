@@ -5,4 +5,5 @@
 (define-fun lemma_UDIV_REF19 ((x (_ BitVec k)) (s (_ BitVec k)) (t (_ BitVec k))) Bool (distinct (bvlshr x t) (bvor s t)))
 
 (assert (= t (bvudiv x s)))(assert (not (lemma_UDIV_REF19 x s t)))
+(assert (>= k 4))
 (check-sat)

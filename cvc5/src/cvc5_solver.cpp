@@ -39,6 +39,10 @@ const std::unordered_map<PrimOp, ::cvc5::Kind> primop2kind(
       { Div, ::cvc5::DIVISION },
       { IntDiv, ::cvc5::INTS_DIVISION },
       { PIAnd, ::cvc5::PIAND },
+      { PExtract, ::cvc5::PEXTRACT},
+      { PZero_Extend, ::cvc5::PARAMETRIC_ZERO_EXTEND},
+      { PSign_Extend, ::cvc5::PARAMETRIC_SIGN_EXTEND},
+      // Indexed Op
       { Lt, ::cvc5::LT },
       { Le, ::cvc5::LEQ },
       { Gt, ::cvc5::GT },

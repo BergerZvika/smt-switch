@@ -323,6 +323,7 @@ void GenericSolver::define_fun(std::string name,
 
 std::string GenericSolver::to_smtlib_def(Term term) const
 {
+  cout << 1 << endl;
   // cast to generic term
   shared_ptr<GenericTerm> gt = static_pointer_cast<GenericTerm>(term);
   bool nullary_constructor = false;
@@ -335,6 +336,7 @@ std::string GenericSolver::to_smtlib_def(Term term) const
   else
   {
     // generic terms with operators are written as s-expressions.
+    cout << 2 << endl;
     string result;
     if (gt->get_op() == Apply_Constructor)
     {
@@ -379,6 +381,7 @@ std::string GenericSolver::to_smtlib_def(Term term) const
       // and Apply), we use ordinary
       // s-expressions notation and write a
       // space-separated list of arguments.
+      cout << 3 << endl;
       for (auto c : gt->get_children())
       {
         result += " " + (*term_name_map)[c];

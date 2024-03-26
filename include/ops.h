@@ -21,6 +21,7 @@
 #include <utility>
 #include <unordered_set>
 #include <functional>
+// #include "term.h"
 
 namespace smt {
 
@@ -54,7 +55,6 @@ enum PrimOp
   Abs,
   Pow,
   IntDiv,
-  PIAnd,
   // Int/Real Conversion and Queries
   To_Real,
   To_Int,
@@ -95,6 +95,11 @@ enum PrimOp
   Repeat,
   Rotate_Left,
   Rotate_Right,
+  /* Parametric BitVector Theory */
+  PIAnd,
+  PExtract,
+  PZero_Extend,
+  PSign_Extend,
   // BitVector Conversion
   BV_To_Nat,
   Int_To_BV,
@@ -131,6 +136,9 @@ struct Op
   Op(PrimOp o, uint64_t idx0) : prim_op(o), num_idx(1), idx0(idx0){};
   Op(PrimOp o, uint64_t idx0, uint64_t idx1)
       : prim_op(o), num_idx(2), idx0(idx0), idx1(idx1){};
+  // Op(PrimOp o, Term idx0) : prim_op(o), num_idx(1), arg1(idx0){};
+  // Op(PrimOp o, Term idx0, Term idx1)
+  //     : prim_op(o), num_idx(2), arg1(idx0), arg2(idx1){};
   std::string to_string() const;
   bool is_null() const;
   PrimOp prim_op;

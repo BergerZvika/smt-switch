@@ -136,7 +136,7 @@ namespace smt {
         return std::make_shared<PBVTerm>(op, TermVec{t0, t1, t2});
     }
     Term AbstractPBVSolver::make_term(const Op op, const TermVec & terms) const {
-        if ((*terms.begin())->is_pbvterm()) {
+        if ((*terms.begin())->is_pbvterm() || op == PSign_Extend || op == PZero_Extend || op == PExtract) {
             Term pbvt = std::make_shared<PBVTerm>(op, terms);
             return pbvt;
         }
@@ -226,6 +226,12 @@ namespace smt {
                 shared_ptr<PBVSort> pbvs_t1 = static_pointer_cast<PBVSort>(s1);
                 Term width_t1 = pbvs_t1->get_term();
                 s = make_sort(BV, make_term(Plus, width_t0, width_t1));
+            } else if (op.prim_op == PSign_Extend || op.prim_op == PZero_Extend) {
+                Term k = t0;
+                PBVTerm x = t1;
+                shared_ptr<PBVSort> pbvsort = static_pointer_cast<PBVSort>(x.get_sort());
+                Term plus = std::make_shared<PBVTerm>(Plus, TermVec{k, pbvsort->get_term()});
+                s = std::make_shared<PBVSort>(BV, plus);
             } else {
                 s = compute_sort(op, this, {t0->get_sort(), t1->get_sort()});
             }
@@ -301,7 +307,9 @@ Term AbstractPBVSolver::translate_term(const Term & t) {
             this->walker = new FullPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
         } else if (choose_walker == 3) {
             this->walker = new PartialPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        }
+        } else if (choose_walker == 4) {
+            this->walker = new NonPurePBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+        } 
     }
 
         PBVSolver::PBVSolver(SmtSolver s, int debug, int choose_walker, int postwalk): AbstractPBVSolver(s, debug) {
@@ -314,7 +322,9 @@ Term AbstractPBVSolver::translate_term(const Term & t) {
             this->walker = new FullPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
         } else if (choose_walker == 3) {
             this->walker = new PartialPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        }
+        } else if (choose_walker == 4) {
+            this->walker = new NonPurePBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+        } 
         this->postwalk = postwalk;
     }
 
@@ -330,7 +340,9 @@ Term AbstractPBVSolver::translate_term(const Term & t) {
             this->walker = new FullPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
         } else if (choose_walker == 3) {
             this->walker = new PartialPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        }
+        } else if (choose_walker == 4) {
+            this->walker = new NonPurePBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+        } 
         this->postwalk = postwalk;
         this->type_check = type_check;
     }
@@ -437,11 +449,21 @@ Term AbstractPBVWalker::extractSort(Term t) {
                 return solver_->make_term(Minus, i_plus_one, j);
             }
             return solver_->make_term((t->get_op()).idx0 + 1 - (t->get_op()).idx1, intsort);
+        } else if (t->get_op().prim_op == Ite) {
+            auto it = t->begin();
+            Term t0 = (*it);
+            it++;
+            Term t1 = (*it);
+            return extractSort(t1);
+        } else  if (t->get_op().prim_op == BVAnd) {
+            auto it = t->begin();
+            Term t0 = (*it);
+            return extractSort(t0);
         } else {
-            return pbvs->get_term();
+            return get_bit_width_term(t);
         }
     } else {
-        Term a = solver_->make_term(pbvs->get_width(), intsort); 
+        Term a = solver_->make_term(pbvs->get_width(), intsort);
         return a;
     }
 }
@@ -468,13 +490,11 @@ void AbstractPBVWalker::make_bit_width_term(TermIter it) {
     Term t0 = (*it);
     it++;
     Term t1 = (*it);
-    Op op0 = t0->get_op();
-    Op op1 = t1->get_op();
     if ((t0->is_pbvterm() || t0->is_value()) && (t1->is_pbvterm() || t1->is_value())) {
         Term width_left = extractSort(t0);
         Term width_right = extractSort(t1);
         Term bitWidth = solver_->make_term(Equal, width_left, width_right);
-        // add lemmacd bu   
+        // add lemma: width_left = width_right
         int exists = 0;
         for (Term rule : *operator_rules) {
             if(rule == bitWidth) {
@@ -499,13 +519,43 @@ void AbstractPBVWalker::make_bit_width_term(TermIter it) {
         if (!exists) {
             operator_rules->push_back(greater);
         } 
+        // lemma non-pure: k <= 67,108,864
+        if (this->nonpure) {
+            exists = 0;
+            Sort intsort = solver_->make_sort(INT);
+            Term maxint =  solver_->make_term(67108864, intsort);
+            Term upper_bound = solver_->make_term(Lt, width_left, maxint);
+            for (Term rule : *operator_rules) {
+                if(rule == upper_bound) {
+                    exists = 1;
+                    break;
+                }
+            }
+            if (!exists) {
+                operator_rules->push_back(upper_bound);
+            } 
+        }
     }
 }
 
 Term AbstractPBVWalker::get_bit_width_term(Term t) {
-    Sort s;
+    Sort s = t->get_sort();
+    if (s->get_width() != -1) { // const integer width
+        uint64_t width = s->get_width();
+        Sort intsort = solver_->make_sort(INT);
+        Term constbv = solver_->make_term(width, intsort);
+        return constbv;
+    }
     Op op = t->get_op();
-    if (op.is_null() && (t->is_pbvterm() || t->is_value())) {
+     if (op.prim_op == PSign_Extend || op.prim_op == PZero_Extend) {
+        auto it = t->begin();
+        Term k = *it;
+        it++;
+        PBVTerm x = *it;
+        shared_ptr<PBVSort> pbvsort = static_pointer_cast<PBVSort>(x.get_sort());
+        Term plus = solver_->make_term(Plus, k, pbvsort->get_term());
+        return plus;
+    } else if (op.is_null() && (t->is_pbvterm() || t->is_value())) {
         s = t->get_sort();
         shared_ptr<PBVSort> pbvs = static_pointer_cast<PBVSort>(s);
         Term width = pbvs->get_term();
@@ -516,6 +566,33 @@ Term AbstractPBVWalker::get_bit_width_term(Term t) {
         } catch (...) {
             return width;
         }
+    } else if (op.prim_op == Extract) {
+        Sort intsort = solver_->make_sort(INT);
+        if ((t->get_op()).idx0 == -1 && (t->get_op()).idx1 == -1) {
+            Term i, j;
+            auto it = t->begin();
+            i = *(++it);
+            j = *(++it);
+            Term one =  solver_->make_term(1, intsort);
+            if (i == j) {
+                return one;
+            }
+            Term i_plus_one = solver_->make_term(Plus, i, one);
+            return solver_->make_term(Minus, i_plus_one, j);
+        }
+        return solver_->make_term((t->get_op()).idx0 + 1 - (t->get_op()).idx1, intsort);
+    } else if (op.prim_op == Concat) {
+        auto it = t->begin();
+        Term t0 = (*it);
+        it++;
+        Term t1 = (*it);
+        return solver_->make_term(Plus, get_bit_width_term(t0), get_bit_width_term(t1));
+    } else if (op.prim_op == Ite) {
+         auto it = t->begin();
+        Term condition = *it;
+        it++;
+        Term then = *it;
+        return get_bit_width_term(then);
     } else {
         auto it = t->begin();
         Term left = *it;
@@ -731,6 +808,7 @@ void PartialPBVWalker::bvand_handle() {
 
 void EfficientPBVWalker::bvand_handle() {}
 void TypeCheckerWalker::bvand_handle() {}
+void NonPurePBVWalker::bvand_handle() {}
 
 
 WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
@@ -963,9 +1041,19 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                               Term translate_y;
                               query_cache(y, translate_y);
                               Term bit_width_y = get_bit_width_term(y);
-                              Term power2_y = solver_->make_term(Pow, this->two, bit_width_y);
-                              Term x_mult_power2_y = solver_->make_term(Mult, translate_x, power2_y);
-                              save_in_cache(term, solver_->make_term(int_op, x_mult_power2_y, translate_y));
+                              Sort intsort = solver_->make_sort(INT);
+                              Term zero =  solver_->make_term(0, intsort);
+                            //   if (translate_x == zero) { // for zero extend
+                            //     Term bit_width_x = get_bit_width_term(x);
+                            //     Term total_width = solver_->make_term(Plus, bit_width_x, bit_width_y);
+                            //     Sort zero_extend_width = std::make_shared<PBVSort>(BV, total_width);
+                            //     Term zero_extend_y = std::make_shared<PBVTerm>(zero_extend_width, TermVec{translate_y});
+                            //     save_in_cache(term, zero_extend_y);   
+                            //   } else {
+                                Term power2_y = solver_->make_term(Pow, this->two, bit_width_y);
+                                Term x_mult_power2_y = solver_->make_term(Mult, translate_x, power2_y);
+                                save_in_cache(term, solver_->make_term(int_op, x_mult_power2_y, translate_y));
+                            //   }
                             } break;
                 case BVAnd: { int_op = Apply;
                               Term k = get_bit_width_term(*it);
@@ -976,6 +1064,7 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                               Term y = *(++it);
                               Term translate_y;
                               query_cache(y, translate_y);
+
                               if (this->piand) {
                                 save_in_cache(term, solver_->make_term(PIAnd, k, translate_x, translate_y));
                               } else {
@@ -1134,6 +1223,7 @@ return Walker_Continue;
 WalkerStepResult PrePBVWalker::visit_term(Term & term) {
   if (!preorder_)
   {
+
     Op op = term->get_op();
     if (!op.is_null())
     {
@@ -1145,14 +1235,13 @@ WalkerStepResult PrePBVWalker::visit_term(Term & term) {
         Term y = (*it);
         Term k = get_bit_width_term(x);
         Sort intsort = solver_->make_sort(INT);
-        Term zero =  solver_->make_term(0, intsort);
         Term one =  solver_->make_term(1, intsort);
         Sort bv1 = solver_->make_sort(BV, 1);
         Term k_minus_one = solver_->make_term(Minus, k, one);
         Term extract_bit = std::make_shared<PBVTerm>(Extract, TermVec{x, k_minus_one, k_minus_one});
-        int64_t int_one = 1;
-        Term const_bit_one = solver_->make_term(int_one, bv1);
-        Term condition = std::make_shared<PBVTerm>(Equal, TermVec{extract_bit, const_bit_one});
+        int64_t int_zero = 0;
+        Term const_bit_zero = solver_->make_term(int_zero, bv1);
+        Term condition = std::make_shared<PBVTerm>(Equal, TermVec{extract_bit, const_bit_zero});
         Term then_branch = std::make_shared<PBVTerm>(BVLshr, TermVec{x, y});
         Term bvnot = std::make_shared<PBVTerm>(BVNot, TermVec{x});
         Term bvlshr_bvnot = std::make_shared<PBVTerm>(BVLshr, TermVec{bvnot, y});
@@ -1166,6 +1255,45 @@ WalkerStepResult PrePBVWalker::visit_term(Term & term) {
     //     Term neg_y = std::make_shared<PBVTerm>(BVNeg, TermVec{y});
     //     Term bvadd = std::make_shared<PBVTerm>(BVAdd, TermVec{x, neg_y});
     //     save_in_cache(term, bvadd);
+      } else if (primop == PZero_Extend) {
+        Term k = (*it);
+        it++;
+        Term x = (*it);
+        Sort intsort = solver_->make_sort(INT);
+        Term zero = solver_->make_term(0, intsort);
+        Sort k_width = std::make_shared<PBVSort>(BV, k);
+        Term zero_term = std::make_shared<PBVTerm>(k_width, TermVec{zero});
+        Term zero_extend = std::make_shared<PBVTerm>(Concat, TermVec{zero_term, x});
+        save_in_cache(term, zero_extend);
+      } else if (primop == PSign_Extend) {
+        // (psign_extend k x) = ite(sign_bit = 1 (concat 11...1 x) (concat 00...0 x)) 
+        Term k = (*it);
+        it++;
+        Term x = (*it);
+        Sort intsort = solver_->make_sort(INT);
+        Term one = solver_->make_term(1, intsort);
+        Term zero = solver_->make_term(0, intsort);
+        Sort bv1 = solver_->make_sort(BV, 1);
+        Sort k_width = std::make_shared<PBVSort>(BV, k);
+        Term zero_term = std::make_shared<PBVTerm>(k_width, TermVec{zero});
+        int64_t int_one = 1;
+        Term one_term = solver_->make_term(int_one, bv1);
+        Term zero_extend = std::make_shared<PBVTerm>(Concat, TermVec{zero_term, x});
+        Term max_int = std::make_shared<PBVTerm>(BVNot, TermVec{zero_term});
+        Term sign_extend = std::make_shared<PBVTerm>(Concat, TermVec{max_int, x});
+        Term k_minus_one = solver_->make_term(Minus, k, one);
+        Term sign_bit = std::make_shared<PBVTerm>(Extract, TermVec{x, k_minus_one, k_minus_one});
+        Term condition = std::make_shared<PBVTerm>(Equal, TermVec{sign_bit, one_term});
+        Term ite = std::make_shared<PBVTerm>(Ite, TermVec{condition, sign_extend, zero_extend});
+        save_in_cache(term, ite);
+      } else if (primop == PExtract) {
+        Term j = (*it);
+        it++;
+        Term i = (*it);
+        it++;
+        Term x = (*it);
+        Term extract = std::make_shared<PBVTerm>(Extract, TermVec{x, j, i});
+        save_in_cache(term, extract);
       } else {
         TermVec cached_children;
         Term c;
@@ -1175,7 +1303,7 @@ WalkerStepResult PrePBVWalker::visit_term(Term & term) {
             query_cache(t, c);
             cached_children.push_back(c);
         }
-        if(term->is_pbvterm()) {
+        if (term->is_pbvterm()) {
             Term pbv = std::make_shared<PBVTerm>(op, cached_children);
             save_in_cache(term, pbv);
         } else {

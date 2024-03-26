@@ -47,6 +47,7 @@ int pbvsolver = 0;
 int postwalk = 0;
 int produce_model = 0;
 int type_check = 0;
+int piand_mode = 0;
 string test = "";
 
 
@@ -57,29 +58,43 @@ void parse_args(int argc, char** argv) {
         help = 1;
         cout << "Syntax: ./pbvsolver <path/to/smt2>" << endl;
         cout << "\t-h / --help\t\tprint help command line arrgument on screen." << endl;
-        cout << "\t-d / --debug\t\tprint debug on screen." << endl;
         cout << "\t--pbvsolver\tuse default piand PBVSolver." << endl;
         cout << "\t-c / --comb\tuse PBVSolver with combaine (default)." << endl;
         cout << "\t-f / --full\tuse PBVSolver with full." << endl;
         cout << "\t-p / --partial\tuse PBVSolver with partial." << endl;
         cout << "\t-w / --postwalk\tuse postwalk to optimize your benchmark." << endl;
-        cout << "\t--produce-model\tuse produce model solver." << endl;
         cout << "\t-t / --type-check\ttype checking before solving formula." << endl;
-        //cout << "\t--pbv\tpbvsolver" << endl;
+        cout << "\t-m / --maxint\tnon pure piand solver, upper bound of bit-width 67108864." << endl;
+        cout << "\t--produce-model\tuse produce model solver." << endl;
+        cout << "\t--sum-based-lemma\tadd sum based lemma." << endl;
+        cout << "\t--sum-ge-based-lemma\tadd sum based lemma ge." << endl;
+        cout << "\t--bitwise-based-lemma\tadd bitwised based lemma." << endl;
       } else if (!(*i).compare("-d") ||  !(*i).compare("--debug")) {
         debug = 1;
       } else if (!(*i).compare("--pbvsolver")) {
         pbvsolver = 0; // efficient pbvsolver
-      }  else if (!(*i).compare("-c") ||  !(*i).compare("--comb")) {
+      }  else if (!(*i).compare("-c") ||  !(*i).compare("--comb") ||  !(*i).compare("--combine")) {
         pbvsolver = 1; // combine
       } else if (!(*i).compare("-f") ||  !(*i).compare("--full")) {
         pbvsolver = 2; // full
       }  else if (!(*i).compare("-p") ||  !(*i).compare("--partial")) {
         pbvsolver = 3; //partial
-      } else if (!(*i).compare("-w") ||  !(*i).compare("--postwalk")) {
+      } else if (!(*i).compare("-m") ||  !(*i).compare("--maxint")) {
+        pbvsolver = 4; // non pure pbv solver, k <= 67,108,864
+      } else if (!(*i).compare("-w") ||  !(*i).compare("--postwalk")) { 
         postwalk = 1;
-      }  else if (!(*i).compare("--produce-model")) {
+      } else if (!(*i).compare("--produce-model")) {
         produce_model = 1;
+      } else if (!(*i).compare("--sum-based-lemma")) {
+        piand_mode = 1;
+      } else if (!(*i).compare("--sum-ge-lemma")) {
+        piand_mode = 3;
+      } else if (!(*i).compare("--sum-eq-lemma")) {
+        piand_mode = 4;
+      } else if (!(*i).compare("--bitwise-based-lemma")) {
+        piand_mode = 2;
+      } else if (!(*i).compare("--difference-lemma")) {
+        piand_mode = 5;
       } else if (!(*i).compare("-t") ||  !(*i).compare("--type-check")) {
         type_check = 1;
       } else if ((*i).length() >= 5 && (*i).compare((*i).length() - 5, 5, ".smt2") == 0) {
@@ -118,6 +133,17 @@ int main(int argc, char** argv){
   if (produce_model) {
       s->set_opt("produce-models", "true");
   }
+  if (piand_mode == 1) {
+    s->set_opt("piand-mode", "sum");
+  } else if (piand_mode == 2) {
+    s->set_opt("piand-mode", "bitwise");
+  } else if (piand_mode == 3) {
+    s->set_opt("piand-mode", "sum_ge");
+  } else if (piand_mode == 4) {
+    s->set_opt("piand-mode", "sum_eq");
+  } else if (piand_mode == 5) {
+    s->set_opt("piand-mode", "difference");
+  }
 
   // type checker
   if (type_check) {
@@ -142,12 +168,25 @@ int main(int argc, char** argv){
         break;
       case 3: cout << "Partial PBVSolver:" << endl;
         break;
+      case 4: cout << "Non-Pure Piand PBVSolver:" << endl;
+        break;
       default: break;
     }
   }
-  SmtLibReaderTester* reader = new SmtLibReaderTester(s);
-  reader->parse(test);
-  auto results = reader->get_results();
-  cout << results[0] << endl;
+
+  try {
+    SmtLibReaderTester* reader = new SmtLibReaderTester(s);
+    reader->parse(test);
+    auto results = reader->get_results();
+    cout << results[0] << endl;
+  } catch (std::exception& e) {
+    if (std::string(e.what()).find("67108864") != std::string::npos) {
+      cout << "UNKNOWN" << endl;
+    }
+     else {
+          cout << e.what() << endl;
+     }
+  }
+
   return 0;
 }

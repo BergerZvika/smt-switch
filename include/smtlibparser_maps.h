@@ -37,7 +37,6 @@ const std::unordered_map<std::string, std::unordered_map<std::string, PrimOp>>
               { ">=", Ge },
               { "*", Mult },
               { "div", IntDiv },
-              { "piand", PIAnd },
               { "mod", Mod },
               { "abs", Abs } } },
           // Reals
@@ -94,6 +93,10 @@ const std::unordered_map<std::string, std::unordered_map<std::string, PrimOp>>
               { "bvsge", BVSge },
               { "zero_extend", Zero_Extend },
               { "sign_extend", Sign_Extend },
+              { "piand", PIAnd },
+              { "pextract", PExtract },
+              { "pzero_extend", PZero_Extend },
+              { "psign_extend", PSign_Extend },
               { "repeat", Repeat },
               { "rotate_left", Rotate_Left },
               { "rotate_right", Rotate_Right } } },

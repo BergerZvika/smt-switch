@@ -5,4 +5,5 @@
 (define-fun lemma_UREM_REF11 ((x (_ BitVec k)) (s (_ BitVec k)) (t (_ BitVec k))) Bool (bvuge (bvand t (bvor x s)) (bvand t (_ bv1 k))))
 
 (assert (= t (bvurem x s)))(assert (not (lemma_UREM_REF11 x s t)))
+(assert (>= k 4))
 (check-sat)

@@ -28,8 +28,7 @@ class PBVSort : public AbsSort
     
   uint64_t get_width() const override
   {
-    throw NotImplementedException(
-        "get_width not implemented by generic PBVSort");
+    return -1;
   }
 
   Sort get_indexsort() const override

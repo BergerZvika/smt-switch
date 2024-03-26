@@ -11,8 +11,9 @@ PBVTerm::PBVTerm(Sort s1, TermVec t) : s(s1), children(t) {
     op = Op();
     for (auto term : t)
     {
-      auto it = term->begin();
-      repr = (*it)->to_string();
+      // auto it = term->begin();
+      // repr = (*it)->to_string();
+      repr = term->to_string();
       break;
     }
     is_pbv = true;
@@ -25,8 +26,9 @@ PBVTerm::PBVTerm(Term t) {
   op = Op();
   for (auto term : t)
     {
-      auto it = term->begin();
-      repr = (*it)->to_string();
+      // auto it = term->begin();
+      // repr = (*it)->to_string();
+      repr = term->to_string();
       break;
   }
   is_pbv = true;

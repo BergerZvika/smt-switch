@@ -6,4 +6,5 @@
 (define-fun lemma_MUL_IC ((x (_ BitVec k)) (s (_ BitVec k)) (t (_ BitVec k))) Bool (= (bvand (bvor (bvneg s) s) t) t))
 
 (assert (= t (bvmul x s)))(assert (not (lemma_MUL_IC x s t)))
+(assert (>= k 4))
 (check-sat)
