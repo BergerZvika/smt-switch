@@ -1,4 +1,4 @@
-(set-logic BV)
+(set-logic ALL)
 (set-option :produce-models true)
 (declare-const k Int)
 (declare-fun s () (_ BitVec k))

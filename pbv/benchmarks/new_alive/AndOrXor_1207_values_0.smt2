@@ -1,5 +1,6 @@
 (set-logic ALL)
 (declare-const k Int)
+(declare-const m Int)
 (declare-fun C2 () (_ BitVec k))
 (declare-fun C1 () (_ BitVec m))
 (declare-fun %x () (_ BitVec m))

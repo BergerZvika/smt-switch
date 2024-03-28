@@ -7,7 +7,7 @@ files = os.listdir(directory)
 
 # Iterate through each file
 for file_name in files:
-    if "_4bit.s" not in file_name:
+    if "_4bit.s" not in file_name and "_kbit.s" not in file_name:
         # If the file name doesn't contain the specified string, remove it
         os.remove(os.path.join(directory, file_name))
         print(f"Removed: {file_name}")
@@ -26,6 +26,9 @@ for file_name in os.listdir(directory):
     for i, line in enumerate(lines):
         # Replace "4" with "k"
         modified_line = line.replace("4", "k")
+
+        # Replace logic "BV" with "ALL"
+        modified_line = modified_line.replace("(set-logic BV)", "(set-logic ALL)")
 
         # Add the line "(declare-const k Int)" to the third line
         if i == 1:

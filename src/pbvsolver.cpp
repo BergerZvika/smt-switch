@@ -1231,20 +1231,23 @@ WalkerStepResult PrePBVWalker::visit_term(Term & term) {
       auto it = term->begin();
       if (primop == BVAshr) {
         Term x = (*it);
+        Term translate_x, translate_y;
+        query_cache(x, translate_x);
         it++;
         Term y = (*it);
-        Term k = get_bit_width_term(x);
+        query_cache(y, translate_y);
+        Term k = get_bit_width_term(translate_x);
         Sort intsort = solver_->make_sort(INT);
         Term one =  solver_->make_term(1, intsort);
         Sort bv1 = solver_->make_sort(BV, 1);
         Term k_minus_one = solver_->make_term(Minus, k, one);
-        Term extract_bit = std::make_shared<PBVTerm>(Extract, TermVec{x, k_minus_one, k_minus_one});
+        Term extract_bit = std::make_shared<PBVTerm>(Extract, TermVec{translate_x, k_minus_one, k_minus_one});
         int64_t int_zero = 0;
         Term const_bit_zero = solver_->make_term(int_zero, bv1);
         Term condition = std::make_shared<PBVTerm>(Equal, TermVec{extract_bit, const_bit_zero});
-        Term then_branch = std::make_shared<PBVTerm>(BVLshr, TermVec{x, y});
-        Term bvnot = std::make_shared<PBVTerm>(BVNot, TermVec{x});
-        Term bvlshr_bvnot = std::make_shared<PBVTerm>(BVLshr, TermVec{bvnot, y});
+        Term then_branch = std::make_shared<PBVTerm>(BVLshr, TermVec{translate_x, translate_y});
+        Term bvnot = std::make_shared<PBVTerm>(BVNot, TermVec{translate_x});
+        Term bvlshr_bvnot = std::make_shared<PBVTerm>(BVLshr, TermVec{bvnot, translate_y});
         Term else_branch = std::make_shared<PBVTerm>(BVNot, TermVec{bvlshr_bvnot});
         Term ite = std::make_shared<PBVTerm>(Ite, TermVec{condition, then_branch, else_branch});
         save_in_cache(term, ite);
@@ -1257,42 +1260,52 @@ WalkerStepResult PrePBVWalker::visit_term(Term & term) {
     //     save_in_cache(term, bvadd);
       } else if (primop == PZero_Extend) {
         Term k = (*it);
+        Term translate_x, translate_k;
+        query_cache(k, translate_k);
         it++;
         Term x = (*it);
+        query_cache(x, translate_x);
         Sort intsort = solver_->make_sort(INT);
         Term zero = solver_->make_term(0, intsort);
-        Sort k_width = std::make_shared<PBVSort>(BV, k);
+        Sort k_width = std::make_shared<PBVSort>(BV, translate_k);
         Term zero_term = std::make_shared<PBVTerm>(k_width, TermVec{zero});
-        Term zero_extend = std::make_shared<PBVTerm>(Concat, TermVec{zero_term, x});
+        Term zero_extend = std::make_shared<PBVTerm>(Concat, TermVec{zero_term, translate_x});
         save_in_cache(term, zero_extend);
       } else if (primop == PSign_Extend) {
         // (psign_extend k x) = ite(sign_bit = 1 (concat 11...1 x) (concat 00...0 x)) 
         Term k = (*it);
+        Term translate_x, translate_k;
+        query_cache(k, translate_k);
         it++;
         Term x = (*it);
+        query_cache(x, translate_x);
         Sort intsort = solver_->make_sort(INT);
         Term one = solver_->make_term(1, intsort);
         Term zero = solver_->make_term(0, intsort);
         Sort bv1 = solver_->make_sort(BV, 1);
-        Sort k_width = std::make_shared<PBVSort>(BV, k);
+        Sort k_width = std::make_shared<PBVSort>(BV, translate_k);
         Term zero_term = std::make_shared<PBVTerm>(k_width, TermVec{zero});
         int64_t int_one = 1;
         Term one_term = solver_->make_term(int_one, bv1);
-        Term zero_extend = std::make_shared<PBVTerm>(Concat, TermVec{zero_term, x});
+        Term zero_extend = std::make_shared<PBVTerm>(Concat, TermVec{zero_term, translate_x});
         Term max_int = std::make_shared<PBVTerm>(BVNot, TermVec{zero_term});
-        Term sign_extend = std::make_shared<PBVTerm>(Concat, TermVec{max_int, x});
-        Term k_minus_one = solver_->make_term(Minus, k, one);
-        Term sign_bit = std::make_shared<PBVTerm>(Extract, TermVec{x, k_minus_one, k_minus_one});
+        Term sign_extend = std::make_shared<PBVTerm>(Concat, TermVec{max_int, translate_x});
+        Term k_minus_one = solver_->make_term(Minus, translate_k, one);
+        Term sign_bit = std::make_shared<PBVTerm>(Extract, TermVec{translate_x, k_minus_one, k_minus_one});
         Term condition = std::make_shared<PBVTerm>(Equal, TermVec{sign_bit, one_term});
         Term ite = std::make_shared<PBVTerm>(Ite, TermVec{condition, sign_extend, zero_extend});
         save_in_cache(term, ite);
       } else if (primop == PExtract) {
         Term j = (*it);
+        Term translate_x, translate_i, translate_j;
+        query_cache(j, translate_j);
         it++;
         Term i = (*it);
+        query_cache(i, translate_i);
         it++;
         Term x = (*it);
-        Term extract = std::make_shared<PBVTerm>(Extract, TermVec{x, j, i});
+        query_cache(x, translate_x);
+        Term extract = std::make_shared<PBVTerm>(Extract, TermVec{translate_x, translate_j, translate_i});
         save_in_cache(term, extract);
       } else {
         TermVec cached_children;
@@ -1366,11 +1379,14 @@ WalkerStepResult PostPBVWalker::visit_term(Term & term) {
       PrimOp primop = op.prim_op;
       if (primop == Mod) { // remove unnecessary mod
         auto it = term->begin();
+        Term translate_x, translate_y;
         Term x = (*it);
+        query_cache(x, translate_x);
         it++;
         Term y = (*it);
-        if ((x->to_string()).substr(1, 3) != "div" && (x->to_string()).substr(1, 2) != "^") {
-            Op x_op = x->get_op();
+        query_cache(y, translate_y);
+        if ((translate_x->to_string()).substr(1, 3) != "div" && (translate_x->to_string()).substr(1, 2) != "^") {
+            Op x_op = translate_x->get_op();
             PrimOp x_primop = x_op.prim_op;
             if (!x_op.is_null() && (x_primop == Plus || x_primop == Minus || x_primop == Mult)) {
                 Term ef_x, ef_left, ef_right;
@@ -1379,16 +1395,21 @@ WalkerStepResult PostPBVWalker::visit_term(Term & term) {
                 Term left = *x_it;
                 x_it++;
                 Term right = *x_it;
-                if (isOp(left, Ite)) {
+                Sort intsort = solver_->make_sort(INT);
+                Term zero = solver_->make_term(0, intsort);
+                if (x_primop == Mult && (left == zero || right == zero)) {
+                    save_in_cache(term, zero);
+                    return Walker_Continue;
+                } else if (isOp(left, Ite)) {
                     auto ite_it = left->begin();
                     Term condition = *ite_it;
                     ++ite_it;
                     Term then_branch =  *ite_it;
                     ++ite_it;
                     Term else_branch =  *ite_it;
-                    ef_left = solver_->make_term(Ite, condition, rmMod(then_branch, y), rmMod(else_branch, y));
+                    ef_left = solver_->make_term(Ite, condition, rmMod(then_branch, y), rmMod(else_branch, translate_y));
                 } else {
-                    ef_left = rmMod(left, y);
+                    ef_left = rmMod(left, translate_y);
                 }
                 cached_children.push_back(ef_left);
                 if (isOp(right, Ite)) {
@@ -1398,13 +1419,13 @@ WalkerStepResult PostPBVWalker::visit_term(Term & term) {
                     Term then_branch =  *ite_it;
                     ++ite_it;
                     Term else_branch =  *ite_it;
-                    ef_right = solver_->make_term(Ite, condition, rmMod(then_branch, y), rmMod(else_branch, y));
+                    ef_right = solver_->make_term(Ite, condition, rmMod(then_branch, translate_y), rmMod(else_branch, translate_y));
                 } else {
-                    ef_right = rmMod(right, y);
+                    ef_right = rmMod(right, translate_y);
                 }
                 cached_children.push_back(ef_right);
                 Term ef_term = solver_->make_term(x_op, cached_children);
-                Term trans = solver_->make_term(op, TermVec{ef_term, y});
+                Term trans = solver_->make_term(op, TermVec{ef_term, translate_y});
                 save_in_cache(term, trans);
                 return Walker_Continue;
             }
@@ -1463,6 +1484,25 @@ WalkerStepResult PostPBVWalker::visit_term(Term & term) {
             cached_children.push_back(c);
         }
         save_in_cache(term, solver_->make_term(op, cached_children));
+      } else if (primop == Mult){
+            auto x_it = term->begin();
+            Term left = *x_it;
+            x_it++;
+            Term right = *x_it;
+            Sort intsort = solver_->make_sort(INT);
+            Term zero = solver_->make_term(0, intsort);
+            if (left == zero || right == zero) {
+                save_in_cache(term, zero);
+                return Walker_Continue;
+            }
+            for (auto t : term)
+            {
+                c = t;
+                query_cache(t, c);
+                cached_children.push_back(c);
+            }
+            save_in_cache(term, solver_->make_term(op, cached_children));
+            return Walker_Continue;
       } else {
         for (auto t : term)
         {
@@ -1478,7 +1518,15 @@ WalkerStepResult PostPBVWalker::visit_term(Term & term) {
         save_in_cache(term, term);
     }
   } else {
-    save_in_cache(term, term);
+    TermVec cached_children;
+    Term c;
+    for (auto t : term)
+        {
+            c = t;
+            query_cache(t, c);
+            cached_children.push_back(c);
+        }
+        save_in_cache(term, solver_->make_term(IntDiv, cached_children));
   }
   }
 return Walker_Continue;
