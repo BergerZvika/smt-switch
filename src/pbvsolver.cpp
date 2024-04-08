@@ -1,5 +1,8 @@
 
 #include "pbvsolver.h"
+#include <iostream>
+#include <fstream>
+#include <string>
 
 using namespace std;
 
@@ -291,6 +294,14 @@ Term AbstractPBVSolver::translate_term(const Term & t) {
             cout << "original term: " << t << endl;
             cout << "translate term: " << res << endl;
         }
+        if (this->translate) {
+            std::ofstream outFile("temp.txt", std::ios::app);
+            if (!outFile) {
+                throw std::runtime_error("Unable to create the file: temp.txt");
+            }
+            outFile << res->to_string() << std::endl;
+            outFile.close();
+        }
         term_rules.clear();
         operator_rules.clear();
         if (this->type_check == 1) {
@@ -360,12 +371,30 @@ Term AbstractPBVSolver::translate_term(const Term & t) {
         this->type_check = type_check;
     }
 
+    PBVSolver::PBVSolver(SmtSolver s, int debug, int choose_walker, int postwalk, int type_check, int translate): AbstractPBVSolver(s, debug) {
+        if (type_check) {
+            this->walker = new TypeCheckerWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+        } else if (choose_walker == 0) {
+            this->walker = new EfficientPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+        } 
+        else if (choose_walker == 1) {
+            this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+        } else if (choose_walker == 2) {
+            this->walker = new FullPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+        } else if (choose_walker == 3) {
+            this->walker = new PartialPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+        } else if (choose_walker == 4) {
+            this->walker = new NonPurePBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+        } 
+        this->postwalk = postwalk;
+        this->type_check = type_check;
+        this->translate = translate;
+    }
 
 
-
-    void PBVSolver::assert_formula(const Term & t) { 
+    void PBVSolver::assert_formula(const Term & t) {
         Term res = translate_term(t);
-        if (res) {
+        if (!this->translate && res) {
             wrapped_solver->assert_formula(res);
         }
     }

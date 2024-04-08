@@ -186,6 +186,7 @@ class AbstractPBVSolver : public AbsSmtSolver
    int debug = 0;
    int postwalk = 0;
    int type_check = 0;
+   int translate = 0;
   public:
     AbstractPBVSolver(SmtSolver s);
     AbstractPBVSolver(SmtSolver s, int debug);
@@ -277,6 +278,7 @@ class PBVSolver : public AbstractPBVSolver
     PBVSolver(SmtSolver s, int debug, int walker);
     PBVSolver(SmtSolver s, int debug, int walker, int postwalk);
     PBVSolver(SmtSolver s, int debug, int walker, int postwalk, int type_check);
+    PBVSolver(SmtSolver s, int debug, int walker, int postwalk, int type_check, int translate);
     ~PBVSolver(){};
 
     void assert_formula(const Term & t) override;

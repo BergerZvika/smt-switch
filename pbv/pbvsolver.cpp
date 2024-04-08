@@ -2,6 +2,10 @@
 #include <utility>
 #include <vector>
 #include <unordered_map>
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <algorithm>
 
 #include "smt_defs.h"
 #include "cvc5_factory.h"
@@ -48,7 +52,9 @@ int postwalk = 0;
 int produce_model = 0;
 int type_check = 0;
 int piand_mode = 0;
+int translate_smt = 0;
 string test = "";
+string temp_file = "temp.txt"
 
 
 void parse_args(int argc, char** argv) {
@@ -69,6 +75,7 @@ void parse_args(int argc, char** argv) {
         cout << "\t--sum-based-lemma\tadd sum based lemma." << endl;
         cout << "\t--sum-ge-based-lemma\tadd sum based lemma ge." << endl;
         cout << "\t--bitwise-based-lemma\tadd bitwised based lemma." << endl;
+        cout << "\t--trans\tcreate smt2 file of the translation." << endl;
       } else if (!(*i).compare("-d") ||  !(*i).compare("--debug")) {
         debug = 1;
       } else if (!(*i).compare("--pbvsolver")) {
@@ -95,6 +102,8 @@ void parse_args(int argc, char** argv) {
         piand_mode = 2;
       } else if (!(*i).compare("--difference-lemma")) {
         piand_mode = 5;
+      } else if (!(*i).compare("--trans")) {
+        translate_smt = 1;
       } else if (!(*i).compare("-t") ||  !(*i).compare("--type-check")) {
         type_check = 1;
       } else if ((*i).length() >= 5 && (*i).compare((*i).length() - 5, 5, ".smt2") == 0) {
@@ -105,7 +114,71 @@ void parse_args(int argc, char** argv) {
   }
 }
 
+void create_translate_smt() {
+    std::string end = "";
+    // output file
+    std::string out = test.substr(test.find_last_of("/\\") + 1);
+    out = out.substr(0, out.find_last_of(".")) + "_translate.smt2";
+    std::ofstream outFile(out);
+    if (!outFile) {
+        throw std::runtime_error("Unable to create the file: " + out);
+    }
+    outFile << "(set-logic ALL)" << std::endl;
 
+    // read the origion file
+    std::ifstream origion(test);
+    if (!origion) {
+        throw std::runtime_error("Unable to open the file: " + test);
+    }
+    int assert = 0;
+    std::string line;
+    while (std::getline(origion, line)) {
+        size_t bitvec_pos = line.find("_ BitVec");
+        size_t logic_pos = line.find("set-logic");
+        size_t assert_pos = line.find("assert");
+        if (assert_pos != std::string::npos) {
+          assert++;
+        } else if (logic_pos != std::string::npos) {
+           continue;
+        } else if (assert) {
+          end += line + "\n";
+        } else if (bitvec_pos != std::string::npos) {
+            // Found "_BitVec" in the line, replace it with "int"
+            line = line.substr(0, bitvec_pos - 1) + "Int)";
+            // line.replace(bitvec_pos, std::string("(_ BitVec").length(), "Int)");
+            size_t declareFunPos = line.find("declare-fun");
+            size_t declareConstPos = line.find("declare-const");
+            if (declareFunPos != std::string::npos) {
+              line.replace(declareFunPos, std::string("declare-fun ").length(), "declare-const _pbv_");
+            }
+            else if (declareConstPos != std::string::npos) {
+              line.replace(declareConstPos, std::string("declare-const ").length(), "declare-const _pbv_");
+            }
+        }
+        if (!assert) {
+          outFile << line << std::endl;
+        }
+    }
+    origion.close();
+
+    // read the translate formula
+    std::ifstream temp(temp_file);
+    if (!temp) {
+        throw std::runtime_error("Unable to open the file: " + temp_file);
+    }
+    std::string formula;
+    while (std::getline(temp, formula))  {
+      outFile << "(assert " << formula << ")" <<  endl;
+    }
+    outFile << end;
+
+    temp.close();
+    outFile.close();
+    // remove temp_file
+    if (std::remove(temp_file) != 0) {
+        throw std::runtime_error("Unable to remove the file: " + temp_file);
+    }
+}
 
 int main(int argc, char** argv){
   // parse arguments
@@ -124,7 +197,7 @@ int main(int argc, char** argv){
   // create pbvsolver
   SmtSolver s, type_checker;
   SmtSolver cvc5 = Cvc5SolverFactory::create(false);
-  s = std::make_shared<PBVSolver>(cvc5, debug, pbvsolver, postwalk, 0);
+  s = std::make_shared<PBVSolver>(cvc5, debug, pbvsolver, postwalk, 0, translate_smt);
   // solver options
   s->set_opt("nl-ext-tplanes", "true");
   if (pbvsolver != 0) {
@@ -147,6 +220,7 @@ int main(int argc, char** argv){
 
   // type checker
   if (type_check) {
+    // zero signifies the absence of debugging
     type_checker = std::make_shared<PBVSolver>(Cvc5SolverFactory::create(false), 0, pbvsolver, postwalk, type_check);
     SmtLibReaderTester* type_reader = new SmtLibReaderTester(type_checker);
     type_reader->parse(test);
@@ -177,6 +251,10 @@ int main(int argc, char** argv){
   try {
     SmtLibReaderTester* reader = new SmtLibReaderTester(s);
     reader->parse(test);
+    if (translate_smt) {
+      create_translate_smt();
+      return 1;
+    }
     auto results = reader->get_results();
     cout << results[0] << endl;
   } catch (std::exception& e) {
