@@ -260,6 +260,8 @@ class AbstractPBVSolver : public AbsSmtSolver
 
     Term make_pbv_symbol(const std::string & name, const Sort & s) const;
 
+    Term make_pbv_param(const std::string & name, const Sort & s) const;
+
     virtual void assert_formula(const Term & t) = 0;
 
     Term translate_term( const Term & t);

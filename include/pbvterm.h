@@ -10,6 +10,7 @@ class PBVTerm : public AbsTerm
     TermVec children;
     std::string repr;
     bool is_sym;
+    bool is_par;
     std::hash<std::string> str_hash;
     size_t id_;
 
@@ -20,22 +21,22 @@ class PBVTerm : public AbsTerm
     PBVTerm(Op op1, TermVec t);
     PBVTerm(std::string name, TermVec t);
     PBVTerm(std::string name, Sort s1);
+    PBVTerm(std::string name, Sort s1, bool param);
 
     ~PBVTerm(){};
 
     // absTerm implement
     std::size_t get_id() const override;
-    bool is_param() const override;
     bool is_symbolic_const() const override;
     bool is_value() const override;
     uint64_t to_int() const override;
     std::string print_value_as(SortKind sk) override;
-    // bool is_pbvterm() const override;
 
     // pbvterm
     Sort get_sort() const;
     Op get_op() const;
     bool is_symbol() const;
+    bool is_param() const;
     size_t hash() const override;
     TermIter begin() override;
     TermIter end() override;

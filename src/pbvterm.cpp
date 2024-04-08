@@ -8,6 +8,7 @@ namespace smt {
 
 PBVTerm::PBVTerm(Sort s1, TermVec t) : s(s1), children(t) {
     is_sym = false;
+    is_par = false;
     op = Op();
     for (auto term : t)
     {
@@ -23,6 +24,7 @@ PBVTerm::PBVTerm(Term t) {
   s = t->get_sort();
   children = {t};
   is_sym = false;
+  is_par = false;
   op = Op();
   for (auto term : t)
     {
@@ -36,6 +38,7 @@ PBVTerm::PBVTerm(Term t) {
 
 PBVTerm::PBVTerm(Sort s1, Op op1, TermVec t) : s(s1), children(t), op(op1) {
     is_sym = false;
+    is_par = false;
     repr = compute_string();
     is_pbv = true;
 }
@@ -43,12 +46,21 @@ PBVTerm::PBVTerm(Sort s1, Op op1, TermVec t) : s(s1), children(t), op(op1) {
 PBVTerm::PBVTerm(std::string name, TermVec t) : repr(name), children(t) {
     s = t[0]->get_sort();
     is_sym = true;
+    is_par = false;
     op = Op();
     is_pbv = true;
 }
 
 PBVTerm::PBVTerm(std::string name, Sort s1) : repr(name), s(s1) {
     is_sym = true;
+    is_par = false;
+    op = Op();
+    is_pbv = true;
+}
+
+PBVTerm::PBVTerm(std::string name, Sort s1, bool param) : repr(name), s(s1) {
+    is_sym = !param;
+    is_par = param;
     op = Op();
     is_pbv = true;
 }
@@ -56,16 +68,11 @@ PBVTerm::PBVTerm(std::string name, Sort s1) : repr(name), s(s1) {
 PBVTerm::PBVTerm(Op op1, TermVec t) : op(op1), children(t) {
     s = t[0]->get_sort();
     is_sym = false;
+    is_par = false;
     repr = compute_string();
     is_pbv = true;
 }
 
-
-
-
-  bool PBVTerm::is_param() const {
-    throw NotImplementedException("is_param() not implemented by default");
-  }
   bool PBVTerm::is_symbolic_const() const {
     throw NotImplementedException("is_symbolic_const() not implemented by default");
   }
@@ -96,6 +103,7 @@ Op PBVTerm::get_op() const {
 }
 
 bool PBVTerm::is_symbol() const { return is_sym; }
+bool PBVTerm::is_param() const { return op.is_null() && is_par; }
 size_t PBVTerm::hash() const { return str_hash(compute_string()); }
 std::size_t PBVTerm::get_id() const { return id_; }
 

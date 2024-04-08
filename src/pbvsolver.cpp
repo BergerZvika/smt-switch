@@ -101,23 +101,28 @@ namespace smt {
         }
         return wrapped_solver->make_term(val, sort, base);
     }
+    
     Term AbstractPBVSolver::make_term(const Term & val, const Sort & sort) const {
         Sort pbvs = make_sort(BV, val);
-        // return wrapped_solver->make_term(val, sort);
-        // return std::make_shared<PBVTerm>(sort, TermVec{val});
         Term pbvt = std::make_shared<PBVTerm>(pbvs, TermVec{val});
         return pbvt;
     }
+
     Term AbstractPBVSolver::make_symbol(const std::string name, const Sort & sort) {
         if(sort->get_sort_kind() == BV) {
             return make_pbv_symbol(name, sort);
         }
         return wrapped_solver->make_symbol(name, sort);
     }
+
     Term AbstractPBVSolver::get_symbol(const std::string & name) {
         return wrapped_solver->get_symbol(name);
     }
+
     Term AbstractPBVSolver::make_param(const std::string name, const Sort & sort) {
+        if(sort->get_sort_kind() == BV) {
+            return make_pbv_param(name, sort);
+        }
         return wrapped_solver->make_param(name, sort);
     }
     Term AbstractPBVSolver::make_term(const Op op, const Term & t) const {
@@ -215,6 +220,11 @@ namespace smt {
         return pbvt;
     }
 
+    Term AbstractPBVSolver::make_pbv_param(const std::string & name, const Sort & s) const {
+        Term pbvt = std::make_shared<PBVTerm>(name, s, true);
+        return pbvt;
+    }
+
     Term AbstractPBVSolver::make_term(const Op op, const Term & t0, const Term & t1) const {
         if (t0->is_pbvterm() || t1->is_pbvterm()) {
             Sort s;
@@ -252,9 +262,12 @@ Term AbstractPBVSolver::translate_term(const Term & t) {
         // postwalk
         if (this->postwalk) {
             postwalker = 1;
+            //  cout << "walk" << endl;
             pre_res = this->walker->visit(term);
+            //  cout << "end walk" << endl;
             PostPBVWalker* postwalk = new PostPBVWalker(wrapped_solver, &term_rules);
             res = postwalk->visit(pre_res);
+            // cout << "end post" << endl;
         } else {
             res = this->walker->visit(term);
         }
@@ -1290,8 +1303,9 @@ WalkerStepResult PrePBVWalker::visit_term(Term & term) {
         Term zero_extend = std::make_shared<PBVTerm>(Concat, TermVec{zero_term, translate_x});
         Term max_int = std::make_shared<PBVTerm>(BVNot, TermVec{zero_term});
         Term sign_extend = std::make_shared<PBVTerm>(Concat, TermVec{max_int, translate_x});
-        Term k_minus_one = solver_->make_term(Minus, translate_k, one);
-        Term sign_bit = std::make_shared<PBVTerm>(Extract, TermVec{translate_x, k_minus_one, k_minus_one});
+        Term x_width = get_bit_width_term(translate_x);
+        Term x_width_minus_one = solver_->make_term(Minus, x_width, one);
+        Term sign_bit = std::make_shared<PBVTerm>(Extract, TermVec{translate_x, x_width_minus_one, x_width_minus_one});
         Term condition = std::make_shared<PBVTerm>(Equal, TermVec{sign_bit, one_term});
         Term ite = std::make_shared<PBVTerm>(Ite, TermVec{condition, sign_extend, zero_extend});
         save_in_cache(term, ite);
@@ -1484,25 +1498,68 @@ WalkerStepResult PostPBVWalker::visit_term(Term & term) {
             cached_children.push_back(c);
         }
         save_in_cache(term, solver_->make_term(op, cached_children));
-      } else if (primop == Mult){
-            auto x_it = term->begin();
-            Term left = *x_it;
-            x_it++;
-            Term right = *x_it;
-            Sort intsort = solver_->make_sort(INT);
-            Term zero = solver_->make_term(0, intsort);
-            if (left == zero || right == zero) {
-                save_in_cache(term, zero);
-                return Walker_Continue;
-            }
-            for (auto t : term)
-            {
-                c = t;
-                query_cache(t, c);
-                cached_children.push_back(c);
-            }
-            save_in_cache(term, solver_->make_term(op, cached_children));
-            return Walker_Continue;
+    //   } else if (primop == Mult){
+    //         Term translate_left, translate_right;
+    //         auto x_it = term->begin();
+    //         Term left = *x_it;
+    //         query_cache(left ,translate_left);
+    //         x_it++;
+    //         Term right = *x_it;
+    //         query_cache(right ,translate_right);
+    //         Sort intsort = solver_->make_sort(INT);
+    //         Term zero = solver_->make_term(0, intsort);
+    //         if (translate_left == zero || translate_right == zero) {
+    //             save_in_cache(term, zero);
+    //             return Walker_Continue;
+    //         }
+    //         for (auto t : term)
+    //         {
+    //             c = t;
+    //             query_cache(t, c);
+    //             cached_children.push_back(c);
+    //         }
+    //         save_in_cache(term, solver_->make_term(op, cached_children));
+    //         return Walker_Continue;
+
+    //   } else if (primop == Plus){
+    //         Term translate_left, translate_right;
+    //         auto x_it = term->begin();
+    //         Term left = *x_it;
+    //         query_cache(left ,translate_left);
+    //         x_it++;
+    //         Term right = *x_it;
+    //         query_cache(right ,translate_right);
+    //         Sort intsort = solver_->make_sort(INT);
+    //         Term zero = solver_->make_term(0, intsort);
+    //         if (translate_left == zero)  {
+    //             save_in_cache(term, translate_right);
+    //             return Walker_Continue;
+    //         }
+    //         if (translate_right == zero) {
+    //             save_in_cache(term, translate_left);
+    //             return Walker_Continue;
+    //         }
+    //         if (translate_left->get_op() == Minus) {
+    //             Term translate_left_left, translate_left_right;
+    //             auto left_it = left->begin();
+    //             Term left_left = *left_it;
+    //             query_cache(left_left ,translate_left_left);
+    //             left_it++;
+    //             Term left_right = *left_it;
+    //             query_cache(left_right ,translate_left_right);
+    //             if (translate_left_right == translate_right) {
+    //                 save_in_cache(term, translate_left_left);
+    //                 return Walker_Continue;
+    //             }
+    //         }
+    //         for (auto t : term)
+    //         {
+    //             c = t;
+    //             query_cache(t, c);
+    //             cached_children.push_back(c);
+    //         }
+    //         save_in_cache(term, solver_->make_term(op, cached_children));
+    //         return Walker_Continue;
       } else {
         for (auto t : term)
         {
