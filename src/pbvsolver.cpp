@@ -144,7 +144,14 @@ namespace smt {
         return std::make_shared<PBVTerm>(op, TermVec{t0, t1, t2});
     }
     Term AbstractPBVSolver::make_term(const Op op, const TermVec & terms) const {
-        if ((*terms.begin())->is_pbvterm() || op == PSign_Extend || op == PZero_Extend || op == PExtract) {
+        int isPbv = false;
+        for (Term t : terms) {
+            if (t->is_pbvterm()) {
+                isPbv = true;
+                break;
+            }
+        }
+        if (isPbv || op == PSign_Extend || op == PZero_Extend || op == PExtract) {
             Term pbvt = std::make_shared<PBVTerm>(op, terms);
             return pbvt;
         }
@@ -265,12 +272,9 @@ Term AbstractPBVSolver::translate_term(const Term & t) {
         // postwalk
         if (this->postwalk) {
             postwalker = 1;
-            //  cout << "walk" << endl;
             pre_res = this->walker->visit(term);
-            //  cout << "end walk" << endl;
             PostPBVWalker* postwalk = new PostPBVWalker(wrapped_solver, &term_rules);
             res = postwalk->visit(pre_res);
-            // cout << "end post" << endl;
         } else {
             res = this->walker->visit(term);
         }
@@ -407,7 +411,11 @@ Term AbstractPBVWalker::uts(Term t) {
     // translate t to _pbv_t
     Term k;
     if (!query_cache(t, k)){
-            k = solver_->make_symbol("_pbv_" + t->to_string() ,intsort);
+        if (t->is_param()) {
+                k = solver_->make_param("_pbv_" + t->to_string() ,intsort);
+        } else if(t->is_symbol()) {
+                k = solver_->make_symbol("_pbv_" + t->to_string() ,intsort);
+        }
     }
     if (k->to_string() == "0") {
         return solver_->make_term(0, intsort);
@@ -1159,6 +1167,43 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                               Term x_or_y = solver_->make_term(int_op, x_plus_y, x_and_y);
                               save_in_cache(term, solver_->make_term(int_op, x_or_y, x_and_y));
                             } break;
+                case Exists: { int_op = Minus;
+                            Term translate_param, translate_right;
+                            Term param = (*it);
+                            query_cache(param, translate_param);
+                            it++;
+                            Term right = (*it);
+                            query_cache(right, translate_right);
+                            // x <= param < 2^k /\ formula
+                            Term k = get_bit_width_term(param);
+                            Sort intsort = solver_->make_sort(INT);
+                            Term zero =  solver_->make_term(0, intsort);
+                            Term positive =std::make_shared<PBVTerm>(Ge, TermVec{translate_param, zero});   
+                            Term two_2 = solver_->make_term(2, intsort);
+                            Term power2_k = solver_->make_term(Pow, two_2, k);
+                            Term lt = std::make_shared<PBVTerm>(Lt, TermVec{translate_param, power2_k});
+                            Term and_term = std::make_shared<PBVTerm>(And, TermVec{positive, lt, translate_right});
+                            save_in_cache(term, std::make_shared<PBVTerm>(Exists, TermVec{translate_param, and_term}));
+                    } break;
+                case Forall: { int_op = Minus;
+                            Term translate_param, translate_right;
+                            Term param = (*it);
+                            query_cache(param, translate_param);
+                            it++;
+                            Term right = (*it);
+                            query_cache(right, translate_right);
+                            // x <= param < 2^k /\ formula
+                            Term k = get_bit_width_term(param);
+                            Sort intsort = solver_->make_sort(INT);
+                            Term zero =  solver_->make_term(0, intsort);
+                            Term positive =std::make_shared<PBVTerm>(Ge, TermVec{translate_param, zero});   
+                            Term two_2 = solver_->make_term(2, intsort);
+                            Term power2_k = solver_->make_term(Pow, two_2, k);
+                            Term lt = std::make_shared<PBVTerm>(Lt, TermVec{translate_param, power2_k});
+                            Term and_term = std::make_shared<PBVTerm>(And, TermVec{positive, lt});
+                            Term formula = std::make_shared<PBVTerm>(Implies, TermVec{and_term, translate_right});
+                            save_in_cache(term, std::make_shared<PBVTerm>(Forall, TermVec{translate_param, formula}));
+                    } break;
                 // Operators that do not need a translation!
                 case Lt:
                 case Le:
@@ -1178,18 +1223,25 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                 case Not:
                 case Implies:
                 case Ite:
-                case Forall:
-                case Exists:
                 case PIAnd: {
                     TermVec cached_children;
                     Term c;
+                    int_op = Minus;
+                    int isPbv = false;
                     for (auto t : term)
                     {
+                        if (t->is_pbvterm()) {
+                            isPbv = true;
+                        }
                         c = t;
                         query_cache(t, c);
                         cached_children.push_back(c);
                     }
-                    save_in_cache(term, solver_->make_term(op, cached_children));
+                    if (!isPbv) {
+                        save_in_cache(term, solver_->make_term(op, cached_children));
+                    } else {
+                        save_in_cache(term, std::make_shared<PBVTerm>(op, cached_children));
+                    }
                 } break;
                 default: 
                     cout << "The Operator " << op <<  " is not support!!!" << endl;
@@ -1226,31 +1278,38 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
         if (!exists) {
             operator_rules->push_back(positive);
         }
-        if (query_cache(term, k)){
-            cout << "k: " << k << endl;
-        }
         if (!query_cache(term, k) && term->to_string() != bit_width->to_string()){
-            k = solver_->make_symbol("_pbv_" + term->to_string() ,intsort);
+            if (term->is_param()) {
+                k = solver_->make_param("_pbv_" + term->to_string() ,intsort);
+            } else if(term->is_symbol()) {
+                k = solver_->make_symbol("_pbv_" + term->to_string() ,intsort);
+            }
         } else {
             k = bit_width;
         }
         res = k;
         // 0 <= k <= pow2(k)
-        Term ge = solver_->make_term(Ge, k, zero);
-        term_rules->push_back(ge);
-        try {
-            Sort intsort = solver_->make_sort(INT);
-            Term constbv = solver_->make_term(stoi(bit_width->to_string()), intsort);
-            bit_width = constbv;
-        } catch (...) {}
-            Term two_2 = solver_->make_term(2, intsort);
-            Term power2_k = solver_->make_term(Pow, two_2, bit_width);
-            Term lt = solver_->make_term(Lt, k, power2_k);
-            term_rules->push_back(lt);
+        if (!term->is_param()) {
+            Term ge = solver_->make_term(Ge, k, zero);
+            term_rules->push_back(ge);
+            try {
+                Sort intsort = solver_->make_sort(INT);
+                Term constbv = solver_->make_term(stoi(bit_width->to_string()), intsort);
+                bit_width = constbv;
+            } catch (...) {}
+                Term two_2 = solver_->make_term(2, intsort);
+                Term power2_k = solver_->make_term(Pow, two_2, bit_width);
+                Term lt = solver_->make_term(Lt, k, power2_k);
+                term_rules->push_back(lt);
+        }
       } else {
           if (term->is_value()) { // translate constant bit-vectors like: bv0
-            Sort intsort = solver_->make_sort(INT);
-            res = solver_->make_term(term->to_int(), intsort);
+            try {
+                Sort intsort = solver_->make_sort(INT);
+                res = solver_->make_term(term->to_int(), intsort);
+            }  catch (...) {
+                res = term; 
+            }
           } else {
             res = term;
           }

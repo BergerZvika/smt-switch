@@ -2,10 +2,11 @@
 #include <utility>
 #include <vector>
 #include <unordered_map>
-#include <iostream>
 #include <fstream>
 #include <string>
 #include <algorithm>
+#include <cstdio>
+#include <cstdlib>
 
 #include "smt_defs.h"
 #include "cvc5_factory.h"
@@ -54,8 +55,7 @@ int type_check = 0;
 int piand_mode = 0;
 int translate_smt = 0;
 string test = "";
-string temp_file = "temp.txt"
-
+#define temp_file "temp.txt"
 
 void parse_args(int argc, char** argv) {
   vector<string> args(argv + 1, argv + argc);
@@ -164,7 +164,7 @@ void create_translate_smt() {
     // read the translate formula
     std::ifstream temp(temp_file);
     if (!temp) {
-        throw std::runtime_error("Unable to open the file: " + temp_file);
+        throw std::runtime_error(std::string("Unable to open the file: ") + temp_file);
     }
     std::string formula;
     while (std::getline(temp, formula))  {
@@ -176,7 +176,7 @@ void create_translate_smt() {
     outFile.close();
     // remove temp_file
     if (std::remove(temp_file) != 0) {
-        throw std::runtime_error("Unable to remove the file: " + temp_file);
+        throw std::runtime_error(std::string("Unable to open the file: ") + temp_file);
     }
 }
 
