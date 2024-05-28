@@ -76,6 +76,7 @@ PBVTerm::PBVTerm(Op op1, TermVec t) : op(op1), children(t) {
   bool PBVTerm::is_symbolic_const() const {
     throw NotImplementedException("is_symbolic_const() not implemented by default");
   }
+
   bool PBVTerm::is_value() const {
     try {
       if (stoi(repr) >= 0) {
@@ -85,6 +86,7 @@ PBVTerm::PBVTerm(Op op1, TermVec t) : op(op1), children(t) {
     catch (...) {
       return false;
     }
+    return false;
   }
 
   uint64_t PBVTerm::to_int() const {

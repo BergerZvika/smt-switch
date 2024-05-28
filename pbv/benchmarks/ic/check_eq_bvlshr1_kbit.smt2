@@ -17,9 +17,11 @@
   (bvnot min)
 )
 
-(define-fun SC ((s (_ BitVec k)) (t (_ BitVec k))) Bool
-(or  (= (bvlshr s (_ bv0 k)) t) (= (bvlshr s (_ bv1 k)) t) (= (bvlshr s (_ bv2 k)) t) (= (bvlshr s (_ bv3 k)) t) (= (bvlshr s (_ bvk k)) t))
-)
+;(define-fun SC ((s (_ BitVec k)) (t (_ BitVec k))) Bool
+;(or  (= (bvlshr s (_ bv0 k)) t) (= (bvlshr s (_ bv1 k)) t) (= (bvlshr s (_ bv2 k)) t) (= (bvlshr s (_ bv3 k)) t) (= (bvlshr s (_ bvk k)) t))
+;)
+
+(define-fun SC ((s Int) (t Int)) Bool (exists ((i (_ BitVec k))) (and (>= i  (_ bv0 k)) (<= i (_ bvk k)) (= (bvlshr s i) t))))
 
 (assert
  (not

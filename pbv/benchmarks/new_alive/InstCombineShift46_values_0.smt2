@@ -1,7 +1,0 @@
-(set-logic ALL)
-(declare-const k Int)
-(declare-fun C () (_ BitVec k))
-(declare-fun %A () (_ BitVec k))
-(declare-fun %Op0 () (_ BitVec k))
-(assert (let ((_let_0 (bvsub C (_ bv1 k)))) (let ((_let_1 (bvurem (ite (= (pextract (- k 1) (- k 1) %A) (_ bv1 1)) (bvneg %A) %A) (ite (= (pextract (- k 1) (- k 1) C) (_ bv1 1)) (bvneg C) C)))) (let ((_let_2 (ite (= (pextract (- k 1) (- k 1) %A) (_ bv1 1)) (bvneg _let_1) _let_1))) (and (or (not (= %A (bvshl (_ bv1 k) (bvsub (_ bvk k) (_ bv2 k))))) (not (= C (bvnot (_ bv0 k))))) (bvult _let_2 (_ bvk k)) (not (= C (_ bv0 k))) (= (bvand C _let_0) (_ bv0 k)) (not (= (bvshl %Op0 _let_2) (bvshl %Op0 (bvand %A _let_0)))))))))
-(check-sat)

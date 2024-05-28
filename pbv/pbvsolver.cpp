@@ -49,11 +49,13 @@ class SmtLibReaderTester : public SmtLibReader
 int help = 0;
 int debug = 0;
 int pbvsolver = 0;
-int postwalk = 0;
+int postwalk = 1;
 int produce_model = 0;
 int type_check = 0;
-int piand_mode = 0;
+int piand_mode = 1;
+int difference_lemma = 0;
 int translate_smt = 0;
+int skolem_lemma = 0;
 string test = "";
 #define temp_file "temp.txt"
 
@@ -88,12 +90,12 @@ void parse_args(int argc, char** argv) {
         pbvsolver = 3; //partial
       } else if (!(*i).compare("-m") ||  !(*i).compare("--maxint")) {
         pbvsolver = 4; // non pure pbv solver, k <= 67,108,864
-      } else if (!(*i).compare("-w") ||  !(*i).compare("--postwalk")) { 
-        postwalk = 1;
+      } else if (!(*i).compare("-w") ||  !(*i).compare("--no-postwalk")) { 
+        postwalk = 0;
       } else if (!(*i).compare("--produce-model")) {
         produce_model = 1;
-      } else if (!(*i).compare("--sum-based-lemma")) {
-        piand_mode = 1;
+      } else if (!(*i).compare("--no-sum-based-lemma")) {
+        piand_mode = 0;
       } else if (!(*i).compare("--sum-ge-lemma")) {
         piand_mode = 3;
       } else if (!(*i).compare("--sum-eq-lemma")) {
@@ -101,7 +103,9 @@ void parse_args(int argc, char** argv) {
       } else if (!(*i).compare("--bitwise-based-lemma")) {
         piand_mode = 2;
       } else if (!(*i).compare("--difference-lemma")) {
-        piand_mode = 5;
+        difference_lemma = 0;
+      } else if (!(*i).compare("-s") || !(*i).compare("--skolem-lemmas")) {
+        skolem_lemma = 1;
       } else if (!(*i).compare("--trans")) {
         translate_smt = 1;
       } else if (!(*i).compare("-t") ||  !(*i).compare("--type-check")) {
@@ -123,7 +127,12 @@ void create_translate_smt() {
     if (!outFile) {
         throw std::runtime_error("Unable to create the file: " + out);
     }
-    outFile << "(set-logic ALL)" << std::endl;
+    if (pbvsolver) {
+      outFile << "(set-logic UFNIA)" << std::endl;
+      outFile << "(declare-fun bvand (Int Int Int) Int)" << std::endl;
+    } else {
+      outFile << "(set-logic ALL)" << std::endl;
+    }
 
     // read the origion file
     std::ifstream origion(test);
@@ -144,7 +153,7 @@ void create_translate_smt() {
           end += line + "\n";
         } else if (bitvec_pos != std::string::npos) {
             // Found "_BitVec" in the line, replace it with "int"
-            line = line.substr(0, bitvec_pos - 1) + "Int)";
+            line = line.substr(0, bitvec_pos - 4) + "Int)";
             // line.replace(bitvec_pos, std::string("(_ BitVec").length(), "Int)");
             size_t declareFunPos = line.find("declare-fun");
             size_t declareConstPos = line.find("declare-const");
@@ -214,8 +223,14 @@ int main(int argc, char** argv){
     s->set_opt("piand-mode", "sum_ge");
   } else if (piand_mode == 4) {
     s->set_opt("piand-mode", "sum_eq");
-  } else if (piand_mode == 5) {
+  } else if (piand_mode == 0) {
     s->set_opt("piand-mode", "difference");
+  }
+  if(difference_lemma){
+    s->set_opt("difference-lemmas", "true");
+  }
+  if(skolem_lemma) {
+    s->set_opt("skolem-lemmas", "true");
   }
 
   // type checker
@@ -259,7 +274,7 @@ int main(int argc, char** argv){
     cout << results[0] << endl;
   } catch (std::exception& e) {
     if (std::string(e.what()).find("67108864") != std::string::npos) {
-      cout << "UNKNOWN" << endl;
+      cout << "unknown" << endl;
     }
      else {
           cout << e.what() << endl;

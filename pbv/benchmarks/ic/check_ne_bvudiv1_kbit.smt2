@@ -29,4 +29,5 @@ true
   )
  )
 )
+(assert (>= k 2))
 (check-sat)
