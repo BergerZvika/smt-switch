@@ -108,6 +108,12 @@ const std::unordered_map<PrimOp, ::cvc5::Kind> primop2kind(
       { Apply_Constructor, ::cvc5::APPLY_CONSTRUCTOR } });
 
 /* Cvc5Solver implementation */
+Term Cvc5Solver::simplify(const Term& t) {
+    std::cout << "Cvc5Solver term: " << t << std::endl;
+    cvc5::Term cvc_term = std::static_pointer_cast<Cvc5Term>(t)->term;
+    return std::make_shared<Cvc5Term>(solver.simplify(cvc_term));
+}
+
 
 void Cvc5Solver::set_opt(const std::string option, const std::string value)
 {

@@ -1,0 +1,6 @@
+(set-logic ALL)
+(declare-const k Int)
+(declare-fun %notOp1 () (_ BitVec k))
+(declare-fun %notOp0 () (_ BitVec k))
+(assert (not (not (= (bvand (bvxor %notOp0 (bvnot (_ bv0 k))) (bvxor %notOp1 (bvnot (_ bv0 k)))) (bvxor (bvor %notOp0 %notOp1) (bvnot (_ bv0 k)))))))
+(check-sat)

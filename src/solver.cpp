@@ -23,6 +23,10 @@ namespace smt {
 
 // TODO: Implement a generic visitor
 
+// Term AbsSmtSolver::simplify(const Term& t){
+//   return t;
+// }
+
 Result AbsSmtSolver::check_sat_assuming_list(const TermList & assumptions)
 {
   throw NotImplementedException(

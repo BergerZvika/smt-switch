@@ -253,6 +253,7 @@ class AbstractPBVSolver : public AbsSmtSolver
     void pop(uint64_t num = 1) override;
     uint64_t get_context_level() const override;
     void reset_assertions() override;
+    Term simplify(const Term& t) override;
 
     // pbvsolver function
     virtual Term make_term(const Sort & pbvsort, const Term & val) const;

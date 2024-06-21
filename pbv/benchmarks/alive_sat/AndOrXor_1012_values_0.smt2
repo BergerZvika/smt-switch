@@ -1,0 +1,7 @@
+(set-logic ALL)
+(declare-const k Int)
+(declare-fun C2 () (_ BitVec k))
+(declare-fun %a () (_ BitVec k))
+(declare-fun C1 () (_ BitVec k))
+(assert (not (and (bvslt C1 C2) (= C2 (bvadd C1 (_ bv1 k))) (not (= (and (bvsgt %a C1) (not (= %a C2))) (bvsgt %a C2))))))
+(check-sat)

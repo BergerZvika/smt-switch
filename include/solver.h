@@ -40,6 +40,10 @@ class AbsSmtSolver
   AbsSmtSolver(SolverEnum se) : solver_enum(se){};
   virtual ~AbsSmtSolver(){};
 
+  virtual Term simplify(const Term& t) {
+    return t;
+  }
+
   /* Sets a solver option with smt-lib 2 syntax
    * SMTLIB: (set-option :<option> <value>)
    * @param option name of the option

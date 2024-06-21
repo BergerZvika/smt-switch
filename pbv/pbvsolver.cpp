@@ -42,6 +42,13 @@ class SmtLibReaderTester : public SmtLibReader
 
   const vector<Result> & get_results() const { return results_; };
 
+//   Term simplify(const Term& t) {
+//     //     cout << "original term: " << t << endl;
+// //     Term simp_t = wrapped_solver->simplify(t);
+// //     cout << "simplify term: " << simp_t << endl;
+// //     return simp_t;
+//   }
+
  protected:
   vector<Result> results_;
 };
@@ -52,10 +59,15 @@ int pbvsolver = 0;
 int postwalk = 1;
 int produce_model = 0;
 int type_check = 0;
+int piand_sum_mode = 1;
 int piand_mode = 1;
 int difference_lemma = 0;
 int translate_smt = 0;
 int skolem_lemma = 0;
+int nl_cov = 0;
+int nl_ext_tplanes = 1;
+int cegqi = 0;
+int full_saturate = 0;
 string test = "";
 #define temp_file "temp.txt"
 
@@ -94,14 +106,28 @@ void parse_args(int argc, char** argv) {
         postwalk = 0;
       } else if (!(*i).compare("--produce-model")) {
         produce_model = 1;
-      } else if (!(*i).compare("--no-sum-based-lemma")) {
-        piand_mode = 0;
-      } else if (!(*i).compare("--sum-ge-lemma")) {
-        piand_mode = 3;
-      } else if (!(*i).compare("--sum-eq-lemma")) {
-        piand_mode = 4;
-      } else if (!(*i).compare("--bitwise-based-lemma")) {
+      } else if (!(*i).compare("--cigar")) {
         piand_mode = 2;
+      } else if (!(*i).compare("--no-cigar")) {
+        piand_mode = 3;
+      } else if (!(*i).compare("--cvc5-cegqi-all")) {
+        cegqi = 1;
+      } else if (!(*i).compare("--cvc5-cegqi-full")) {
+        cegqi = 2;
+      } else if (!(*i).compare("--cvc5-full-saturate")) {
+        full_saturate = 1;
+      } else if (!(*i).compare("--cvc5-nl-cov")) {
+        nl_cov = 1;
+      } else if (!(*i).compare("--cvc5-no-nl-ext-tplanes")) {
+        nl_ext_tplanes = 0;
+      } else if (!(*i).compare("--no-sum-based-lemma")) {
+        piand_sum_mode = 0;
+      } else if (!(*i).compare("--sum-ge-lemma")) {
+        piand_sum_mode = 3;
+      } else if (!(*i).compare("--sum-eq-lemma")) {
+        piand_sum_mode = 4;
+      } else if (!(*i).compare("--bitwise-based-lemma")) {
+        piand_sum_mode = 2;
       } else if (!(*i).compare("--difference-lemma")) {
         difference_lemma = 0;
       } else if (!(*i).compare("-s") || !(*i).compare("--skolem-lemmas")) {
@@ -189,6 +215,8 @@ void create_translate_smt() {
     }
 }
 
+
+
 int main(int argc, char** argv){
   // parse arguments
   parse_args(argc, argv);
@@ -207,24 +235,44 @@ int main(int argc, char** argv){
   SmtSolver s, type_checker;
   SmtSolver cvc5 = Cvc5SolverFactory::create(false);
   s = std::make_shared<PBVSolver>(cvc5, debug, pbvsolver, postwalk, 0, translate_smt);
+
   // solver options
-  s->set_opt("nl-ext-tplanes", "true");
-  if (pbvsolver != 0) {
-    s->set_opt("full-saturate-quant", "true");
+  if(nl_ext_tplanes) { //implement by default
+    s->set_opt("nl-ext-tplanes", "true");
+  }
+  if(nl_cov) {
+    s->set_opt("nl-cov", "true");
+  }
+  if (full_saturate) { // quantifiers
+    s->set_opt("full-saturate-quant", "true"); // cvc5-full-saturate
+  }
+  if (cegqi == 1) {
+    s->set_opt("cegqi-all", "true");
+  } else if (cegqi == 2) {
+    s->set_opt("cegqi-full", "true");
   }
   if (produce_model) {
       s->set_opt("produce-models", "true");
   }
+  //piand mode options
   if (piand_mode == 1) {
-    s->set_opt("piand-mode", "sum");
+    s->set_opt("piand-mode", "piand");
   } else if (piand_mode == 2) {
-    s->set_opt("piand-mode", "bitwise");
+    s->set_opt("piand-mode", "cigar");
   } else if (piand_mode == 3) {
-    s->set_opt("piand-mode", "sum_ge");
-  } else if (piand_mode == 4) {
-    s->set_opt("piand-mode", "sum_eq");
-  } else if (piand_mode == 0) {
-    s->set_opt("piand-mode", "difference");
+    s->set_opt("piand-mode", "no-cigar");
+  }
+  // sum lemma options
+  if (piand_sum_mode == 1) {
+    s->set_opt("piand-sum-mode", "sum");
+  } else if (piand_sum_mode == 2) {
+    s->set_opt("piand-sum-mode", "bitwise");
+  } else if (piand_sum_mode == 3) {
+    s->set_opt("piand-sum-mode", "sum_ge");
+  } else if (piand_sum_mode == 4) {
+    s->set_opt("piand-sum-mode", "sum_eq");
+  } else if (piand_sum_mode == 0) {
+    s->set_opt("piand-sum-mode", "difference");
   }
   if(difference_lemma){
     s->set_opt("difference-lemmas", "true");
@@ -248,7 +296,7 @@ int main(int argc, char** argv){
   
   // run solver on test.
   if (debug) {
-    switch(pbvsolver){
+    switch(pbvsolver) {
       case 0: cout << "Piand PBVSolver:" << endl;
         break;
       case 1: cout << "Combine PBVSolver:" << endl;
