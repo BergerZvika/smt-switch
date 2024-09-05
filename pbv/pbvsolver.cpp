@@ -42,21 +42,33 @@ class SmtLibReaderTester : public SmtLibReader
 
   const vector<Result> & get_results() const { return results_; };
 
-//   Term simplify(const Term& t) {
-//     //     cout << "original term: " << t << endl;
-// //     Term simp_t = wrapped_solver->simplify(t);
-// //     cout << "simplify term: " << simp_t << endl;
-// //     return simp_t;
-//   }
-
  protected:
   vector<Result> results_;
 };
+
+int simplifyNumber(const std::string& input) {
+    // Check if the input starts with "--simplify="
+    const std::string prefix = "--simplify=";
+    if (input.rfind(prefix, 0) == 0) {  // Check if input starts with prefix
+        std::string numberPart = input.substr(prefix.size());
+        try {
+            // Convert the number part to an integer
+            int number = std::stoi(numberPart);
+            return number;
+        } catch (const std::invalid_argument&) {
+            // Handle the case where conversion fails
+            std::cerr << "Invalid format after --simplify=" << std::endl;
+            return -1;
+        }
+    }
+    return -1;
+}
 
 int help = 0;
 int debug = 0;
 int pbvsolver = 0;
 int postwalk = 1;
+int bvsub = 0;
 int produce_model = 0;
 int type_check = 0;
 int piand_sum_mode = 1;
@@ -68,6 +80,7 @@ int nl_cov = 0;
 int nl_ext_tplanes = 1;
 int cegqi = 0;
 int full_saturate = 0;
+int simplify = -1;
 string test = "";
 #define temp_file "temp.txt"
 
@@ -78,18 +91,31 @@ void parse_args(int argc, char** argv) {
         help = 1;
         cout << "Syntax: ./pbvsolver <path/to/smt2>" << endl;
         cout << "\t-h / --help\t\tprint help command line arrgument on screen." << endl;
-        cout << "\t--pbvsolver\tuse default piand PBVSolver." << endl;
-        cout << "\t-c / --comb\tuse PBVSolver with combaine (default)." << endl;
-        cout << "\t-f / --full\tuse PBVSolver with full." << endl;
-        cout << "\t-p / --partial\tuse PBVSolver with partial." << endl;
-        cout << "\t-w / --postwalk\tuse postwalk to optimize your benchmark." << endl;
-        cout << "\t-t / --type-check\ttype checking before solving formula." << endl;
-        cout << "\t-m / --maxint\tnon pure piand solver, upper bound of bit-width 67108864." << endl;
-        cout << "\t--produce-model\tuse produce model solver." << endl;
-        cout << "\t--sum-based-lemma\tadd sum based lemma." << endl;
-        cout << "\t--sum-ge-based-lemma\tadd sum based lemma ge." << endl;
-        cout << "\t--bitwise-based-lemma\tadd bitwised based lemma." << endl;
-        cout << "\t--trans\tcreate smt2 file of the translation." << endl;
+        cout << "\t-d / --debug\t\tprint to screen debug meeseges at runtime.." << endl;
+        cout << "\t--pbvsolver\t\tuse default piand PBVSolver." << endl;
+        cout << "\t-c / --comb / --combine\t\tuse PBVSolver with combaine (default)." << endl;
+        cout << "\t-f / --full\t\tuse PBVSolver with full." << endl;
+        cout << "\t-p / --partial\t\tuse PBVSolver with partial." << endl;
+        cout << "\t-w / --no-postwalk\t\tdisable postwalk to optimize your benchmark." << endl;
+        cout << "\t-t / --type-check\t\ttype checking before solving formula." << endl;
+        cout << "\t-m / --maxint\t\tnon pure piand solver, upper bound of bit-width 67108864." << endl;
+        cout << "\t-s / --simplify\t\tuse default simplify with bit-width 64." << endl;
+        cout << "\t--simplify={num}\t\tuse simplify with bit-width num." << endl;
+        cout << "\t--no-sub\t\ttranslate x-y to x + (-y)." << endl;
+        cout << "\t--produce-model\t\tuse produce model solver." << endl;
+        cout << "\t--cigar\t\tput all piand lemmas in cigar loop." << endl;
+        cout << "\t--no-cigar\t\tput all piand lemmas in initilize." << endl;
+        cout << "\t--cvc5-cegqi-all\t\tuse --cvc5-cegqi-all flag on cvc5." << endl;
+        cout << "\t--cvc5-cegqi-full\t\tuse --cvc5-cegqi-full flag on cvc5." << endl;
+        cout << "\t--cvc5-full-saturate\t\tuse --cvc5-full-saturate flag on cvc5." << endl;
+        cout << "\t--cvc5-nl-cov\t\tuse --cvc5-nl-cov flag on cvc5." << endl;
+        cout << "\t--cvc5-no-nl-ext-tplanes\t\tuse --cvc5-no-nl-ext-tplanes flag on cvc5." << endl;
+        cout << "\t--no-sum-based-lemma\t\tremove sum based lemma." << endl;
+        cout << "\t--sum-eq-lemma\t\tadd sum based lemma eq." << endl;
+        cout << "\t--sum-ge-lemma\t\tadd sum based lemma ge." << endl;
+        cout << "\t--bitwise-based-lemma\t\tadd bitwised based lemma." << endl;
+        cout << "\t--skolem-lemmas\t\tadd skolems lemmas." << endl;
+        cout << "\t--trans\t\tcreate smt2 file of the translation." << endl;
       } else if (!(*i).compare("-d") ||  !(*i).compare("--debug")) {
         debug = 1;
       } else if (!(*i).compare("--pbvsolver")) {
@@ -104,6 +130,12 @@ void parse_args(int argc, char** argv) {
         pbvsolver = 4; // non pure pbv solver, k <= 67,108,864
       } else if (!(*i).compare("-w") ||  !(*i).compare("--no-postwalk")) { 
         postwalk = 0;
+      } else if (!(*i).compare("--no-sub")) { 
+        bvsub = 1;
+      } else if (simplifyNumber(*i) >= 0) { 
+        simplify = simplifyNumber(*i);
+      } else if (!(*i).compare("-s") || !(*i).compare("--simplify")) { 
+        simplify = 64;
       } else if (!(*i).compare("--produce-model")) {
         produce_model = 1;
       } else if (!(*i).compare("--cigar")) {
@@ -130,7 +162,7 @@ void parse_args(int argc, char** argv) {
         piand_sum_mode = 2;
       } else if (!(*i).compare("--difference-lemma")) {
         difference_lemma = 0;
-      } else if (!(*i).compare("-s") || !(*i).compare("--skolem-lemmas")) {
+      } else if (!(*i).compare("--skolem-lemmas")) {
         skolem_lemma = 1;
       } else if (!(*i).compare("--trans")) {
         translate_smt = 1;
@@ -234,7 +266,7 @@ int main(int argc, char** argv){
   // create pbvsolver
   SmtSolver s, type_checker;
   SmtSolver cvc5 = Cvc5SolverFactory::create(false);
-  s = std::make_shared<PBVSolver>(cvc5, debug, pbvsolver, postwalk, 0, translate_smt);
+  s = std::make_shared<PBVSolver>(cvc5, debug, pbvsolver, postwalk, 0, translate_smt, bvsub, simplify);
 
   // solver options
   if(nl_ext_tplanes) { //implement by default
@@ -284,7 +316,7 @@ int main(int argc, char** argv){
   // type checker
   if (type_check) {
     // zero signifies the absence of debugging
-    type_checker = std::make_shared<PBVSolver>(Cvc5SolverFactory::create(false), 0, pbvsolver, postwalk, type_check);
+    type_checker = std::make_shared<PBVSolver>(Cvc5SolverFactory::create(false), 0, pbvsolver, postwalk, type_check, bvsub, simplify);
     SmtLibReaderTester* type_reader = new SmtLibReaderTester(type_checker);
     type_reader->parse(test);
     auto type_results = type_reader->get_results();
@@ -316,6 +348,8 @@ int main(int argc, char** argv){
     reader->parse(test);
     if (translate_smt) {
       create_translate_smt();
+      return 1;
+    } else if(simplify == 0) {
       return 1;
     }
     auto results = reader->get_results();

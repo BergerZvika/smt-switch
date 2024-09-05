@@ -21,12 +21,11 @@
 (or (bvsge (udivtotal (bvnot (_ bv0 k)) s) t) (bvsge (udivtotal max s) t))
 )
 
-(assert (not (and  (not
+(assert (not (and (not
   (and
   (=> (SC s t) (exists ((x (_ BitVec k))) (bvsge (udivtotal x s) t)))
   (=> (exists ((x (_ BitVec k))) (bvsge (udivtotal x s) t)) (SC s t))
   )
  )
-)
 (>= k 2))))
 (check-sat)

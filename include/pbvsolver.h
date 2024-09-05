@@ -147,17 +147,37 @@ class TypeCheckerWalker : public AbstractPBVWalker
 // PBVConstantWalker
 class PBVConstantWalker : public IdentityWalker
 {
+  private:
+    int bw = 4;
   public:
-    PBVConstantWalker(const SmtSolver & solver) : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {}
+    PBVConstantWalker(const SmtSolver & solver, int k) : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {
+      this->bw = k;
+    }
 
     WalkerStepResult visit_term(Term & term) override;  
 };
 
+// PBVConstantWalker
+class PBVParametricWalker : public IdentityWalker
+{
+  public:
+    PBVParametricWalker(const SmtSolver & solver) : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {
+    }
+
+    WalkerStepResult visit_term(Term & term) override;  
+};
+
+
 // PrePBVWalker
 class PrePBVWalker : public IdentityWalker
 {
+  protected:
+      int bvsub = 0;
   public:
     PrePBVWalker(const SmtSolver & solver) : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {}
+    PrePBVWalker(const SmtSolver & solver, int bvsub) : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {
+        this->bvsub = bvsub;
+    }
     WalkerStepResult visit_term(Term & term) override; 
     Term get_bit_width_term(Term t);
 };
@@ -187,6 +207,8 @@ class AbstractPBVSolver : public AbsSmtSolver
    int postwalk = 0;
    int type_check = 0;
    int translate = 0;
+   int bvsub = 0;
+   int simplify_num = 0;
   public:
     AbstractPBVSolver(SmtSolver s);
     AbstractPBVSolver(SmtSolver s, int debug);
@@ -253,20 +275,18 @@ class AbstractPBVSolver : public AbsSmtSolver
     void pop(uint64_t num = 1) override;
     uint64_t get_context_level() const override;
     void reset_assertions() override;
-    Term simplify(const Term& t) override;
 
     // pbvsolver function
     virtual Term make_term(const Sort & pbvsort, const Term & val) const;
-
     virtual Sort make_sort(const SortKind sk, const Term & t) const;
-
     Term make_pbv_symbol(const std::string & name, const Sort & s) const;
-
     Term make_pbv_param(const std::string & name, const Sort & s) const;
-
     virtual void assert_formula(const Term & t) = 0;
-
     Term translate_term( const Term & t);
+    Term simplify(const Term& t) override;
+    int check_simplify(const Term& t);
+    Term substitute(const Term term,
+                  const UnorderedTermMap & substitution_map);
 };
 
 
@@ -280,6 +300,8 @@ class PBVSolver : public AbstractPBVSolver
     PBVSolver(SmtSolver s, int debug, int walker, int postwalk);
     PBVSolver(SmtSolver s, int debug, int walker, int postwalk, int type_check);
     PBVSolver(SmtSolver s, int debug, int walker, int postwalk, int type_check, int translate);
+    PBVSolver(SmtSolver s, int debug, int walker, int postwalk, int type_check, int translate, int pbvsub);
+    PBVSolver(SmtSolver s, int debug, int walker, int postwalk, int type_check, int translate, int pbvsub, int simplify_num);
     ~PBVSolver(){};
 
     void assert_formula(const Term & t) override;

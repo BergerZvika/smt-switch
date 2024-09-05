@@ -21,7 +21,7 @@
 ;(or  (= (bvshl s (_ bv0 k)) t) (= (bvshl s (_ bv1 k)) t) (= (bvshl s (_ bv2 k)) t) (= (bvshl s (_ bv3 k)) t) (= (bvshl s (_ bvk k)) t))
 ;)
 
-(define-fun SC ((s Int) (t Int)) Bool (exists ((i (_ BitVec k))) (and (>= i  (_ bv0 k)) (<= i (_ bvk k)) (= (bvshl s i) t))))
+(define-fun SC ((s Int) (t Int)) Bool (exists ((i (_ BitVec k))) (and (bvuge i  (_ bv0 k)) (bvule i (_ bvk k)) (= (bvshl s i) t))))
 
 (assert
  (not

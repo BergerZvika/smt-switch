@@ -27,6 +27,5 @@
   (=> (exists ((x (_ BitVec k))) (distinct (udivtotal x s) t)) (SC s t))
   )
  )
-)
 (>= k 2))))
 (check-sat)

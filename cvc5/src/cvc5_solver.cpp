@@ -109,8 +109,7 @@ const std::unordered_map<PrimOp, ::cvc5::Kind> primop2kind(
 
 /* Cvc5Solver implementation */
 Term Cvc5Solver::simplify(const Term& t) {
-    std::cout << "Cvc5Solver term: " << t << std::endl;
-    cvc5::Term cvc_term = std::static_pointer_cast<Cvc5Term>(t)->term;
+    cvc5::Term cvc_term = std::static_pointer_cast<Cvc5Term>(t)->get_cvc5_term();
     return std::make_shared<Cvc5Term>(solver.simplify(cvc_term));
 }
 
