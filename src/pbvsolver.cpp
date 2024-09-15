@@ -272,13 +272,13 @@ Term AbstractPBVSolver::substitute(const Term term, const UnorderedTermMap & sub
 int AbstractPBVSolver::check_simplify(const Term& t) {
     Term res;
     int four = 4;
-    // cout << "t: " << t << endl;
     PBVConstantWalker* simp_walker = new PBVConstantWalker(wrapped_solver, four);
     PBVParametricWalker* ret_walker = new PBVParametricWalker(wrapped_solver);
     Term const_term = simp_walker->visit(const_cast<Term&>(t));
-    // cout << "const_term: " << const_term << endl;
     res = wrapped_solver->simplify(const_term);
-    // cout << "res: " << res << endl;
+    if (const_term == res) {
+        return 0;
+    }
     Term pret = ret_walker->visit(const_cast<Term&>(res));
     for (int i = 1; i <= 64; i++) {
         if (i == four) {
@@ -292,22 +292,22 @@ int AbstractPBVSolver::check_simplify(const Term& t) {
             return 0;
         }
     }
-    // cout << "pret: " << pret << endl;
     return 1;
 }
 
 Term AbstractPBVSolver::simplify(const Term& t) {
     Term res;
     int four = 4;
-    // cout << "t: " << t << endl;
     PBVConstantWalker* simp_walker = new PBVConstantWalker(wrapped_solver, four);
     PBVParametricWalker* ret_walker = new PBVParametricWalker(wrapped_solver);
     Term const_term = simp_walker->visit(const_cast<Term&>(t));
-    // cout << "const_term: " << const_term << endl;
     res = wrapped_solver->simplify(const_term);
-    // cout << "res: " << res << endl;
     Term pret = ret_walker->visit(const_cast<Term&>(res));
-    for (int i = 1; i <= this->simplify_num; i++) {
+    int width = this->simplify_num;
+    if (width < 0) {
+        width *= 1;
+    }
+    for (int i = 1; i <= width; i++) {
         if (i == four) {
             continue;
         }
@@ -319,18 +319,24 @@ Term AbstractPBVSolver::simplify(const Term& t) {
             return t;
         }
     }
-    // cout << "pret: " << pret << endl;
     return pret;
 }
 
 int postwalker;
 Term AbstractPBVSolver::translate_term(const Term & t) {
-        Term res, pre_res, bit_width, simp_term;
+        Term res, pre_res, bit_width, simp_term, simp_after;
         postwalker = 0;
-        if(this->simplify_num) {
+        if(this->simplify_num > 0) {
           simp_term = simplify(t);
+        } else if (simplify_num < -1){
+          simp_term = simplify(t);
+          if (!(simp_term->to_string()).compare("false") || !(simp_term->to_string()).compare("true")) {
+                simp_term = simp_term;
+          } else {
+            simp_term = t;
+          }
         } else {
-          simp_term = t; 
+          simp_term = t;
         }
         Term& t1 = const_cast<Term&>(simp_term);
         PrePBVWalker* prewalk = new PrePBVWalker(wrapped_solver, this->bvsub);
@@ -341,10 +347,26 @@ Term AbstractPBVSolver::translate_term(const Term & t) {
             pre_res = this->walker->visit(term);
             PostPBVWalker* postwalk = new PostPBVWalker(wrapped_solver, &term_rules);
             res = postwalk->visit(pre_res);
+            if(this->simplify_num > 0) {
+                simp_after = wrapped_solver->simplify(res);
+                res = simp_after;
+            } else if (simplify_num < -1) {
+                simp_after = wrapped_solver->simplify(res);
+                if (!(simp_after->to_string()).compare("false") || !(simp_after->to_string()).compare("true")) {
+                    res = simp_after;
+                }
+            }
         } else {
             if(this->simplify_num > 0) {
-                Term simp_after = wrapped_solver->simplify(term);
+                simp_after = wrapped_solver->simplify(term);
                 res = this->walker->visit(simp_after);
+            } else if (simplify_num < -1) {
+                simp_after = wrapped_solver->simplify(term);
+                if (!(simp_after->to_string()).compare("false") || !(simp_after->to_string()).compare("true")) {
+                    res = simp_after;
+                } else {
+                    res = this->walker->visit(term);
+                }
             } else {
                 res = this->walker->visit(term);
             }
@@ -368,7 +390,13 @@ Term AbstractPBVSolver::translate_term(const Term & t) {
         }
         if (this->debug) {
             cout << "original term: " << t << endl;
+             if(this->simplify_num != -1) {
+                cout << "simplify term: " << simp_term << endl;
+             }
             cout << "translate term: " << res << endl;
+             if(this->simplify_num != -1) {
+                cout << "simp_after: " << simp_after << endl;
+             }
         }
         if (this->translate) {
             std::ofstream outFile("temp.txt", std::ios::app);
@@ -1802,7 +1830,12 @@ WalkerStepResult PBVConstantWalker::visit_term(Term & term) {
         query_cache(t, c);
         cached_children.push_back(c);
       }
-      save_in_cache(term, solver_->make_term(op, cached_children));
+      if (op == Distinct) {
+        Term eq = solver_->make_term(Equal, cached_children);
+        save_in_cache(term, solver_->make_term(Not, eq));
+      } else {
+        save_in_cache(term, solver_->make_term(op, cached_children));
+      }
     }
     else
     {
@@ -1855,7 +1888,7 @@ WalkerStepResult PBVParametricWalker::visit_term(Term & term) {
     {
       int count = 0; 
       TermVec cached_children;
-      Term c, third;
+      Term c, third, four;
       for (auto t : term)
       {
         // TODO: see if we can pass the same term as both arguments
@@ -1866,8 +1899,11 @@ WalkerStepResult PBVParametricWalker::visit_term(Term & term) {
         if (count == 3) {
             third = c;
         }
+        if (count == 4) {
+            four = c;
+        }
       }
-      if(op == BVAnd && count == 3) {
+      if((op == BVAnd || op == BVOr || op == BVXor || op == BVAdd || op == BVSub) && count == 3) {
         Term tran = std::make_shared<PBVTerm>(op, cached_children);
         Term tran2 = std::make_shared<PBVTerm>(op, TermVec{tran, third});
         save_in_cache(term, tran2);

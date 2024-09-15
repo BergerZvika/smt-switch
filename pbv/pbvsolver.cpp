@@ -100,6 +100,7 @@ void parse_args(int argc, char** argv) {
         cout << "\t-t / --type-check\t\ttype checking before solving formula." << endl;
         cout << "\t-m / --maxint\t\tnon pure piand solver, upper bound of bit-width 67108864." << endl;
         cout << "\t-s / --simplify\t\tuse default simplify with bit-width 64." << endl;
+        cout << "\t-fs / --false-simplify\t\tuse simplify when simplify get false or true." << endl;
         cout << "\t--simplify={num}\t\tuse simplify with bit-width num." << endl;
         cout << "\t--no-sub\t\ttranslate x-y to x + (-y)." << endl;
         cout << "\t--produce-model\t\tuse produce model solver." << endl;
@@ -136,6 +137,12 @@ void parse_args(int argc, char** argv) {
         simplify = simplifyNumber(*i);
       } else if (!(*i).compare("-s") || !(*i).compare("--simplify")) { 
         simplify = 64;
+      } else if (!(*i).compare("-fs") || !(*i).compare("--false-simplify")) {
+        if (simplify > 0) {
+          simplify = simplify * -1;
+        } else {
+          simplify = -64;
+        }
       } else if (!(*i).compare("--produce-model")) {
         produce_model = 1;
       } else if (!(*i).compare("--cigar")) {
@@ -316,7 +323,7 @@ int main(int argc, char** argv){
   // type checker
   if (type_check) {
     // zero signifies the absence of debugging
-    type_checker = std::make_shared<PBVSolver>(Cvc5SolverFactory::create(false), 0, pbvsolver, postwalk, type_check, bvsub, simplify);
+    type_checker = std::make_shared<PBVSolver>(Cvc5SolverFactory::create(false), 0, pbvsolver, postwalk, type_check, translate_smt, bvsub, simplify);
     SmtLibReaderTester* type_reader = new SmtLibReaderTester(type_checker);
     type_reader->parse(test);
     auto type_results = type_reader->get_results();
@@ -325,7 +332,6 @@ int main(int argc, char** argv){
     }
     type_check = 0;
   }
-  
   // run solver on test.
   if (debug) {
     switch(pbvsolver) {
