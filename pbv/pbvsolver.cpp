@@ -81,7 +81,11 @@ int nl_ext_tplanes = 1;
 int cegqi = 0;
 int full_saturate = 0;
 int simplify = -1;
+int after_simplify = 0;
+int get_value = 0;
+int get_model = 0;
 string test = "";
+
 #define temp_file "temp.txt"
 
 void parse_args(int argc, char** argv) {
@@ -175,6 +179,10 @@ void parse_args(int argc, char** argv) {
         translate_smt = 1;
       } else if (!(*i).compare("-t") ||  !(*i).compare("--type-check")) {
         type_check = 1;
+      }  else if (!(*i).compare("--get-value")) {
+        get_value = 1;
+      }   else if (!(*i).compare("--get-model")) {
+        get_model = 1;
       } else if ((*i).length() >= 5 && (*i).compare((*i).length() - 5, 5, ".smt2") == 0) {
         test = (*i);
       } else {
@@ -218,7 +226,7 @@ void create_translate_smt() {
           end += line + "\n";
         } else if (bitvec_pos != std::string::npos) {
             // Found "_BitVec" in the line, replace it with "int"
-            line = line.substr(0, bitvec_pos - 4) + "Int)";
+            line = line.substr(0, bitvec_pos - 1) + "Int)";
             // line.replace(bitvec_pos, std::string("(_ BitVec").length(), "Int)");
             size_t declareFunPos = line.find("declare-fun");
             size_t declareConstPos = line.find("declare-const");
@@ -293,6 +301,12 @@ int main(int argc, char** argv){
   if (produce_model) {
       s->set_opt("produce-models", "true");
   }
+  if(get_value) {
+    // s->set_opt("nl-ext-tplanes", "true");
+  }
+  if(get_model) {
+    // s->set_opt("nl-ext-tplanes", "true");
+  }
   //piand mode options
   if (piand_mode == 1) {
     s->set_opt("piand-mode", "piand");
@@ -324,6 +338,11 @@ int main(int argc, char** argv){
   if (type_check) {
     // zero signifies the absence of debugging
     type_checker = std::make_shared<PBVSolver>(Cvc5SolverFactory::create(false), 0, pbvsolver, postwalk, type_check, translate_smt, bvsub, simplify);
+    type_checker->set_opt("produce-unsat-cores", "true");
+    type_checker->set_opt("minimal-unsat-cores", "true");
+    // type_checker->set_opt("check-unsat-cores", "true");
+    type_checker->set_opt("unsat-cores-mode", "sat-proof");
+
     SmtLibReaderTester* type_reader = new SmtLibReaderTester(type_checker);
     type_reader->parse(test);
     auto type_results = type_reader->get_results();
