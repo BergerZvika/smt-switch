@@ -4,6 +4,8 @@
 (declare-const t (_ BitVec k))
 (define-fun lemma_MUL_REFN11 ((x (_ BitVec k)) (s (_ BitVec k)) (t (_ BitVec k))) Bool (distinct s (bvadd (_ bv1 k) (bvshl s (bvsub t x)))))
 
-(assert (= t (bvmul x s)))(assert (not (lemma_MUL_REFN11 x s t)))
+
+(assert (= t (bvmul x s)))
+(assert (not (lemma_MUL_REFN11 x s t)))
 (assert (>= k 4))
 (check-sat)

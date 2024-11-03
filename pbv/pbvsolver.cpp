@@ -46,6 +46,28 @@ class SmtLibReaderTester : public SmtLibReader
   vector<Result> results_;
 };
 
+int help = 0;
+int debug = 0;
+int pbvsolver = 0;
+int postwalk = 1;
+int bvsub = 0;
+int produce_model = 0;
+int type_check = 0;
+int piand_sum_mode = 1;
+int piand_mode = 1;
+int difference_lemma = 0;
+int translate_smt = 0;
+int skolem_lemma = 0;
+int simplify = -1;
+int after_simplify = 0;
+int get_value = 0;
+int get_model = 0;
+std::list<string> values;
+std::list<string> cvc5_args;
+string test = "";
+
+#define temp_file "temp.txt"
+
 int simplifyNumber(const std::string& input) {
     // Check if the input starts with "--simplify="
     const std::string prefix = "--simplify=";
@@ -64,29 +86,16 @@ int simplifyNumber(const std::string& input) {
     return -1;
 }
 
-int help = 0;
-int debug = 0;
-int pbvsolver = 0;
-int postwalk = 1;
-int bvsub = 0;
-int produce_model = 0;
-int type_check = 0;
-int piand_sum_mode = 1;
-int piand_mode = 1;
-int difference_lemma = 0;
-int translate_smt = 0;
-int skolem_lemma = 0;
-int nl_cov = 0;
-int nl_ext_tplanes = 1;
-int cegqi = 0;
-int full_saturate = 0;
-int simplify = -1;
-int after_simplify = 0;
-int get_value = 0;
-int get_model = 0;
-string test = "";
-
-#define temp_file "temp.txt"
+int cvc5_args_parse(const std::string& input) {
+    // Check if the input starts with "--simplify="
+    const std::string prefix = "--cvc5:";
+    if (input.rfind(prefix, 0) == 0) {  // Check if input starts with prefix
+      std::string arg = input.substr(prefix.size());
+      cvc5_args.push_back(arg);
+      return 1;
+    }
+    return 0;
+}
 
 void parse_args(int argc, char** argv) {
   vector<string> args(argv + 1, argv + argc);
@@ -110,11 +119,7 @@ void parse_args(int argc, char** argv) {
         cout << "\t--produce-model\t\tuse produce model solver." << endl;
         cout << "\t--cigar\t\tput all piand lemmas in cigar loop." << endl;
         cout << "\t--no-cigar\t\tput all piand lemmas in initilize." << endl;
-        cout << "\t--cvc5-cegqi-all\t\tuse --cvc5-cegqi-all flag on cvc5." << endl;
-        cout << "\t--cvc5-cegqi-full\t\tuse --cvc5-cegqi-full flag on cvc5." << endl;
-        cout << "\t--cvc5-full-saturate\t\tuse --cvc5-full-saturate flag on cvc5." << endl;
-        cout << "\t--cvc5-nl-cov\t\tuse --cvc5-nl-cov flag on cvc5." << endl;
-        cout << "\t--cvc5-no-nl-ext-tplanes\t\tuse --cvc5-no-nl-ext-tplanes flag on cvc5." << endl;
+        cout << "\t--cvc5:{args}\t\tsend arguments to cvc5 solver. foe example --cvc5:nl-cov or --cvc5:mbqi. you can also send a list of arguments at once --cvc5:\"nl-cov mbqi\"." << endl;
         cout << "\t--no-sum-based-lemma\t\tremove sum based lemma." << endl;
         cout << "\t--sum-eq-lemma\t\tadd sum based lemma eq." << endl;
         cout << "\t--sum-ge-lemma\t\tadd sum based lemma ge." << endl;
@@ -147,22 +152,14 @@ void parse_args(int argc, char** argv) {
         } else {
           simplify = -64;
         }
+      } else if (cvc5_args_parse(*i)) {
+        continue;
       } else if (!(*i).compare("--produce-model")) {
         produce_model = 1;
       } else if (!(*i).compare("--cigar")) {
         piand_mode = 2;
       } else if (!(*i).compare("--no-cigar")) {
         piand_mode = 3;
-      } else if (!(*i).compare("--cvc5-cegqi-all")) {
-        cegqi = 1;
-      } else if (!(*i).compare("--cvc5-cegqi-full")) {
-        cegqi = 2;
-      } else if (!(*i).compare("--cvc5-full-saturate")) {
-        full_saturate = 1;
-      } else if (!(*i).compare("--cvc5-nl-cov")) {
-        nl_cov = 1;
-      } else if (!(*i).compare("--cvc5-no-nl-ext-tplanes")) {
-        nl_ext_tplanes = 0;
       } else if (!(*i).compare("--no-sum-based-lemma")) {
         piand_sum_mode = 0;
       } else if (!(*i).compare("--sum-ge-lemma")) {
@@ -213,6 +210,7 @@ void create_translate_smt() {
         throw std::runtime_error("Unable to open the file: " + test);
     }
     int assert = 0;
+    bool isfun = false;
     std::string line;
     while (std::getline(origion, line)) {
         size_t bitvec_pos = line.find("_ BitVec");
@@ -223,21 +221,34 @@ void create_translate_smt() {
         } else if (logic_pos != std::string::npos) {
            continue;
         } else if (assert) {
-          end += line + "\n";
+          size_t check_pos = line.find("(check");
+          size_t get_pos = line.find("(get-");
+          size_t set_pos = line.find("(set-");
+          size_t exit_pos = line.find("(exit)");
+          size_t push_pos = line.find("(push");
+          size_t pop_pos = line.find("(pop");
+          if (check_pos != std::string::npos || get_pos != std::string::npos || set_pos != std::string::npos || 
+              exit_pos != std::string::npos ||  push_pos != std::string::npos || pop_pos != std::string::npos) {
+            end += line + "\n";
+          }
         } else if (bitvec_pos != std::string::npos) {
-            // Found "_BitVec" in the line, replace it with "int"
-            line = line.substr(0, bitvec_pos - 1) + "Int)";
-            // line.replace(bitvec_pos, std::string("(_ BitVec").length(), "Int)");
             size_t declareFunPos = line.find("declare-fun");
             size_t declareConstPos = line.find("declare-const");
+            size_t defineFunPos = line.find("define-fun");
+            // Found "_BitVec" in the line, replace it with "int"
             if (declareFunPos != std::string::npos) {
+              line = line.substr(0, bitvec_pos - 4) + "Int)";
               line.replace(declareFunPos, std::string("declare-fun ").length(), "declare-const _pbv_");
             }
             else if (declareConstPos != std::string::npos) {
+              line = line.substr(0, bitvec_pos - 1) + "Int)";
               line.replace(declareConstPos, std::string("declare-const ").length(), "declare-const _pbv_");
-            }
+            } else if (defineFunPos != std::string::npos) {
+              isfun = true;
+              continue;
+            } 
         }
-        if (!assert) {
+        if (!assert && !isfun) {
           outFile << line << std::endl;
         }
     }
@@ -284,27 +295,40 @@ int main(int argc, char** argv){
   s = std::make_shared<PBVSolver>(cvc5, debug, pbvsolver, postwalk, 0, translate_smt, bvsub, simplify);
 
   // solver options
-  if(nl_ext_tplanes) { //implement by default
-    s->set_opt("nl-ext-tplanes", "true");
-  }
-  if(nl_cov) {
-    s->set_opt("nl-cov", "true");
-  }
-  if (full_saturate) { // quantifiers
-    s->set_opt("full-saturate-quant", "true"); // cvc5-full-saturate
-  }
-  if (cegqi == 1) {
-    s->set_opt("cegqi-all", "true");
-  } else if (cegqi == 2) {
-    s->set_opt("cegqi-full", "true");
-  }
-  if (produce_model) {
-      s->set_opt("produce-models", "true");
+  std::size_t equal_pos;
+  for (auto arg : cvc5_args) {
+    arg.erase(remove(arg.begin(), arg.end(), '\"' ), arg.end());
+    size_t pos = 0;
+    std::string token;
+    while ((pos = arg.find(' ')) != std::string::npos) {
+      token = arg.substr(0, pos);
+      equal_pos = token.find('=');
+      if (equal_pos != std::string::npos) { // Check if '=' is found
+          // Split the string into two parts: before and after '='
+          std::string key = token.substr(0,equal_pos);         // Before '='
+          std::string value = token.substr(equal_pos + 1);       // After '='
+          s->set_opt(key, value);
+      } else {
+          s->set_opt(token, "true");
+      }
+      arg.erase(0, pos + 1);
+    }
+    equal_pos = arg.find('=');
+    if (equal_pos != std::string::npos) { // Check if '=' is found
+      // Split the string into two parts: before and after '='
+        std::string key = arg.substr(0,equal_pos);         // Before '='
+        std::string value = arg.substr(equal_pos + 1);       // After '='
+        s->set_opt(key, value);
+    } else {
+        s->set_opt(arg, "true");
+    }
   }
   if(get_value) {
+    s->set_opt("produce-model", "true");
     // s->set_opt("nl-ext-tplanes", "true");
   }
   if(get_model) {
+    s->set_opt("produce-model", "true");
     // s->set_opt("nl-ext-tplanes", "true");
   }
   //piand mode options
@@ -338,10 +362,10 @@ int main(int argc, char** argv){
   if (type_check) {
     // zero signifies the absence of debugging
     type_checker = std::make_shared<PBVSolver>(Cvc5SolverFactory::create(false), 0, pbvsolver, postwalk, type_check, translate_smt, bvsub, simplify);
-    type_checker->set_opt("produce-unsat-cores", "true");
-    type_checker->set_opt("minimal-unsat-cores", "true");
+    // type_checker->set_opt("produce-unsat-cores", "true");
+    // type_checker->set_opt("minimal-unsat-cores", "true");
     // type_checker->set_opt("check-unsat-cores", "true");
-    type_checker->set_opt("unsat-cores-mode", "sat-proof");
+    // type_checker->set_opt("unsat-cores-mode", "sat-proof");
 
     SmtLibReaderTester* type_reader = new SmtLibReaderTester(type_checker);
     type_reader->parse(test);
@@ -379,6 +403,15 @@ int main(int argc, char** argv){
     }
     auto results = reader->get_results();
     cout << results[0] << endl;
+    // if(results[0].is_sat()) {
+      // Term& arr, out;
+      // s->get_array_values(arr, out);
+      // cout << "array:" << endl;
+      // cout << arr << endl;
+      // for(std::string val : values) {
+      //   cout << "val: " << s->get_value(val) << endl;
+      // }
+    // }
   } catch (std::exception& e) {
     if (std::string(e.what()).find("67108864") != std::string::npos) {
       cout << "unknown" << endl;

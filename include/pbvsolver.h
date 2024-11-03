@@ -167,7 +167,6 @@ class PBVParametricWalker : public IdentityWalker
     WalkerStepResult visit_term(Term & term) override;  
 };
 
-
 // PrePBVWalker
 class PrePBVWalker : public IdentityWalker
 {
@@ -179,6 +178,20 @@ class PrePBVWalker : public IdentityWalker
         this->bvsub = bvsub;
     }
     WalkerStepResult visit_term(Term & term) override; 
+    Term get_bit_width_term(Term t);
+};
+
+// RewritePBVWalker
+class RewritePBVWalker : public IdentityWalker
+{
+  protected:
+      int bvsub = 0;
+  public:
+    RewritePBVWalker(const SmtSolver & solver) : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {}
+    RewritePBVWalker(const SmtSolver & solver, int bvsub) :  smt::IdentityWalker(solver, true, new UnorderedTermMap()) {
+        this->bvsub = bvsub;
+    }
+    WalkerStepResult visit_term(Term & term) override;
     Term get_bit_width_term(Term t);
 };
 
@@ -256,6 +269,7 @@ class AbstractPBVSolver : public AbsSmtSolver
                     const Term & t1,
                     const Term & t2) const override;
     Term make_term(const Op op, const TermVec & terms) const override;
+    Term get_value(const std::string & name) const ;
     Term get_value(const Term & t) const override;
     UnorderedTermMap get_array_values(const Term & arr,
                                         Term & out_const_base) const override;

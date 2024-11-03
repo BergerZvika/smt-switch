@@ -1,0 +1,8 @@
+(set-logic ALL)
+(declare-const k Int)
+(declare-const m Int)
+(declare-fun %Y () (_ BitVec k))
+(declare-fun %X () (_ BitVec k))
+(assert (> m k))
+(assert (let ((_let_0 (pzero_extend (- m k) %Y))) (let ((_let_1 (pzero_extend (- m k) %X))) (let ((_let_2 (bvudiv _let_1 _let_0))) (and (= (bvmul _let_2 _let_0) _let_1) (not (= _let_0 (_ bv1 m))) (not (= _let_2 (pzero_extend (- m k) (bvudiv %X %Y)))))))))
+(check-sat)

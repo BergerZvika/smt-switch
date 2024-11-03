@@ -4,6 +4,8 @@
 (declare-const t (_ BitVec k))
 (define-fun lemma_UDIV_REF10 ((x (_ BitVec k)) (s (_ BitVec k)) (t (_ BitVec k))) Bool (distinct (bvor s t) (bvand x (bvnot (_ bv1 k)))))
 
-(assert (= t (bvudiv x s)))(assert (not (lemma_UDIV_REF10 x s t)))
+
+(assert (= t (bvudiv x s)))
+(assert (not (lemma_UDIV_REF10 x s t)))
 (assert (>= k 4))
 (check-sat)
