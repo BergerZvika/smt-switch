@@ -57,7 +57,7 @@ const std::unordered_map<PrimOp, std::function<bool(const SortVec & sorts)>>
                           { IntDiv, int_sorts },
                           { PIAnd, int_sorts },
                           { PExtract, bv_sorts },
-                          { PZero_Extend, bv_sorts },
+                          { PZero_Extend, int_pbv_sorts },
                           { PSign_Extend, int_pbv_sorts },
                           { To_Real, bv_sorts },
                           { To_Int, real_sorts },

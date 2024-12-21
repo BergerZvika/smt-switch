@@ -22,11 +22,10 @@
 )
 
 (assert (not
- (not
   (and
   (=> (SC s t) (exists ((x (_ BitVec k))) (= (bvand x s) t)))
   (=> (exists ((x (_ BitVec k))) (= (bvand x s) t)) (SC s t))
   )
  )
-))
+)
 (check-sat)

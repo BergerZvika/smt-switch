@@ -62,6 +62,7 @@ int simplify = -1;
 int after_simplify = 0;
 int get_value = 0;
 int get_model = 0;
+int rewrite = 0;
 std::list<string> values;
 std::list<string> cvc5_args;
 string test = "";
@@ -112,6 +113,7 @@ void parse_args(int argc, char** argv) {
         cout << "\t-w / --no-postwalk\t\tdisable postwalk to optimize your benchmark." << endl;
         cout << "\t-t / --type-check\t\ttype checking before solving formula." << endl;
         cout << "\t-m / --maxint\t\tnon pure piand solver, upper bound of bit-width 67108864." << endl;
+        cout << "\t-r / --rewrite\t\tuse rewrite rules on pbv formula." << endl;
         cout << "\t-s / --simplify\t\tuse default simplify with bit-width 64." << endl;
         cout << "\t-fs / --false-simplify\t\tuse simplify when simplify get false or true." << endl;
         cout << "\t--simplify={num}\t\tuse simplify with bit-width num." << endl;
@@ -176,7 +178,9 @@ void parse_args(int argc, char** argv) {
         translate_smt = 1;
       } else if (!(*i).compare("-t") ||  !(*i).compare("--type-check")) {
         type_check = 1;
-      }  else if (!(*i).compare("--get-value")) {
+      } else if (!(*i).compare("-r") ||  !(*i).compare("--rewrite")) {
+        rewrite = 1;
+      } else if (!(*i).compare("--get-value")) {
         get_value = 1;
       }   else if (!(*i).compare("--get-model")) {
         get_model = 1;
@@ -292,7 +296,7 @@ int main(int argc, char** argv){
   // create pbvsolver
   SmtSolver s, type_checker;
   SmtSolver cvc5 = Cvc5SolverFactory::create(false);
-  s = std::make_shared<PBVSolver>(cvc5, debug, pbvsolver, postwalk, 0, translate_smt, bvsub, simplify);
+  s = std::make_shared<PBVSolver>(cvc5, debug, pbvsolver, postwalk, 0, translate_smt, bvsub, simplify, rewrite);
 
   // solver options
   std::size_t equal_pos;
@@ -325,11 +329,9 @@ int main(int argc, char** argv){
   }
   if(get_value) {
     s->set_opt("produce-model", "true");
-    // s->set_opt("nl-ext-tplanes", "true");
   }
   if(get_model) {
     s->set_opt("produce-model", "true");
-    // s->set_opt("nl-ext-tplanes", "true");
   }
   //piand mode options
   if (piand_mode == 1) {
@@ -361,11 +363,7 @@ int main(int argc, char** argv){
   // type checker
   if (type_check) {
     // zero signifies the absence of debugging
-    type_checker = std::make_shared<PBVSolver>(Cvc5SolverFactory::create(false), 0, pbvsolver, postwalk, type_check, translate_smt, bvsub, simplify);
-    // type_checker->set_opt("produce-unsat-cores", "true");
-    // type_checker->set_opt("minimal-unsat-cores", "true");
-    // type_checker->set_opt("check-unsat-cores", "true");
-    // type_checker->set_opt("unsat-cores-mode", "sat-proof");
+    type_checker = std::make_shared<PBVSolver>(Cvc5SolverFactory::create(false), 0, pbvsolver, postwalk, type_check, translate_smt, bvsub, simplify, rewrite);
 
     SmtLibReaderTester* type_reader = new SmtLibReaderTester(type_checker);
     type_reader->parse(test);
@@ -392,7 +390,7 @@ int main(int argc, char** argv){
     }
   }
 
-  try {
+  // try {
     SmtLibReaderTester* reader = new SmtLibReaderTester(s);
     reader->parse(test);
     if (translate_smt) {
@@ -403,23 +401,14 @@ int main(int argc, char** argv){
     }
     auto results = reader->get_results();
     cout << results[0] << endl;
-    // if(results[0].is_sat()) {
-      // Term& arr, out;
-      // s->get_array_values(arr, out);
-      // cout << "array:" << endl;
-      // cout << arr << endl;
-      // for(std::string val : values) {
-      //   cout << "val: " << s->get_value(val) << endl;
-      // }
-    // }
-  } catch (std::exception& e) {
-    if (std::string(e.what()).find("67108864") != std::string::npos) {
-      cout << "unknown" << endl;
-    }
-     else {
-          cout << e.what() << endl;
-     }
-  }
+  // } catch (std::exception& e) {
+  //   if (std::string(e.what()).find("67108864") != std::string::npos) {
+  //     cout << "unknown" << endl;
+  //   }
+  //    else {
+  //         cout << e.what() << endl;
+  //    }
+  // }
 
   return 0;
 }

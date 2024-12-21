@@ -143,8 +143,8 @@ struct Op
   bool is_null() const;
   PrimOp prim_op;
   uint64_t num_idx;
-  uint64_t idx0 = 0;
-  uint64_t idx1 = 0;
+  uint64_t idx0 = -2;
+  uint64_t idx1 = -2;
 };
 using UnorderedOpSet = std::unordered_set<Op>;
 

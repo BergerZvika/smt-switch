@@ -222,6 +222,7 @@ class AbstractPBVSolver : public AbsSmtSolver
    int translate = 0;
    int bvsub = 0;
    int simplify_num = 0;
+   int rewrite = 0;
   public:
     AbstractPBVSolver(SmtSolver s);
     AbstractPBVSolver(SmtSolver s, int debug);
@@ -316,6 +317,7 @@ class PBVSolver : public AbstractPBVSolver
     PBVSolver(SmtSolver s, int debug, int walker, int postwalk, int type_check, int translate);
     PBVSolver(SmtSolver s, int debug, int walker, int postwalk, int type_check, int translate, int pbvsub);
     PBVSolver(SmtSolver s, int debug, int walker, int postwalk, int type_check, int translate, int pbvsub, int simplify_num);
+    PBVSolver(SmtSolver s, int debug, int walker, int postwalk, int type_check, int translate, int pbvsub, int simplify_num, int rewrite);
     ~PBVSolver(){};
 
     void assert_formula(const Term & t) override;
