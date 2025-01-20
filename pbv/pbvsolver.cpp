@@ -62,7 +62,7 @@ int simplify = -1;
 int after_simplify = 0;
 int get_value = 0;
 int get_model = 0;
-int rewrite = 0;
+int rewrite = 1;
 std::list<string> values;
 std::list<string> cvc5_args;
 string test = "";
@@ -113,7 +113,7 @@ void parse_args(int argc, char** argv) {
         cout << "\t-w / --no-postwalk\t\tdisable postwalk to optimize your benchmark." << endl;
         cout << "\t-t / --type-check\t\ttype checking before solving formula." << endl;
         cout << "\t-m / --maxint\t\tnon pure piand solver, upper bound of bit-width 67108864." << endl;
-        cout << "\t-r / --rewrite\t\tuse rewrite rules on pbv formula." << endl;
+        cout << "\t-r / --rewrite\t\tdon't use rewrite rules on pbv formula." << endl;
         cout << "\t-s / --simplify\t\tuse default simplify with bit-width 64." << endl;
         cout << "\t-fs / --false-simplify\t\tuse simplify when simplify get false or true." << endl;
         cout << "\t--simplify={num}\t\tuse simplify with bit-width num." << endl;
@@ -179,7 +179,7 @@ void parse_args(int argc, char** argv) {
       } else if (!(*i).compare("-t") ||  !(*i).compare("--type-check")) {
         type_check = 1;
       } else if (!(*i).compare("-r") ||  !(*i).compare("--rewrite")) {
-        rewrite = 1;
+        rewrite = 0;
       } else if (!(*i).compare("--get-value")) {
         get_value = 1;
       }   else if (!(*i).compare("--get-model")) {
@@ -343,15 +343,15 @@ int main(int argc, char** argv){
   }
   // sum lemma options
   if (piand_sum_mode == 1) {
-    s->set_opt("piand-sum-mode", "sum");
+    s->set_opt("piand-lemmas-mode", "sum");
   } else if (piand_sum_mode == 2) {
-    s->set_opt("piand-sum-mode", "bitwise");
+    s->set_opt("piand-lemmas-mode", "bitwise");
   } else if (piand_sum_mode == 3) {
-    s->set_opt("piand-sum-mode", "sum_ge");
+    s->set_opt("piand-lemmas-mode", "sum_ge");
   } else if (piand_sum_mode == 4) {
-    s->set_opt("piand-sum-mode", "sum_eq");
+    s->set_opt("piand-lemmas-mode", "sum_eq");
   } else if (piand_sum_mode == 0) {
-    s->set_opt("piand-sum-mode", "difference");
+    s->set_opt("piand-lemmas-mode", "difference");
   }
   if(difference_lemma){
     s->set_opt("difference-lemmas", "true");

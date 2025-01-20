@@ -1602,16 +1602,22 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
             operator_rules->push_back(positive);
         }
         if (!query_cache(term, k) && term->to_string() != bit_width->to_string()){
-            if (term->is_param()) {
-                k = solver_->make_param("_pbv_" + term->to_string() ,intsort);
-            } else if(term->is_symbol()) {
-                k = solver_->make_symbol("_pbv_" + term->to_string() ,intsort);
+            try {
+                solver_->make_symbol(term->to_string() ,intsort);
+                    if (term->is_param()) {
+                    k = solver_->make_param("_pbv_" + term->to_string() ,intsort);
+                } else if(term->is_symbol()) {
+                    k = solver_->make_symbol("_pbv_" + term->to_string() ,intsort);
+                }
+            } catch (...) {
+                k = solver_->get_symbol(term->to_string());
             }
+            
         } else {
             k = bit_width;
         }
         res = k;
-        // 0 <= k <= pow2(k)
+        // 0 <= k < pow2(k)
         if (term->is_symbol()) {
             Term ge = solver_->make_term(Ge, k, zero);
             term_rules->push_back(ge);

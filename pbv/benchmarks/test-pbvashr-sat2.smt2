@@ -1,8 +1,0 @@
-(set-logic ALL)
-(set-option :produce-models true)
-(set-option :incremental true)
-(declare-const k Int)
-(declare-const x (_ BitVec k))
-(assert (= (bvashr x (_ bv0 k)) x))
-(check-sat)
-(exit)
