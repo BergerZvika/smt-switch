@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <stdexcept>
 #include <map>
 
 using namespace std;
@@ -157,6 +158,11 @@ namespace smt {
         if (isPbv || op == PSign_Extend || op == PZero_Extend || op == PExtract) {
             Term pbvt = std::make_shared<PBVTerm>(op, terms);
             return pbvt;
+        }
+        if (op == Int_To_PBV) {
+            Sort pbv_sort = std::make_shared<PBVSort>(BV, terms[0]);
+            Term pbvterm = std::make_shared<PBVTerm>(pbv_sort, TermVec{terms[1]});
+            return pbvterm;
         }
         return wrapped_solver->make_term(op, terms);
     }
@@ -328,20 +334,19 @@ Term AbstractPBVSolver::simplify(const Term& t) {
     return pret;
 }
 
+void AbstractPBVSolver::initialK() {
+    try {
+        this->walker->k = this->walker->solver_->get_symbol("k");
+      } catch (...) {
+        Sort intsort = this->walker->solver_->make_sort(INT);
+        this->walker->k = this->walker->solver_->make_symbol("k", intsort);
+    }    
+}
+
 Term AbstractPBVSolver::translate_term(const Term & t) {
-        Term res, pre_res, bit_width, simp_term, simp_after;
-        if(this->simplify_num > 0) {
-          simp_term = simplify(t);
-        } else if (simplify_num < -1){
-          simp_term = simplify(t);
-          if (!(simp_term->to_string()).compare("false") || !(simp_term->to_string()).compare("true")) {
-                simp_term = simp_term;
-          } else {
-            simp_term = t;
-          }
-        } else {
-          simp_term = t;
-        }
+    initialK();
+    Term res, pre_res, bit_width, simp_term, simp_after;
+        simp_term = t;
         Term term;
         PrePBVWalker* prewalk = new PrePBVWalker(wrapped_solver, this->bvsub);
         if(this->rewrite == 1) {
@@ -362,6 +367,19 @@ Term AbstractPBVSolver::translate_term(const Term & t) {
         } else {
             res = this->walker->visit(term);
         }
+
+        // add exioms for cade19
+        if(!this->redundent_axioms) {
+            this->walker->bvand_handle();
+            if(!this->eliminate_or_xor ) {
+                this->walker->bvor_handle();
+                this->walker->bvxor_handle();
+            }
+            if(!this->lazy_pow) {
+                this->walker->pow2_handle();
+            }
+        }
+
         
         // res /\ set rules
         for (Term r : term_rules) {
@@ -376,14 +394,16 @@ Term AbstractPBVSolver::translate_term(const Term & t) {
             }
             bit_width = wrapped_solver->make_term(And, bit_width, r);
         }
+
         if (flag) {
             res = wrapped_solver->make_term(And, res, bit_width);
         }
+
         if (this->debug) {
             cout << "original term: " << t << endl;
-             if(this->simplify_num != -1) {
-                cout << "simplify term: " << simp_term << endl;
-             }
+            //  if(this->simplify_num != -1) {
+            //     cout << "simplify term: " << simp_term << endl;
+            //  }
             cout << "translate term: " << res << endl;
         }
         if (this->translate) {
@@ -406,151 +426,68 @@ Term AbstractPBVSolver::translate_term(const Term & t) {
     }
 
 
-    // pbvsolver
-    PBVSolver::PBVSolver(SmtSolver s) : AbstractPBVSolver(s) {
-        this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-    };
     PBVSolver::PBVSolver(SmtSolver s, int debug) : AbstractPBVSolver(s, debug) {
-        this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+        map<string,int> args;
+        args["eliminate_or_xor"] = 1;
+        args["lazy_pow"] = 1;
+        args["bvlshr"] = 0;
+        args["multiple_bitwidth"] = 1;
+        this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, args);
     };
 
-    PBVSolver::PBVSolver(SmtSolver s, int debug, int choose_walker): AbstractPBVSolver(s, debug) {
-        if (choose_walker == 0) {
-            this->walker = new EfficientPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } else if (choose_walker == 1) {
-            this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2); // combine
-        } else if (choose_walker == 2) {
-            this->walker = new FullPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } else if (choose_walker == 3) {
-            this->walker = new PartialPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } else if (choose_walker == 4) {
-            this->walker = new NonPurePBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } 
-    }
 
         PBVSolver::PBVSolver(SmtSolver s, int debug, int choose_walker, int postwalk): AbstractPBVSolver(s, debug) {
+        map<string,int> args;
+        args["eliminate_or_xor"] = 1;
+        args["lazy_pow"] = 1;
+        args["bvlshr"] = 0;
+        args["multiple_bitwidth"] = 1;
         if (choose_walker == 0) {
-            this->walker = new EfficientPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+            this->walker = new EfficientPBVWalker(wrapped_solver, &term_rules, &operator_rules, args);
         } 
         else if (choose_walker == 1) {
-            this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+            this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, args);
         } else if (choose_walker == 2) {
-            this->walker = new FullPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+            this->walker = new FullPBVWalker(wrapped_solver, &term_rules, &operator_rules, args);
         } else if (choose_walker == 3) {
-            this->walker = new PartialPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+            this->walker = new PartialPBVWalker(wrapped_solver, &term_rules, &operator_rules, args);
         } else if (choose_walker == 4) {
-            this->walker = new NonPurePBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+            this->walker = new NonPurePBVWalker(wrapped_solver, &term_rules, &operator_rules, args);
+        } else if (choose_walker == 5) {
+            this->walker = new CADE19PBVWalker(wrapped_solver, &term_rules, &operator_rules, args);
+            this->redundent_axioms = 0;
         } 
         this->postwalk = postwalk;
     }
 
-    PBVSolver::PBVSolver(SmtSolver s, int debug, int choose_walker, int postwalk, int type_check): AbstractPBVSolver(s, debug) {
-        if (type_check) {
-            this->walker = new TypeCheckerWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } else if (choose_walker == 0) {
-            this->walker = new EfficientPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
+
+    PBVSolver::PBVSolver(SmtSolver s, map<string, int> args) : AbstractPBVSolver(s, args["debug"]) {
+        if (args["type_check"]) {
+            this->walker = new TypeCheckerWalker(wrapped_solver, &term_rules, &operator_rules, args);
+        } else if (args["pbvsolver"] == 0) {
+            this->walker = new EfficientPBVWalker(wrapped_solver, &term_rules, &operator_rules, args);
         } 
-        else if (choose_walker == 1) {
-            this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } else if (choose_walker == 2) {
-            this->walker = new FullPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } else if (choose_walker == 3) {
-            this->walker = new PartialPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } else if (choose_walker == 4) {
-            this->walker = new NonPurePBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } 
-        this->postwalk = postwalk;
-        this->type_check = type_check;
+        else if (args["pbvsolver"] == 1) {
+            this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, args);
+        } else if (args["pbvsolver"] == 2) {
+            this->walker = new FullPBVWalker(wrapped_solver, &term_rules, &operator_rules, args);
+        } else if (args["pbvsolver"] == 3) {
+            this->walker = new PartialPBVWalker(wrapped_solver, &term_rules, &operator_rules, args);
+        } else if (args["pbvsolver"] == 4) {
+            this->walker = new NonPurePBVWalker(wrapped_solver, &term_rules, &operator_rules, args);
+        } else if (args["pbvsolver"] == 5) {
+            this->walker = new CADE19PBVWalker(wrapped_solver, &term_rules, &operator_rules, args);
+        }
+        this->redundent_axioms = args["redundent_axioms"];
+        this->postwalk = args["postwalk"];
+        this->type_check = args["type_check"];
+        this->translate = args["translate_smt"];
+        this->bvsub = args["bvsub"];
+        this->simplify_num = args["simplify"];
+        this->rewrite = args["rewrite"];
+        this->eliminate_or_xor = args["eliminate_or_xor"];
+        this->lazy_pow = args["lazy_pow"];
     }
-
-    PBVSolver::PBVSolver(SmtSolver s, int debug, int choose_walker, int postwalk, int type_check, int translate): AbstractPBVSolver(s, debug) {
-        if (type_check) {
-            this->walker = new TypeCheckerWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } else if (choose_walker == 0) {
-            this->walker = new EfficientPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } 
-        else if (choose_walker == 1) {
-            this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } else if (choose_walker == 2) {
-            this->walker = new FullPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } else if (choose_walker == 3) {
-            this->walker = new PartialPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } else if (choose_walker == 4) {
-            this->walker = new NonPurePBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } 
-        this->postwalk = postwalk;
-        this->type_check = type_check;
-        this->translate = translate;
-    }
-
-    PBVSolver::PBVSolver(SmtSolver s, int debug, int choose_walker, int postwalk, int type_check, int translate, int pbvsub): AbstractPBVSolver(s, debug) {
-        if (type_check) {
-            this->walker = new TypeCheckerWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } else if (choose_walker == 0) {
-            this->walker = new EfficientPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } 
-        else if (choose_walker == 1) {
-            this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } else if (choose_walker == 2) {
-            this->walker = new FullPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } else if (choose_walker == 3) {
-            this->walker = new PartialPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } else if (choose_walker == 4) {
-            this->walker = new NonPurePBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } 
-        this->postwalk = postwalk;
-        this->type_check = type_check;
-        this->translate = translate;
-        this->bvsub = pbvsub;
-    }
-
-    PBVSolver::PBVSolver(SmtSolver s, int debug, int choose_walker, int postwalk, int type_check, int translate, int pbvsub, int simplify_num): AbstractPBVSolver(s, debug) {
-        if (type_check) {
-            this->walker = new TypeCheckerWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } else if (choose_walker == 0) {
-            this->walker = new EfficientPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } 
-        else if (choose_walker == 1) {
-            this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } else if (choose_walker == 2) {
-            this->walker = new FullPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } else if (choose_walker == 3) {
-            this->walker = new PartialPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } else if (choose_walker == 4) {
-            this->walker = new NonPurePBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } 
-        this->postwalk = postwalk;
-        this->type_check = type_check;
-        this->translate = translate;
-        this->bvsub = pbvsub;
-        this->simplify_num = simplify_num;
-    }
-
-    PBVSolver::PBVSolver(SmtSolver s, int debug, int choose_walker, int postwalk, int type_check, int translate, int pbvsub, int simplify_num, int rewrite): AbstractPBVSolver(s, debug) {
-                if (type_check) {
-            this->walker = new TypeCheckerWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } else if (choose_walker == 0) {
-            this->walker = new EfficientPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } 
-        else if (choose_walker == 1) {
-            this->walker = new PBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } else if (choose_walker == 2) {
-            this->walker = new FullPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } else if (choose_walker == 3) {
-            this->walker = new PartialPBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } else if (choose_walker == 4) {
-            this->walker = new NonPurePBVWalker(wrapped_solver, &term_rules, &operator_rules, power2);
-        } 
-        this->postwalk = postwalk;
-        this->type_check = type_check;
-        this->translate = translate;
-        this->bvsub = pbvsub;
-        this->simplify_num = simplify_num;
-        this->rewrite = rewrite;
-    }
-
-    
-
 
     int check_simplify_flag = 1;
     void PBVSolver::assert_formula(const Term & t) {
@@ -571,7 +508,7 @@ Term AbstractPBVSolver::translate_term(const Term & t) {
 Term AbstractPBVWalker::uts(Term t) {
     Sort intsort = solver_->make_sort(INT);
     Term bit_width_term = get_bit_width_term(t);
-    Term power2_k = solver_->make_term(Pow, this->two, bit_width_term);
+    Term power2_k = createPow2Term(bit_width_term);
     // translate t to _pbv_t
     Term k;
     if (!query_cache(t, k)){
@@ -587,7 +524,7 @@ Term AbstractPBVWalker::uts(Term t) {
     // uts translate
     Term one =  solver_->make_term(1, intsort);
     Term k_minus_one = solver_->make_term(Minus, bit_width_term, one);
-    Term power2_k_minus_one = solver_->make_term(Pow, this->two, k_minus_one);
+    Term power2_k_minus_one = createPow2Term(k_minus_one);
     Term x_mod_power_2 = solver_->make_term(Mod, k, power2_k_minus_one);
     Term two_mul_x_mod_power_2 =  solver_->make_term(Mult, this->two, x_mod_power_2);
     return solver_->make_term(Minus, two_mul_x_mod_power_2, k);
@@ -598,18 +535,27 @@ Term AbstractPBVWalker::bvlshr(Term t_left, Term t_right) {
     Term translate_x, translate_y;
     query_cache(t_left, translate_x);
     query_cache(t_right, translate_y);
-    Term power2_y = solver_->make_term(Pow, this->two, translate_y);
+    Term power2_y = createPow2Term(translate_y);
     Term int_term = solver_->make_term(IntDiv, translate_x , power2_y);
-    Term power2_k = solver_->make_term(Pow, this->two, bit_width);
-    // if (postwalker) {
-    //     return int_term;
-    // }
-    return solver_->make_term(Mod, int_term, power2_k);
+    Term power2_k = createPow2Term(bit_width);
+    if (this->bvlshr_trans) {
+        return int_term;
+    }
+    Sort intsort = solver_->make_sort(INT);
+    Term zero =  solver_->make_term(0, intsort);
+    Term one =  solver_->make_term(1, intsort);
+    Term condition = solver_->make_term(Equal, power2_y, zero);
+    Term then_branch = solver_->make_term(Minus, power2_k, one);
+    Term ite = solver_->make_term(Ite, condition, then_branch, int_term);
+    Term condition_mod = solver_->make_term(Equal, power2_k, zero);
+    Term else_branch_mod = solver_->make_term(Mod, ite, power2_k);
+    Term mod_ite = solver_->make_term(Ite, condition_mod, ite, else_branch_mod);    
+    return mod_ite;
 }
 
 Term AbstractPBVWalker::bvnot(Term t) {
     Term bit_width = get_bit_width_term(t);
-    Term power2_k = solver_->make_term(Pow, this->two, bit_width);
+    Term power2_k = createPow2Term(bit_width);
     Term translate_x;
     query_cache(t, translate_x);
     Sort intsort = solver_->make_sort(INT);
@@ -619,19 +565,19 @@ Term AbstractPBVWalker::bvnot(Term t) {
 }
 
 Term AbstractPBVWalker::extract(Term x, Term i, Term j) {
-    Term power2_j = solver_->make_term(Pow, this->two, j);
+    Term power2_j = createPow2Term(j);
     Term x_div_power2_j = solver_->make_term(IntDiv, x, power2_j); // x / 2^j
     Sort intsort = solver_->make_sort(INT);
     Term one =  solver_->make_term(1, intsort);
     Term i_plus_one = solver_->make_term(Plus, i, one);
     Term i_plus_one_minus_j = solver_->make_term(Minus, i_plus_one, j);
-    Term power2_i_plus_one_minus_j = solver_->make_term(Pow, this->two, i_plus_one_minus_j);
+    Term power2_i_plus_one_minus_j = createPow2Term(i_plus_one_minus_j);
     Term zero =  solver_->make_term(0, intsort);
     if (j == zero) {
         if (i == zero) {
             return solver_->make_term(Mod, x, this->two); // j = 0 && i = 0 -> x mod 2
         }
-        Term power2_i_plus_one = solver_->make_term(Pow, this->two, i_plus_one);
+        Term power2_i_plus_one = createPow2Term(i_plus_one);
         return solver_->make_term(Mod, x, power2_i_plus_one); // j = 0 -> x mod 2^(i+1)
     }
     return solver_->make_term(Mod, x_div_power2_j, power2_i_plus_one_minus_j); // (x / 2^j) mod 2^(i-j+1)
@@ -978,7 +924,7 @@ Term AbstractPBVWalker::bvand_fullaxiom() {
     Term condition = solver_->make_term(Gt,  this->k, one);
     // then
     Term k_minus_one = solver_->make_term(Minus,  this->k, one);
-    Term pow2_k_minus_one = solver_->make_term(Pow, this->two, k_minus_one);
+    Term pow2_k_minus_one = createPow2Term(k_minus_one);
     Term x_mod_k_minus_one = solver_->make_term(Mod, this->x, pow2_k_minus_one);
     Term y_mod_k_minus_one = solver_->make_term(Mod, this->y, pow2_k_minus_one);
     Term then_branch = solver_->make_term(Apply, {this->bvand, k_minus_one, x_mod_k_minus_one, y_mod_k_minus_one});
@@ -989,14 +935,16 @@ Term AbstractPBVWalker::bvand_fullaxiom() {
     Term x_div_k_mod_2 = solver_->make_term(Mod, x_div_k, this->two);
     Term y_div_k = solver_->make_term(IntDiv, this->y, pow2_k_minus_one);
     Term y_div_k_mod_2 = solver_->make_term(Mod, y_div_k, this->two);
-    Term condition2 = solver_->make_term(Gt, y_div_k_mod_2, x_div_k_mod_2);
-    Term min = solver_->make_term(Ite, condition2, x_div_k_mod_2, y_div_k_mod_2);
+    Term condition21 = solver_->make_term(Equal, y_div_k_mod_2, one);
+    Term condition22 = solver_->make_term(Equal, x_div_k_mod_2, one);
+    Term condition2_and = solver_->make_term(And, condition21, condition22);
+    Term min = solver_->make_term(Ite, condition2_and, one, zero);
     Term ite_plus = solver_->make_term(Mult, min, pow2_k_minus_one);
     Term plus = solver_->make_term(Plus, ite, ite_plus);
     Term ufbvand = solver_->make_term(Apply, {this->bvand,  this->k,  this->x,  this->y});
     Term equal = solver_->make_term(Equal, ufbvand, plus);
     // forall
-    Term pow2k = solver_->make_term(Pow, this->two, this->k);
+    Term pow2k = createPow2Term(this->k);
     Term k_possitive = solver_->make_term(Gt, this->k, zero);
     Term x_possitive = solver_->make_term(Ge, this->x, zero);
     Term x_bound = solver_->make_term(Lt, this->x, pow2k);
@@ -1006,7 +954,8 @@ Term AbstractPBVWalker::bvand_fullaxiom() {
     Term imp = solver_->make_term(Implies, condition3, equal);
     Term forally = solver_->make_term(Forall, {this->y}, imp);
     Term forallx = solver_->make_term(Forall, {this->x}, forally);
-    return solver_->make_term(Forall, {this->k}, forallx);
+    return forallx;
+    // return solver_->make_term(Forall, {this->k}, forallx);
 }
 
 Term AbstractPBVWalker::bvand_basecase() {
@@ -1033,7 +982,7 @@ Term AbstractPBVWalker::bvand_max() {
     Sort intsort = solver_->make_sort(INT);
     Term one =  solver_->make_term(1, intsort);
     Term zero =  solver_->make_term(0, intsort);
-    Term pow2k = solver_->make_term(Pow, this->two, this->k);
+    Term pow2k = createPow2Term(this->k);
     Term max_k = solver_->make_term(Minus, pow2k, one);
     Term ufbvand = solver_->make_term(Apply, {this->bvand,  this->k,  this->x,  max_k});
     Term max = solver_->make_term(Equal, ufbvand, this->x);
@@ -1042,8 +991,9 @@ Term AbstractPBVWalker::bvand_max() {
     Term x_bound = solver_->make_term(Lt, this->x, pow2k);
     Term condition = solver_->make_term(And, k_possitive, x_possitive, x_bound);
     Term imp = solver_->make_term(Implies, condition, max);
-    Term forallk = solver_->make_term(Forall, {this->x}, imp);
-    return solver_->make_term(Forall, {this->k}, forallk);
+    Term forallx = solver_->make_term(Forall, {this->x}, imp);
+    // return solver_->make_term(Forall, {this->k}, forallk);
+    return  forallx;
 }
 
 Term AbstractPBVWalker::bvand_min() {
@@ -1052,20 +1002,21 @@ Term AbstractPBVWalker::bvand_min() {
     Term ufbvand = solver_->make_term(Apply, {this->bvand,  this->k,  this->x,  zero});
     Term min = solver_->make_term(Equal, ufbvand, zero);
 
-    Term pow2k = solver_->make_term(Pow, this->two, this->k);
+    Term pow2k = createPow2Term(this->k);
     Term k_possitive = solver_->make_term(Gt, this->k, zero);
     Term x_possitive = solver_->make_term(Ge, this->x, zero);
     Term x_bound = solver_->make_term(Lt, this->x, pow2k);
     Term condition = solver_->make_term(And, k_possitive, x_possitive, x_bound);
     Term imp = solver_->make_term(Implies, condition, min);
-    Term forallk = solver_->make_term(Forall, {this->x}, imp);
-    return solver_->make_term(Forall, {this->k}, forallk);
+    Term forallx = solver_->make_term(Forall, {this->x}, imp);
+    return forallx;
+    // return solver_->make_term(Forall, {this->k}, forallk);
 }
 
 Term AbstractPBVWalker::bvand_idempotence(){
     Sort intsort = solver_->make_sort(INT);
     Term zero =  solver_->make_term(0, intsort);
-    Term pow2k = solver_->make_term(Pow, this->two, this->k);
+    Term pow2k = createPow2Term(this->k);
     Term ufbvand = solver_->make_term(Apply, {this->bvand,  this->k,  this->x,  this->x});
     Term idempotence = solver_->make_term(Equal, ufbvand, this->x);
     Term k_possitive = solver_->make_term(Gt, this->k, zero);
@@ -1074,15 +1025,16 @@ Term AbstractPBVWalker::bvand_idempotence(){
     Term condition = solver_->make_term(And, k_possitive, x_possitive, x_bound);
     Term imp = solver_->make_term(Implies, condition, idempotence);
     Term forallk = solver_->make_term(Forall, {this->x}, imp);
-    return solver_->make_term(Forall, {this->k}, forallk);
+    return forallk;
+    // return solver_->make_term(Forall, {this->k}, forallk);
 }
 
 Term AbstractPBVWalker::bvand_contradiction() {
     Sort intsort = solver_->make_sort(INT);
     Term zero =  solver_->make_term(0, intsort);
-    Term pow2k = solver_->make_term(Pow, this->two, this->k);
+    Term pow2k = createPow2Term(this->k);
     Term one =  solver_->make_term(1, intsort);
-    Term pow2_k = solver_->make_term(Pow, this->two, this->k);
+    Term pow2_k = createPow2Term(this->k);
     Term x_plus_one = solver_->make_term(Plus, this->x, one);
     Term not_x = solver_->make_term(Minus, pow2_k, x_plus_one);
     Term ufbvand = solver_->make_term(Apply, {this->bvand,  this->k,  this->x,  not_x});
@@ -1093,7 +1045,8 @@ Term AbstractPBVWalker::bvand_contradiction() {
     Term condition = solver_->make_term(And, k_possitive, x_possitive, x_bound);
     Term imp = solver_->make_term(Implies, condition, contradiction);
     Term forallk = solver_->make_term(Forall, {this->x}, imp);
-    return solver_->make_term(Forall, {this->k}, forallk);
+    return forallk;
+    // return solver_->make_term(Forall, {this->k}, forallk);
 }
 
 Term AbstractPBVWalker::bvand_symmetry() {
@@ -1102,7 +1055,7 @@ Term AbstractPBVWalker::bvand_symmetry() {
     Term symmetry = solver_->make_term(Equal, ufbvand, symmetry_ufbvand);
     Sort intsort = solver_->make_sort(INT);
     Term zero =  solver_->make_term(0, intsort);
-    Term pow2k = solver_->make_term(Pow, this->two, this->k);
+    Term pow2k = createPow2Term(this->k);
     Term k_possitive = solver_->make_term(Gt, this->k, zero);
     Term x_possitive = solver_->make_term(Ge, this->x, zero);
     Term x_bound = solver_->make_term(Lt, this->x, pow2k);
@@ -1112,7 +1065,8 @@ Term AbstractPBVWalker::bvand_symmetry() {
     Term imp =  solver_->make_term(Implies, condition, symmetry);
     Term forally = solver_->make_term(Forall, {this->y}, imp);
     Term forallx = solver_->make_term(Forall, {this->x}, forally);
-    return solver_->make_term(Forall, {this->k}, forallx);
+    return forallx;
+    // return solver_->make_term(Forall, {this->k}, forallx);
 }
 
 Term AbstractPBVWalker::bvand_difference() {
@@ -1126,7 +1080,7 @@ Term AbstractPBVWalker::bvand_difference() {
     Term x_distinct_y = solver_->make_term(Distinct,  this->x, this->y);
     Term difference = solver_->make_term(Implies, x_distinct_y, or_res);
     Term zero =  solver_->make_term(0, intsort);
-    Term pow2k = solver_->make_term(Pow, this->two, this->k);
+    Term pow2k = createPow2Term(this->k);
     Term k_possitive = solver_->make_term(Gt, this->k, zero);
     Term x_possitive = solver_->make_term(Ge, this->x, zero);
     Term x_bound = solver_->make_term(Lt, this->x, pow2k);
@@ -1139,7 +1093,8 @@ Term AbstractPBVWalker::bvand_difference() {
     Term forallz = solver_->make_term(Forall, {z}, imp);
     Term forally = solver_->make_term(Forall, {this->y}, forallz);
     Term forallx = solver_->make_term(Forall, {this->x}, forally);
-    return solver_->make_term(Forall, {this->k}, forallx);
+    return forallx;
+    // return solver_->make_term(Forall, {this->k}, forallx);
 }
 
 Term AbstractPBVWalker::bvand_min_range() {
@@ -1147,7 +1102,7 @@ Term AbstractPBVWalker::bvand_min_range() {
     Term zero =  solver_->make_term(0, intsort);
     Term ufbvand = solver_->make_term(Apply, {this->bvand,  this->k,  this->x,  this->y});
     Term min_range = solver_->make_term(Ge, ufbvand, zero);
-    Term pow2k = solver_->make_term(Pow, this->two, this->k);
+    Term pow2k = createPow2Term(this->k);
     Term k_possitive = solver_->make_term(Gt, this->k, zero);
     Term x_possitive = solver_->make_term(Ge, this->x, zero);
     Term x_bound = solver_->make_term(Lt, this->x, pow2k);
@@ -1157,7 +1112,8 @@ Term AbstractPBVWalker::bvand_min_range() {
     Term imp =  solver_->make_term(Implies, condition, min_range);
     Term forally = solver_->make_term(Forall, {this->y}, imp);
     Term forallx = solver_->make_term(Forall, {this->x}, forally);
-    return solver_->make_term(Forall, {this->k}, forallx);
+    return forallx;
+    // return solver_->make_term(Forall, {this->k}, forallx);
 }
 
 Term AbstractPBVWalker::bvand_max_range(){
@@ -1167,7 +1123,7 @@ Term AbstractPBVWalker::bvand_max_range(){
     Term max_range = solver_->make_term(Ge, min, ufbvand);
     Sort intsort = solver_->make_sort(INT);
     Term zero =  solver_->make_term(0, intsort);
-    Term pow2k = solver_->make_term(Pow, this->two, this->k);
+    Term pow2k = createPow2Term(this->k);
     Term k_possitive = solver_->make_term(Gt, this->k, zero);
     Term x_possitive = solver_->make_term(Ge, this->x, zero);
     Term x_bound = solver_->make_term(Lt, this->x, pow2k);
@@ -1177,8 +1133,19 @@ Term AbstractPBVWalker::bvand_max_range(){
     Term imp = solver_->make_term(Implies, condition, max_range);
     Term forally = solver_->make_term(Forall, {this->y}, imp);
     Term forallx = solver_->make_term(Forall, {this->x}, forally);
-    return solver_->make_term(Forall, {this->k}, forallx);
+    return forallx;
+    // return solver_->make_term(Forall, {this->k}, forallx);
 }
+
+Term AbstractPBVWalker::createPow2Term(Term t) {
+    if(this->lazy_pow) {
+        return solver_->make_term(Pow, this->two, t);
+    } else {
+        pow2_handle();
+        return solver_->make_term(Apply, {this->ufpow, t}); 
+    }
+}
+
 
 void PBVWalker::bvand_handle() {
     if (singlenton_axiom) {
@@ -1226,6 +1193,383 @@ void PartialPBVWalker::bvand_handle() {
 void EfficientPBVWalker::bvand_handle() {}
 void TypeCheckerWalker::bvand_handle() {}
 void NonPurePBVWalker::bvand_handle() {}
+
+void CADE19PBVWalker::bvand_handle() {
+    if (singlenton_bvand) {
+        return;
+    }
+    singlenton_bvand = 1;
+    // partial lemmas
+    this->term_rules->push_back(bvand_basecase());
+    this->term_rules->push_back(bvand_max());
+    this->term_rules->push_back(bvand_min());
+    this->term_rules->push_back(bvand_idempotence());
+    this->term_rules->push_back(bvand_contradiction());
+    this->term_rules->push_back(bvand_symmetry());
+    this->term_rules->push_back(bvand_difference());
+    this->term_rules->push_back(bvand_min_range());
+    this->term_rules->push_back(bvand_max_range());
+    // add full axiom
+    this->term_rules->push_back(bvand_fullaxiom());
+}
+
+void AbstractPBVWalker::bvor_handle() {
+    if (singlenton_bvor) {
+        return;
+    }
+    singlenton_bvor = 1;
+    Sort intsort = solver_->make_sort(INT);
+    Term zero =  solver_->make_term(0, intsort);
+    Term one =  solver_->make_term(1, intsort);
+    Term x_possitive = solver_->make_term(Ge, this->x, zero);
+    Term y_possitive = solver_->make_term(Ge, this->y, zero);
+    Term z_possitive = solver_->make_term(Ge, this->z, zero);
+    Term pow2k = createPow2Term(this->k);
+    Term x_bound = solver_->make_term(Lt, this->x, pow2k);
+    Term y_bound = solver_->make_term(Lt, this->y, pow2k);
+    Term z_bound = solver_->make_term(Lt, this->z, pow2k);
+    Term x_range = solver_->make_term(And, TermVec{x_possitive, x_bound});
+    Term y_range = solver_->make_term(And, TermVec{y_possitive, y_bound});
+    Term z_range = solver_->make_term(And, TermVec{z_possitive, z_bound});
+    Term k_possitive = solver_->make_term(Gt, this->k, zero);
+    Term x_le_one = solver_->make_term(Le, this->x, one);
+    Term y_le_one = solver_->make_term(Le, this->y, one);
+    Term basecase_x_range = solver_->make_term(And, TermVec{x_possitive, x_le_one});
+    Term basecase_y_range = solver_->make_term(And, TermVec{y_possitive, y_le_one});
+
+    // defenition
+    Term k_minus_one = solver_->make_term(Minus,  this->k, one);
+    Term pow2_k_minus_one = createPow2Term(k_minus_one);
+    Term x_mod_k_minus_one = solver_->make_term(Mod, this->x, pow2_k_minus_one);
+    Term y_mod_k_minus_one = solver_->make_term(Mod, this->y, pow2_k_minus_one);
+    Term then_branch = solver_->make_term(Apply, {this->bvor, k_minus_one, x_mod_k_minus_one, y_mod_k_minus_one});
+    Term ite = solver_->make_term(Ite, k_possitive, then_branch, zero);
+    Term x_div_k = solver_->make_term(IntDiv, this->x, pow2_k_minus_one);
+    Term x_div_k_mod_2 = solver_->make_term(Mod, x_div_k, this->two);
+    Term y_div_k = solver_->make_term(IntDiv, this->y, pow2_k_minus_one);
+    Term y_div_k_mod_2 = solver_->make_term(Mod, y_div_k, this->two);
+    Term condition21 = solver_->make_term(Equal, y_div_k_mod_2, zero);
+    Term condition22 = solver_->make_term(Equal, x_div_k_mod_2, zero);
+    Term condition2 = solver_->make_term(And, condition22, condition21);
+    Term deff_max = solver_->make_term(Ite, condition2, zero, one);
+    Term ite_plus = solver_->make_term(Mult, deff_max, pow2_k_minus_one);
+    Term plus = solver_->make_term(Plus, ite, ite_plus);
+    Term ufbvor_deff = solver_->make_term(Apply, {this->bvor,  this->k,  this->x,  this->y});
+    Term deff = solver_->make_term(Equal, ufbvor_deff, plus);
+    Term condition_deff = solver_->make_term(And, TermVec{k_possitive, x_range, y_range});
+    Term imp_deff = solver_->make_term(Implies, condition_deff, deff);
+    Term forally_deff = solver_->make_term(Forall, {this->y}, imp_deff);
+    Term forallx_deff = solver_->make_term(Forall, {this->x}, forally_deff);
+    // Term deff_axiom = solver_->make_term(Forall, {this->k}, forallx_deff);
+    this->term_rules->push_back(forallx_deff);
+
+    // base case
+    Term x_mod_2 = solver_->make_term(Mod, this->x, this->two);
+    Term y_mod_2 = solver_->make_term(Mod, this->y, this->two);
+    Term condition_ge = solver_->make_term(Ge, x_mod_2, y_mod_2);
+    Term max = solver_->make_term(Ite, condition_ge, x_mod_2, y_mod_2);
+    Term ufbvor_one = solver_->make_term(Apply, {this->bvor,  one,  this->x,  this->y});
+    Term basecase = solver_->make_term(Equal, ufbvor_one, max);
+    Term basecase_condition = solver_->make_term(And, basecase_x_range, basecase_y_range);
+    Term imp_basecase = solver_->make_term(Implies, basecase_condition, basecase);
+    Term forally_base = solver_->make_term(Forall, {this->y}, imp_basecase);
+    Term base_case_axiom = solver_->make_term(Forall, {this->x}, forally_base);
+    this->term_rules->push_back(base_case_axiom);
+
+    // max
+    Term max_int = solver_->make_term(Minus, pow2k, one);
+    Term ufbvor_max = solver_->make_term(Apply, {this->bvor,  this->k,  this->x,  max_int});
+    Term equal_max = solver_->make_term(Equal, ufbvor_max, max_int);
+    Term equal_max_condition = solver_->make_term(And, k_possitive, x_range);
+    Term imp_equal_max = solver_->make_term(Implies, equal_max_condition, equal_max);
+    Term forallx_max = solver_->make_term(Forall, {this->x}, imp_equal_max);
+    // Term max_axiom = solver_->make_term(Forall, {this->k}, forallx_max);
+    this->term_rules->push_back(forallx_max);
+
+    //min
+    Term ufbvor_min = solver_->make_term(Apply, {this->bvor,  this->k,  this->x, zero});
+    Term equal_min = solver_->make_term(Equal, ufbvor_min, this->x);
+    Term equal_min_condition = solver_->make_term(And, k_possitive, x_range);
+    Term imp_equal_min = solver_->make_term(Implies, equal_min_condition, equal_min);
+    Term forallx_min = solver_->make_term(Forall, {this->x}, imp_equal_min);
+    // Term min_axiom = solver_->make_term(Forall, {this->k}, forallx_min);
+    this->term_rules->push_back(forallx_min);
+
+    //idempotence
+    Term ufbvor_idempotence = solver_->make_term(Apply, {this->bvor,  this->k,  this->x, this->x});
+    Term equal_idempotence = solver_->make_term(Equal, ufbvor_idempotence, this->x);
+    Term equal_idempotence_condition = solver_->make_term(And, k_possitive, x_range);
+    Term imp_equal_idempotence = solver_->make_term(Implies, equal_idempotence_condition, equal_idempotence);
+    Term forallx_idempotence = solver_->make_term(Forall, {this->x}, imp_equal_idempotence);
+    // Term idempotence_axiom = solver_->make_term(Forall, {this->k}, forallx_idempotence);
+    this->term_rules->push_back(forallx_idempotence);
+
+    //excluded middle
+    Term middle_x = solver_->make_term(Minus, max_int, this->x);
+    Term ufbvor_middle = solver_->make_term(Apply, {this->bvor,  this->k,  this->x,  middle_x});
+    Term equal_middle = solver_->make_term(Equal, ufbvor_middle, max_int);
+    Term equal_middle_condition = solver_->make_term(And, k_possitive, x_range);
+    Term imp_equal_middle = solver_->make_term(Implies, equal_middle_condition, equal_middle);
+    Term forallx_middle = solver_->make_term(Forall, {this->x}, imp_equal_middle);
+    // Term middle_axiom = solver_->make_term(Forall, {this->k}, forallx_middle);
+    this->term_rules->push_back(forallx_middle);
+
+    //symetry
+    Term ufbvor_symetry = solver_->make_term(Apply, {this->bvor,  this->k,  this->x, this->y});
+    Term ufbvor_symetry2 = solver_->make_term(Apply, {this->bvor,  this->k,  this->y, this->x});
+    Term equal_symetry = solver_->make_term(Equal, ufbvor_symetry, ufbvor_symetry2);
+    Term equal_symetry_condition = solver_->make_term(And, k_possitive, x_range, y_range);
+    Term imp_equal_symetry = solver_->make_term(Implies, equal_symetry_condition, equal_symetry);
+    Term forally_symetry = solver_->make_term(Forall, {this->y}, imp_equal_symetry);
+    Term forallx_symetry = solver_->make_term(Forall, {this->x}, forally_symetry);
+    // Term symetry_axiom = solver_->make_term(Forall, {this->k}, forallx_symetry);
+    this->term_rules->push_back(forallx_symetry);
+
+    //difference
+    Term x_diff_y = solver_->make_term(Distinct, this->x, this->y);
+    Term ufbvor_difference_x = solver_->make_term(Apply, {this->bvor,  this->k,  this->x, this->z});
+    Term ufbvor_difference_y = solver_->make_term(Apply, {this->bvor,  this->k,  this->y, this->z});
+    Term uforx_diff_y = solver_->make_term(Distinct, ufbvor_difference_x, this->y);
+    Term ufory_diff_x = solver_->make_term(Distinct, ufbvor_difference_y, this->x);
+    Term or_difference = solver_->make_term(Or, uforx_diff_y, ufory_diff_x);
+    Term difference = solver_->make_term(Implies, x_diff_y, or_difference);
+    Term imp_difference_ranges = solver_->make_term(And, x_range, y_range, z_range);
+    Term imp_difference_condition = solver_->make_term(And, k_possitive, imp_difference_ranges);
+    Term imp_difference = solver_->make_term(Implies, imp_difference_condition, difference);
+    Term forallz_difference = solver_->make_term(Forall, {this->z}, imp_difference);
+    Term forally_difference = solver_->make_term(Forall, {this->y}, forallz_difference);
+    Term forallx_difference = solver_->make_term(Forall, {this->x}, forally_difference);
+    // Term difference_axiom = solver_->make_term(Forall, {this->k}, forallx_difference);
+    this->term_rules->push_back(forallx_difference);
+
+    //range
+    Term condition_x_ge_y = solver_->make_term(Ge, this->x, this->y);
+    Term max_xy = solver_->make_term(Ite, condition_x_ge_y, this->x, this->y);
+    Term ufbvor_kxy = solver_->make_term(Apply, {this->bvor,  this->k,  this->x,  this->y});
+    Term condition_uf_ge_max = solver_->make_term(Ge, ufbvor_kxy, max_xy);
+    Term condition_x_le_max = solver_->make_term(Le, ufbvor_kxy, max_int);
+    Term range_uf =  solver_->make_term(And, condition_uf_ge_max, condition_x_le_max);
+    Term range_condition = solver_->make_term(And, k_possitive, x_range, y_range);
+    Term imp_range = solver_->make_term(Implies, range_condition, range_uf);
+    Term forally_range = solver_->make_term(Forall, {this->y}, imp_range);
+    Term forallx_range = solver_->make_term(Forall, {this->x}, forally_range);
+    // Term range_axiom = solver_->make_term(Forall, {this->k}, forallx_range);
+    this->term_rules->push_back(forallx_range);
+}
+
+void AbstractPBVWalker::bvxor_handle() {
+    if (singlenton_bvxor) {
+        return;
+    }
+    singlenton_bvxor = 1;
+    Sort intsort = solver_->make_sort(INT);
+    Term zero =  solver_->make_term(0, intsort);
+    Term one =  solver_->make_term(1, intsort);
+    Term x_possitive = solver_->make_term(Ge, this->x, zero);
+    Term y_possitive = solver_->make_term(Ge, this->y, zero);
+    Term pow2k = createPow2Term(this->k);
+    Term x_bound = solver_->make_term(Lt, this->x, pow2k);
+    Term y_bound = solver_->make_term(Lt, this->y, pow2k);
+    Term x_range = solver_->make_term(And, TermVec{x_possitive, x_bound});
+    Term y_range = solver_->make_term(And, TermVec{y_possitive, y_bound});
+    Term k_possitive = solver_->make_term(Gt, this->k, zero);
+    Term x_le_one = solver_->make_term(Le, this->x, one);
+    Term y_le_one = solver_->make_term(Le, this->y, one);
+    Term basecase_x_range = solver_->make_term(And, TermVec{x_possitive, x_le_one});
+    Term basecase_y_range = solver_->make_term(And, TermVec{y_possitive, y_le_one});
+
+    //deffenition
+    Term k_minus_one = solver_->make_term(Minus,  this->k, one);
+    Term pow2_k_minus_one = createPow2Term(k_minus_one);
+    Term x_mod_k_minus_one = solver_->make_term(Mod, this->x, pow2_k_minus_one);
+    Term y_mod_k_minus_one = solver_->make_term(Mod, this->y, pow2_k_minus_one);
+    Term then_branch = solver_->make_term(Apply, {this->bvxor, k_minus_one, x_mod_k_minus_one, y_mod_k_minus_one});
+    Term ite = solver_->make_term(Ite, k_possitive, then_branch, zero);
+    Term x_div_k = solver_->make_term(IntDiv, this->x, pow2_k_minus_one);
+    Term x_div_k_mod_2 = solver_->make_term(Mod, x_div_k, this->two);
+    Term y_div_k = solver_->make_term(IntDiv, this->y, pow2_k_minus_one);
+    Term y_div_k_mod_2 = solver_->make_term(Mod, y_div_k, this->two);
+    Term condition21 = solver_->make_term(Equal, y_div_k_mod_2, zero);
+    Term condition22 = solver_->make_term(Equal, x_div_k_mod_2, one);
+    Term condition_and1 = solver_->make_term(And, condition22, condition21);
+    Term condition23 = solver_->make_term(Equal, y_div_k_mod_2, one);
+    Term condition24 = solver_->make_term(Equal, x_div_k_mod_2, zero);
+    Term condition_and2 = solver_->make_term(And, condition23, condition24);
+    Term condition2_or = solver_->make_term(Or, condition_and1, condition_and2);
+    Term deff_dis = solver_->make_term(Ite, condition2_or, one, zero);
+    Term ite_plus = solver_->make_term(Mult, deff_dis, pow2_k_minus_one);
+    Term plus = solver_->make_term(Plus, ite, ite_plus);
+    Term ufbvor_deff = solver_->make_term(Apply, {this->bvxor,  this->k,  this->x,  this->y});
+    Term deff = solver_->make_term(Equal, ufbvor_deff, plus);
+    Term condition_deff = solver_->make_term(And, TermVec{k_possitive, x_range, y_range});
+    Term imp_deff = solver_->make_term(Implies, condition_deff, deff);
+    Term forally_deff = solver_->make_term(Forall, {this->y}, imp_deff);
+    Term forallx_deff = solver_->make_term(Forall, {this->x}, forally_deff);
+    // Term deff_axiom = solver_->make_term(Forall, {this->k}, forallx_deff);
+    this->term_rules->push_back(forallx_deff);
+
+    // base case
+    Term x_mod_2 = solver_->make_term(Mod, this->x, this->two);
+    Term y_mod_2 = solver_->make_term(Mod, this->y, this->two);
+    Term condition_equal = solver_->make_term(Equal, x_mod_2, y_mod_2);
+    Term equal_lsb = solver_->make_term(Ite, condition_equal, zero, one);
+    Term ufbvxor_basecase = solver_->make_term(Apply, {this->bvxor,  one,  this->x,  this->y});
+    Term basecase = solver_->make_term(Equal, ufbvxor_basecase, equal_lsb);
+    Term basecase_condition = solver_->make_term(And, basecase_x_range, basecase_y_range);
+    Term imp_basecase = solver_->make_term(Implies, basecase_condition, basecase);
+    Term forally_base_case = solver_->make_term(Forall, {this->y}, imp_basecase);
+    Term base_case_axiom = solver_->make_term(Forall, {this->x}, forally_base_case);
+    this->term_rules->push_back(base_case_axiom);
+
+
+    //zero
+    Term ufbvxor_zero = solver_->make_term(Apply, {this->bvxor,  this->k,  this->x,  this->x});
+    Term equal_zero = solver_->make_term(Equal, ufbvxor_zero, zero);
+    Term equal_zero_condition = solver_->make_term(And, k_possitive, x_range);
+    Term imp_equal_zero = solver_->make_term(Implies, equal_zero_condition, equal_zero);
+    Term forallx_zero = solver_->make_term(Forall, {this->x}, imp_equal_zero);
+    // Term zero_axiom = solver_->make_term(Forall, {this->k}, forallx_zero);
+    this->term_rules->push_back(forallx_zero);
+
+    //one
+    Term max_int = solver_->make_term(Minus, pow2k, one);
+    Term middle_x = solver_->make_term(Minus, max_int, this->x);
+    Term ufbvxor_middle = solver_->make_term(Apply, {this->bvxor,  this->k,  this->x,  middle_x});
+    Term equal_middle = solver_->make_term(Equal, ufbvxor_middle, max_int);
+    Term equal_middle_condition = solver_->make_term(And, k_possitive, x_range);
+    Term imp_equal_middle = solver_->make_term(Implies, equal_middle_condition, equal_middle);
+    Term forallx_middle = solver_->make_term(Forall, {this->x}, imp_equal_middle);
+    // Term one_axiom = solver_->make_term(Forall, {this->k}, forallx_middle);
+    this->term_rules->push_back(forallx_middle);
+
+    //symetry
+    Term ufbvxor_symetry = solver_->make_term(Apply, {this->bvxor,  this->k,  this->x, this->y});
+    Term ufbvxor_symetry2 = solver_->make_term(Apply, {this->bvxor,  this->k,  this->y, this->x});
+    Term equal_symetry = solver_->make_term(Equal, ufbvxor_symetry, ufbvxor_symetry2);
+    Term equal_symetry_condition = solver_->make_term(And, k_possitive, x_range, y_range);
+    Term imp_equal_symetry = solver_->make_term(Implies, equal_symetry_condition, equal_symetry);
+    Term forally_symetry = solver_->make_term(Forall, {this->y}, imp_equal_symetry);
+    Term forallx_symetry = solver_->make_term(Forall, {this->x}, forally_symetry);
+    // Term symetry_axiom = solver_->make_term(Forall, {this->k}, forallx_symetry);
+    this->term_rules->push_back(forallx_symetry);
+
+    //range
+    Term ufbvxor_kxy = solver_->make_term(Apply, {this->bvxor,  this->k,  this->x,  this->y});
+    Term condition_x_ge_y = solver_->make_term(Ge, ufbvxor_kxy, zero);
+    Term condition_x_le_max = solver_->make_term(Le, ufbvxor_kxy, max_int);
+    Term range_uf =  solver_->make_term(And, condition_x_ge_y, condition_x_le_max);
+    Term range_condition = solver_->make_term(And, k_possitive, x_range, y_range);
+    Term imp_range = solver_->make_term(Implies, range_condition, range_uf);
+    Term forally_range = solver_->make_term(Forall, {this->y}, imp_range);
+    Term forallx_range = solver_->make_term(Forall, {this->x}, forally_range);
+    // Term range_axiom = solver_->make_term(Forall, {this->k}, forallx_range);
+    this->term_rules->push_back(forallx_range);
+}
+
+void AbstractPBVWalker::pow2_handle() {
+    if (singlenton_pow2) {
+        return;
+    }
+    singlenton_pow2 = 1;
+    Sort intsort = solver_->make_sort(INT);
+    Term zero =  solver_->make_term(0, intsort);
+    Term one =  solver_->make_term(1, intsort);
+    Term two =  solver_->make_term(2, intsort);
+    Term x_possitive = solver_->make_term(Ge, this->x, zero);
+    Term x_ge_one = solver_->make_term(Ge, this->x, one);
+    Term y_possitive = solver_->make_term(Ge, this->y, zero);
+    Term z_possitive = solver_->make_term(Ge, this->z, zero);
+    Term pow2_x = solver_->make_term(Apply, {this->ufpow,  this->x});
+    Term pow2_y = solver_->make_term(Apply, {this->ufpow,  this->y});
+
+    // defenition
+    Term pow2_0 = solver_->make_term(Apply, {this->ufpow,  zero});
+    Term basecase_0 = solver_->make_term(Equal, pow2_0, one);
+    Term x_gt_0 = solver_->make_term(Gt, this->x, zero);
+    Term x_minus_one = solver_->make_term(Minus, this->x, one);
+    Term pow_x_minus_one = solver_->make_term(Apply, {this->ufpow, x_minus_one});
+    Term pow2_mul_2 = solver_->make_term(Mult, pow_x_minus_one, two);
+    Term pow2_equal = solver_->make_term(Equal, pow2_x, pow2_mul_2);
+    Term imp_def = solver_->make_term(Implies, x_gt_0, pow2_equal);
+    Term pow2_def = solver_->make_term(Forall, {this->x}, imp_def);
+    Term defenition_axiom = solver_->make_term(And, basecase_0, pow2_def);
+    this->term_rules->push_back(defenition_axiom);
+
+    // base case
+    Term three =  solver_->make_term(3, intsort);
+    Term four =  solver_->make_term(4, intsort);
+    Term eight =  solver_->make_term(8, intsort);
+    Term pow2_1 = solver_->make_term(Apply, {this->ufpow,  one});
+    Term pow2_2 = solver_->make_term(Apply, {this->ufpow,  two});
+    Term pow2_3 = solver_->make_term(Apply, {this->ufpow,  three});
+    Term basecase_1 = solver_->make_term(Equal, pow2_1, two);
+    Term basecase_2 = solver_->make_term(Equal, pow2_2, four);
+    Term basecase_3 = solver_->make_term(Equal, pow2_3, eight);
+    Term base_case_axiom = solver_->make_term(And, TermVec{basecase_0, basecase_1, basecase_2, basecase_3});
+    this->term_rules->push_back(base_case_axiom);
+     
+    // weak monotonicity
+    Term x_le_y =  solver_->make_term(Le, this->x, this->y);
+    Term weak_monotonicity = solver_->make_term(Le, pow2_x, pow2_y);
+    Term weak = solver_->make_term(Implies, x_le_y, weak_monotonicity);
+    Term imp_weak_condition = solver_->make_term(And, x_possitive, y_possitive);
+    Term imp_weak = solver_->make_term(Implies, imp_weak_condition, weak);
+    Term forally_weak = solver_->make_term(Forall, {this->y}, imp_weak);
+    Term weak_monotonicity_axiom = solver_->make_term(Forall, {this->x}, forally_weak);
+    this->term_rules->push_back(weak_monotonicity_axiom);
+
+    // strong monotonicity
+    Term x_lt_y =  solver_->make_term(Lt, this->x, this->y);
+    Term strong_monotonicity = solver_->make_term(Lt, pow2_x, pow2_y);
+    Term strong = solver_->make_term(Implies, x_lt_y, strong_monotonicity);
+    Term imp_strong_condition = solver_->make_term(And, x_possitive, y_possitive);
+    Term imp_strong = solver_->make_term(Implies, imp_strong_condition, strong);
+    Term forally_strong = solver_->make_term(Forall, {this->y}, imp_strong);
+    Term strong_monotonicity_axiom = solver_->make_term(Forall, {this->x}, forally_strong);
+    this->term_rules->push_back(strong_monotonicity_axiom);
+
+    // modularity
+    Term then = solver_->make_term(Lt, this->x, this->y);
+    Term x_pow2x = solver_->make_term(Mult, this->z, pow2_x);
+    Term x_powx_mody = solver_->make_term(Mod, x_pow2x, pow2_y);
+    Term cond_modularity = solver_->make_term(Distinct, x_powx_mody, zero);
+    Term modularity = solver_->make_term(Implies, cond_modularity, then);
+    Term imp_modularity_condition = solver_->make_term(And, x_possitive, y_possitive, z_possitive);
+    Term imp_modularity = solver_->make_term(Implies, imp_modularity_condition, modularity);
+    Term forallz_modularity = solver_->make_term(Forall, {this->z}, imp_modularity);
+    Term forally_modularity = solver_->make_term(Forall, {this->y}, forallz_modularity);
+    Term modularity_axiom = solver_->make_term(Forall, {this->x}, forally_modularity);
+    this->term_rules->push_back(modularity_axiom);
+
+    // never even
+    Term two_y = solver_->make_term(Mult, two, this->y);
+    Term pow2_x_minus_one = solver_->make_term(Minus, pow2_x, one);
+    Term never_even = solver_->make_term(Distinct, pow2_x_minus_one, two_y);
+    Term imp_never_even_condition = solver_->make_term(And, x_ge_one, y_possitive);
+    Term imp_never_even = solver_->make_term(Implies, imp_never_even_condition, never_even);
+    Term forally_never_even = solver_->make_term(Forall, {this->y}, imp_never_even);
+    Term never_even_axiom = solver_->make_term(Forall, {this->x}, forally_never_even);
+    this->term_rules->push_back(never_even_axiom);
+
+    // always positive
+    Term positive = solver_->make_term(Ge, pow2_x, one);
+    Term imp_positive = solver_->make_term(Implies, x_possitive, positive);
+    Term pos_axiom = solver_->make_term(Forall, {this->x}, imp_positive);
+    this->term_rules->push_back(pos_axiom);
+
+    //div 0
+    Term div = solver_->make_term(IntDiv, this->x, pow2_x);
+    Term div_zero = solver_->make_term(Equal, div, zero);
+    Term imp_div_zero = solver_->make_term(Implies, x_possitive, div_zero);
+    Term div_axiom = solver_->make_term(Forall, {this->x}, imp_div_zero);
+    this->term_rules->push_back(div_axiom);
+}
+
+void AbstractPBVWalker::mwError() {
+    if (!this->mw) {
+        throw std::runtime_error("Multiple Bit-Width not soppurted!");
+      }
+}
 
 
 WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
@@ -1336,7 +1680,7 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                             Sort intsort = solver_->make_sort(INT);
                             Term zero =  solver_->make_term(0, intsort);
                             Term condition = solver_->make_term(Equal, translate_y, zero);
-                            Term power2_k = solver_->make_term(Pow, this->two, bit_width);
+                            Term power2_k = createPow2Term(bit_width);
                             Term one =  solver_->make_term(1, intsort);
                             Term then_branch = solver_->make_term(Minus, power2_k, one);
                             Term else_branch = solver_->make_term(IntDiv, cached_children);
@@ -1366,7 +1710,7 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                             } break;
                 case BVNeg: { int_op = Mod;
                               bit_width = get_bit_width_term(*it);
-                              Term power2_k = solver_->make_term(Pow, this->two, bit_width);
+                              Term power2_k = createPow2Term(bit_width);
                               Term x = *it;
                               Term translate_x;
                               query_cache(x, translate_x);
@@ -1379,7 +1723,7 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                                 int_op = Minus;
                                 Term one =  solver_->make_term(1, intsort);
                                 Term bit_width_minus_one = solver_->make_term(Minus, bit_width, one);
-                                Term minimum_sign_term = solver_->make_term(Pow, this->two, bit_width_minus_one);
+                                Term minimum_sign_term = createPow2Term(bit_width_minus_one);
                                 save_in_cache(term, minimum_sign_term);
                               } else {
                                 Term x = *it;
@@ -1391,7 +1735,7 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
 
                                 //naive
                                 int_op = Mod;
-                                Term power2_y = solver_->make_term(Pow, this->two, translate_y);                                
+                                Term power2_y = createPow2Term(translate_y);                                
                                 Term mult = solver_->make_term(Mult, translate_x, power2_y);
                                 int_term = mult;
                               }
@@ -1403,7 +1747,9 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                               Term y = *(++it);
                               save_in_cache(term, bvlshr(x, y));
                             } break;
-                case Extract: { int_op = Ite;
+                case Extract: { 
+                               mwError();
+                               int_op = Ite;
                                Term i, j;
                                Term x = *it;
                                if (op.idx0 == -2 && op.idx1 == -2) {
@@ -1418,7 +1764,9 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                                query_cache(x, translate_x);
                                save_in_cache(term, extract(translate_x, i, j));
                             } break;
-                case Concat: { int_op = Plus;
+                case Concat: { 
+                              mwError();
+                              int_op = Plus;
                               Term x = *it;
                               Term translate_x;
                               query_cache(x, translate_x);
@@ -1428,10 +1776,9 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                               Term bit_width_y = get_bit_width_term(y);
                               Sort intsort = solver_->make_sort(INT);
                               Term zero =  solver_->make_term(0, intsort);
-                                Term power2_y = solver_->make_term(Pow, this->two, bit_width_y);
-                                Term x_mult_power2_y = solver_->make_term(Mult, translate_x, power2_y);
-                                save_in_cache(term, solver_->make_term(int_op, x_mult_power2_y, translate_y));
-                            //   }
+                              Term power2_y = createPow2Term(bit_width_y);
+                              Term x_mult_power2_y = solver_->make_term(Mult, translate_x, power2_y);
+                              save_in_cache(term, solver_->make_term(int_op, x_mult_power2_y, translate_y));
                             } break;
                 case BVAnd: { int_op = Apply;
                               Term k = get_bit_width_term(*it);
@@ -1442,7 +1789,6 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                               Term y = *(++it);
                               Term translate_y;
                               query_cache(y, translate_y);
-
                               if (this->piand) {
                                 save_in_cache(term, solver_->make_term(PIAnd, k, translate_x, translate_y));
                               } else {
@@ -1463,14 +1809,20 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                               query_cache(y, translate_y);
                               // translate to bvand
                               Term x_plus_y = solver_->make_term(Plus, cached_children);
-                              Term x_and_y;
-                              if (this->piand) {
-                                x_and_y = solver_->make_term(PIAnd, k, translate_x, translate_y);
+                              if(!this->eliminate_or_xor) {
+                                Term or_term = solver_->make_term(Apply, {this->bvor, k, translate_x, translate_y});
+                                bvor_handle();
+                                save_in_cache(term, or_term);
                               } else {
-                                x_and_y = solver_->make_term(Apply, {this->bvand, k, translate_x, translate_y});
-                                bvand_handle();
+                                Term x_and_y;
+                                if (this->piand) {
+                                    x_and_y = solver_->make_term(PIAnd, k, translate_x, translate_y);
+                                  } else {
+                                    x_and_y = solver_->make_term(Apply, {this->bvand, k, translate_x, translate_y});
+                                    bvand_handle();
+                                  }
+                                  save_in_cache(term, solver_->make_term(int_op, x_plus_y, x_and_y));
                               }
-                              save_in_cache(term, solver_->make_term(int_op, x_plus_y, x_and_y));
                             } break;
                 case BVXor: { int_op = Minus;
                               Term k = get_bit_width_term(*it);
@@ -1484,54 +1836,86 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                               Term translate_y;
                               query_cache(y, translate_y);
                               // bvor and
-                              Term x_plus_y = solver_->make_term(Plus, cached_children);
-                              Term x_and_y;
-                              if (this->piand) {
-                                x_and_y = solver_->make_term(PIAnd, k, translate_x, translate_y);
+                              if(!this->eliminate_or_xor) {
+                                Term xor_term = solver_->make_term(Apply, {this->bvxor, k, translate_x, translate_y});
+                                bvxor_handle();
+                                save_in_cache(term, xor_term);
                               } else {
-                                x_and_y = solver_->make_term(Apply, {this->bvand, k, translate_x, translate_y});
-                                bvand_handle();
+                                Term x_plus_y = solver_->make_term(Plus, cached_children);
+                                Term x_and_y;
+                                if (this->piand) {
+                                  x_and_y = solver_->make_term(PIAnd, k, translate_x, translate_y);
+                                } else {
+                                  x_and_y = solver_->make_term(Apply, {this->bvand, k, translate_x, translate_y});
+                                  bvand_handle();
+                                }
+                                Term x_or_y = solver_->make_term(int_op, x_plus_y, x_and_y);
+                                save_in_cache(term, solver_->make_term(int_op, x_or_y, x_and_y));  
                               }
-                              Term x_or_y = solver_->make_term(int_op, x_plus_y, x_and_y);
-                              save_in_cache(term, solver_->make_term(int_op, x_or_y, x_and_y));
                             } break;
                 case Exists: { int_op = Minus;
-                            Term translate_param, translate_right;
-                            Term param = (*it);
-                            query_cache(param, translate_param);
-                            it++;
-                            Term right = (*it);
-                            query_cache(right, translate_right);
-                            // 0 <= param < 2^k /\ formula
-                            Term k = get_bit_width_term(param);
+                            Term prev = NULL, cur = NULL, param_cons = NULL;
+                            TermVec params;
                             Sort intsort = solver_->make_sort(INT);
                             Term zero =  solver_->make_term(0, intsort);
-                            Term positive = solver_->make_term(Ge, TermVec{translate_param, zero});   
                             Term two_2 = solver_->make_term(2, intsort);
-                            Term power2_k = solver_->make_term(Pow, two_2, k);
-                            Term lt = solver_->make_term(Lt, TermVec{translate_param, power2_k});
-                            Term and_term = solver_->make_term(And, TermVec{positive, lt, translate_right});
-                            save_in_cache(term, solver_->make_term(Exists, TermVec{translate_param, and_term}));
+                            for (auto t : term)
+                            {
+                                prev = cur;
+                                cur = t;
+                                Term param;
+                                // 0 <= param < 2^k /\ formula
+                                if (prev) {
+                                    query_cache(prev, param);
+                                    params.insert(params.end(), param);
+                                    Term k = get_bit_width_term(prev);
+                                    Term positive = solver_->make_term(Ge, TermVec{param, zero});   
+                                    Term power2_k = createPow2Term(k);
+                                    Term lt = solver_->make_term(Lt, TermVec{param, power2_k});
+                                    if (param_cons) {
+                                        param_cons = solver_->make_term(And, TermVec{param_cons, positive, lt});
+                                    } else {
+                                        param_cons = solver_->make_term(And, TermVec{positive, lt});
+                                    }
+                                }
+                            }
+                            Term translate_formula;
+                            query_cache(cur, translate_formula);
+                            Term formula = solver_->make_term(And, TermVec{param_cons, translate_formula});
+                            params.insert(params.end(), formula);
+                            save_in_cache(term, solver_->make_term(Exists, params));
                     } break;
                 case Forall: { int_op = Minus;
-                            Term translate_param, translate_right;
-                            Term param = (*it);
-                            query_cache(param, translate_param);
-                            it++;
-                            Term right = (*it);
-                            query_cache(right, translate_right);
-                            // 0 <= param < 2^k -> formula
-                            Term k = get_bit_width_term(param);
+                            Term prev = NULL, cur = NULL, param_cons = NULL;
+                            TermVec params;
                             Sort intsort = solver_->make_sort(INT);
                             Term zero =  solver_->make_term(0, intsort);
-                            Term positive = solver_->make_term(Ge, TermVec{translate_param, zero});   
                             Term two_2 = solver_->make_term(2, intsort);
-                            Term power2_k = solver_->make_term(Pow, two_2, k);
-                            Term lt = solver_->make_term(Lt, TermVec{translate_param, power2_k});
-                            Term and_term = solver_->make_term(And, TermVec{positive, lt});
-                            Term formula = solver_->make_term(Implies, TermVec{and_term, translate_right});
-                            save_in_cache(term, solver_->make_term(Forall, TermVec{translate_param, formula}));
-                            // save_in_cache(term, std::make_shared<PBVTerm>(formula));
+                            for (auto t : term)
+                            {
+                                prev = cur;
+                                cur = t;
+                                Term param;
+                                // 0 <= param < 2^k /\ formula
+                                if (prev) {
+                                    query_cache(prev, param);
+                                    params.insert(params.end(), param);
+                                    Term k = get_bit_width_term(prev);
+                                    Term positive = solver_->make_term(Ge, TermVec{param, zero});   
+                                    Term power2_k = createPow2Term(k);
+                                    Term lt = solver_->make_term(Lt, TermVec{param, power2_k});
+                                    if (param_cons) {
+                                        param_cons = solver_->make_term(And, TermVec{param_cons, positive, lt});
+                                    } else {
+                                        param_cons = solver_->make_term(And, TermVec{positive, lt});
+                                    }
+                                }
+                            }
+                            Term translate_formula;
+                            query_cache(cur, translate_formula);
+                            Term formula = solver_->make_term(Implies, TermVec{param_cons, translate_formula});
+                            params.insert(params.end(), formula);
+                            save_in_cache(term, solver_->make_term(Forall, params));
                     } break;
                 // Operators that do not need a translation!
                 case Lt:
@@ -1573,7 +1957,7 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
       }
       // mod
       if (int_op ==  Mod) {
-        Term power2_k = solver_->make_term(Pow, this->two, bit_width);
+        Term power2_k = createPow2Term(bit_width);
         save_in_cache(term, solver_->make_term(Mod, int_term, power2_k));
       } else if (int_op == op) {
         save_in_cache(term, solver_->make_term(int_op, cached_children));
@@ -1603,7 +1987,7 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
         }
         if (!query_cache(term, k) && term->to_string() != bit_width->to_string()){
             try {
-                solver_->make_symbol(term->to_string() ,intsort);
+                // solver_->make_symbol(term->to_string() ,intsort);
                     if (term->is_param()) {
                     k = solver_->make_param("_pbv_" + term->to_string() ,intsort);
                 } else if(term->is_symbol()) {
@@ -1627,7 +2011,10 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
                 bit_width = constbv;
             } catch (...) {}
                 Term two_2 = solver_->make_term(2, intsort);
-                Term power2_k = solver_->make_term(Pow, two_2, bit_width);
+                Term power2_k = createPow2Term(bit_width);
+                if (k->to_string() == bit_width->to_string()) {
+                    mwError();
+                }
                 Term lt = solver_->make_term(Lt, k, power2_k);
                 term_rules->push_back(lt);
         }
@@ -1796,7 +2183,7 @@ WalkerStepResult RewritePBVWalker::visit_term(Term & term) {
         // (extract l k (extract j i x)) -> (extract (+ i l) (+ i k) x))
         if (!op_x.is_null() && op_x.prim_op == PExtract) {
             auto it_x = x->begin();
-            Term jx = (*it);
+            Term jx = (*it_x);
             Term translate_jx, translate_ix, translate_xx;
             if(!query_cache(jx, translate_jx)) {
                 translate_jx = jx;
@@ -1899,11 +2286,11 @@ WalkerStepResult RewritePBVWalker::visit_term(Term & term) {
             save_in_cache(term, bvk_max);
             return Walker_Continue;  
         }
-        // bvudiv 0 y -> 0
-        if (translate_x == bvk_zero) {
-            save_in_cache(term, bvk_zero);
-            return Walker_Continue;  
-        }
+        // // bvudiv 0 y -> 0
+        // if (translate_x == bvk_zero) {
+        //     save_in_cache(term, bvk_zero);
+        //     return Walker_Continue;  
+        // }
         // bvudiv x 1 -> x
         if (translate_y == bvk_one) {
             save_in_cache(term, translate_x);
@@ -2073,6 +2460,48 @@ WalkerStepResult RewritePBVWalker::visit_term(Term & term) {
         if (translate_x == bvk_zero || translate_y == bvk_zero) {
             save_in_cache(term, bvk_zero);
             return Walker_Continue;
+        }
+        // bvand x[i:j] y[i:j] -> (bvand x y)[i:j]
+        Op op_x = translate_x->get_op();
+        Op op_y = translate_y->get_op();
+        if (!op_x.is_null() && !op_y.is_null() && op_x.prim_op == PExtract && op_y.prim_op == PExtract) {
+            auto it_x = translate_x->begin();
+            Term jx = (*it_x);
+            Term translate_jx, translate_ix, translate_xx, translate_jy, translate_iy, translate_yy;
+            if(!query_cache(jx, translate_jx)) {
+                translate_jx = jx;
+            }
+            it_x++;
+            Term ix = (*it_x);
+            if(!query_cache(ix, translate_ix)) {
+                translate_ix = ix;
+            }
+            it_x++;
+            Term xx = (*it_x);
+            if(!query_cache(xx, translate_xx)){
+                translate_xx = xx;
+            }
+            auto it_y = translate_y->begin();
+            Term jy = (*it_y);
+            if(!query_cache(jy, translate_jy)) {
+                translate_jy = jy;
+            }
+            it_y++;
+            Term iy = (*it_y);
+            if(!query_cache(iy, translate_iy)) {
+                translate_iy = iy;
+            }
+            it_y++;
+            Term yy = (*it_y);
+            if(!query_cache(yy, translate_yy)){
+                translate_yy = yy;
+            }
+            if(translate_iy == translate_ix && translate_jy == translate_jx) {
+                Term bvand_xy = std::make_shared<PBVTerm>(BVAnd, TermVec{translate_xx, translate_yy});
+                Term extract_rr = std::make_shared<PBVTerm>(PExtract, TermVec{translate_jy, translate_iy, bvand_xy});
+                save_in_cache(term, extract_rr);
+                return Walker_Continue;
+            }
         }
     } else if (primop == BVOr) {
         // (bvor x y) -> (bvor y x))

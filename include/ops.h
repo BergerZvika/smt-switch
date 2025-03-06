@@ -100,6 +100,7 @@ enum PrimOp
   PExtract,
   PZero_Extend,
   PSign_Extend,
+  Int_To_PBV,
   // BitVector Conversion
   BV_To_Nat,
   Int_To_BV,

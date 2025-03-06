@@ -5,5 +5,6 @@
 (declare-const s (_ BitVec k))
 (declare-const t (_ BitVec k))
 (assert (distinct (bvlshr (bvshl s (bvmul s s)) s) (bvand s (bvlshr (bvadd s s) s))))
+(assert (>= k 4))
 (check-sat)
 (exit)

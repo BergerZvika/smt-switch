@@ -207,6 +207,8 @@ Sort repeat_sort(Op op, const AbsSmtSolver * solver, const SortVec & sorts);
 
 Sort int_to_bv_sort(Op op, const AbsSmtSolver * solver, const SortVec & sorts);
 
+Sort int_to_pbv_sort(Op op, const AbsSmtSolver * solver, const SortVec & sorts);
+
 Sort apply_sort(Op op, const AbsSmtSolver * solver, const SortVec & sorts);
 
 Sort select_sort(Op op, const AbsSmtSolver * solver, const SortVec & sorts);

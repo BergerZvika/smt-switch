@@ -118,6 +118,7 @@ cdef extern from "ops.h" namespace "smt":
     cdef c_PrimOp c_Zero_Extend "smt::Zero_Extend"
     cdef c_PrimOp c_Sign_Extend "smt::Sign_Extend"
     cdef c_PrimOp c_PSign_Extend "smt::PSign_Extend"
+    cdef c_PrimOp c_Int_To_PBV "smt::Int_To_PBV"
     cdef c_PrimOp c_PZero_Extend "smt::PZero_Extend"
     cdef c_PrimOp c_PExtract "smt::PExtract"
     cdef c_PrimOp c_Repeat "smt::Repeat"

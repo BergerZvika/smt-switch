@@ -11,7 +11,7 @@
   (ite (= b (_ bv0 k)) a (bvurem a b))
 )
 (define-fun min () (_ BitVec k)
-  (bvnot (bvlshr (bvnot (_ bv0 k)) (_ bv1 k)))
+  (bvnot (bvlshr (bvnot (_ bvk k)) (_ bv1 k)))
 )
 (define-fun max () (_ BitVec k)
   (bvnot min)
@@ -24,7 +24,7 @@ true
 (assert
  (not
   (and
-  (=> (SC s t) (exists ((x (_ BitVec k))) (bvsge (bvneg x) t)))
+  (=> (SC s t) (exists ((x (_ BitVec k))) (bvsge (bvneg x) max)))
   (=> (exists ((x (_ BitVec k))) (bvsge (bvneg x) t)) (SC s t))
   )
  )

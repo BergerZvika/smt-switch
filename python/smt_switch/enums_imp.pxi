@@ -460,6 +460,10 @@ cdef PrimOp PSign_Extend = PrimOp()
 PSign_Extend.po = c_PSign_Extend
 setattr(primops, 'PSign_Extend', PSign_Extend)
 
+cdef PrimOp Int_To_PBV = PrimOp()
+Int_To_PBV.po = c_Int_To_PBV
+setattr(primops, 'Int_To_PBV', Int_To_PBV)
+
 cdef PrimOp PExtract = PrimOp()
 PExtract.po = c_Extract
 setattr(primops, 'PExtract', PExtract)

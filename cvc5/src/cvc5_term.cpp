@@ -64,6 +64,7 @@ const std::unordered_map<::cvc5::Kind, PrimOp> kind2primop(
       { ::cvc5::PEXTRACT, PExtract},
       { ::cvc5::PARAMETRIC_ZERO_EXTEND, PZero_Extend},
       { ::cvc5::PARAMETRIC_SIGN_EXTEND, PSign_Extend},
+      // { ::cvc5::To_PBV, Int_To_PBV},
       /* Fixed Size BitVector Theory */
       { ::cvc5::BITVECTOR_CONCAT, Concat },
       // Indexed Op

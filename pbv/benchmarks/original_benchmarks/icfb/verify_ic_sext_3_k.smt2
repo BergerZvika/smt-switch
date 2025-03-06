@@ -1,0 +1,74 @@
+
+(set-logic ALL)
+(declare-const k Int)
+
+(declare-const s (_ BitVec k))
+(declare-const tn (_ BitVec 3))
+(declare-const tx (_ BitVec k))
+(declare-const xlo (_ BitVec k))
+(declare-const xhi (_ BitVec k))
+
+(define-fun mcb ((xlo (_ BitVec k)) (xhi (_ BitVec k)) (v (_ BitVec k))) Bool
+ (and
+  (= (bvand xhi v) v)
+  (= (bvor xlo v) v)
+ )
+)
+
+
+
+
+
+(define-fun odd ((v (_ BitVec k))) Bool
+ (= (pextract 0 0  v) (_ bv1 1))
+)
+
+(define-fun zero () (_ BitVec k)
+ (_ bv0 k)
+)
+
+(define-fun one () (_ BitVec k)
+ (_ bv1 k)
+)
+
+(define-fun ones () (_ BitVec k)
+ (bvnot zero)
+)
+
+(define-fun w () (_ BitVec k)
+ (_ bvk k)
+)
+
+(define-fun IC ((s (_ BitVec k)) (tx (_ BitVec k)) (tn (_ BitVec 3)) (xlo (_ BitVec k)) (xhi (_ BitVec k))) Bool
+ (and
+  (or
+   (and (= tn (_ bv0 3)) (= (pextract (- k 1) (- k 1)  tx) (_ bv0 1)))
+   (and (= tn (bvnot (_ bv0 3))) (= (pextract (- k 1) (- k 1)  tx) (_ bv1 1)))
+  )
+  (mcb xlo xhi tx)
+ )
+)
+
+(define-fun LIT ((x (_ BitVec k))) Bool
+ (= ((_ sign_extend 3) x) (concat tn tx))
+)
+
+; valid xlo/xhi pairs
+(assert (= (bvor (bvnot xlo) xhi) ones))
+
+(assert
+ (distinct
+  (IC s tx tn xlo xhi)
+  (exists ((x (_ BitVec k)))
+   (and
+    (mcb xlo xhi x)
+    (LIT x)
+   )
+  )
+ )
+)
+
+(assert (> k 0))
+(check-sat)
+(exit)
+

@@ -97,6 +97,7 @@ const std::unordered_map<std::string, std::unordered_map<std::string, PrimOp>>
               { "pextract", PExtract },
               { "pzero_extend", PZero_Extend },
               { "psign_extend", PSign_Extend },
+              { "int_to_pbv", Int_To_PBV},
               { "repeat", Repeat },
               { "rotate_left", Rotate_Left },
               { "rotate_right", Rotate_Right } } },

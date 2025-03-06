@@ -59,6 +59,7 @@ const std::unordered_map<PrimOp, std::function<bool(const SortVec & sorts)>>
                           { PExtract, bv_sorts },
                           { PZero_Extend, int_pbv_sorts },
                           { PSign_Extend, int_pbv_sorts },
+                          { Int_To_PBV, int_sorts },
                           { To_Real, bv_sorts },
                           { To_Int, real_sorts },
                           { Is_Int, int_sorts },
@@ -185,6 +186,7 @@ const std::unordered_map<
         { Rotate_Right, same_sort },
         { BV_To_Nat, int_sort },
         { Int_To_BV, int_to_bv_sort },
+        { Int_To_PBV, int_to_pbv_sort },
         { Select, select_sort },
         { Store, store_sort },
         { Forall, bool_sort },
@@ -567,7 +569,6 @@ Sort parametric_extend_sort(Op op, const AbsSmtSolver * solver, const SortVec & 
   return solver->make_sort(BV, sorts[1]->get_width());
 }
 
-
 Sort repeat_sort(Op op, const AbsSmtSolver * solver, const SortVec & sorts)
 {
   return solver->make_sort(BV, op.idx0 * sorts[0]->get_width());
@@ -576,6 +577,11 @@ Sort repeat_sort(Op op, const AbsSmtSolver * solver, const SortVec & sorts)
 Sort int_to_bv_sort(Op op, const AbsSmtSolver * solver, const SortVec & sorts)
 {
   return solver->make_sort(BV, op.idx0);
+}
+
+Sort int_to_pbv_sort(Op op, const AbsSmtSolver * solver, const SortVec & sorts)
+{
+  return solver->make_sort(BV, sorts[1]->get_width());
 }
 
 Sort apply_sort(Op op, const AbsSmtSolver * solver, const SortVec & sorts)

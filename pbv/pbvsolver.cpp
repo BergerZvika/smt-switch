@@ -1,12 +1,14 @@
 #include <iostream>
 #include <utility>
 #include <vector>
-#include <unordered_map>
+// #include <unordered_map>
 #include <fstream>
 #include <string>
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
+#include <stdexcept>
+#include <map>
 
 #include "smt_defs.h"
 #include "cvc5_factory.h"
@@ -18,6 +20,8 @@
 using namespace smt;
 using namespace std;
 using namespace smt_tests;
+
+#define temp_file "temp.txt"
 
 class SmtLibReaderTester : public SmtLibReader
 {
@@ -45,29 +49,35 @@ class SmtLibReaderTester : public SmtLibReader
  protected:
   vector<Result> results_;
 };
-
+std::map<std::string, int> pbv_args;
 int help = 0;
-int debug = 0;
-int pbvsolver = 0;
-int postwalk = 1;
-int bvsub = 0;
 int produce_model = 0;
-int type_check = 0;
 int piand_sum_mode = 1;
 int piand_mode = 1;
 int difference_lemma = 0;
-int translate_smt = 0;
 int skolem_lemma = 0;
-int simplify = -1;
 int after_simplify = 0;
 int get_value = 0;
 int get_model = 0;
-int rewrite = 1;
 std::list<string> values;
 std::list<string> cvc5_args;
 string test = "";
 
-#define temp_file "temp.txt"
+void initializeMap() {
+  pbv_args["debug"] = 0;
+  pbv_args["pbvsolver"] = 0;
+  pbv_args["postwalk"] = 1;
+  pbv_args["bvsub"] = 0;
+  pbv_args["type_check"] = 0;
+  pbv_args["translate_smt"] = 0;
+  pbv_args["simplify"] = -1;
+  pbv_args["rewrite"] = 1;
+  pbv_args["eliminate_or_xor"] = 1;
+  pbv_args["redundent_axioms"] = 1;
+  pbv_args["lazy_pow"] = 1;
+  pbv_args["bvlshr"] = 1;
+  pbv_args["multiple_bitwidth"] = 1;
+}
 
 int simplifyNumber(const std::string& input) {
     // Check if the input starts with "--simplify="
@@ -129,30 +139,42 @@ void parse_args(int argc, char** argv) {
         cout << "\t--skolem-lemmas\t\tadd skolems lemmas." << endl;
         cout << "\t--trans\t\tcreate smt2 file of the translation." << endl;
       } else if (!(*i).compare("-d") ||  !(*i).compare("--debug")) {
-        debug = 1;
+        pbv_args["debug"] = 1;
       } else if (!(*i).compare("--pbvsolver")) {
-        pbvsolver = 0; // efficient pbvsolver
+        pbv_args["pbvsolver"] = 0; // efficient pbvsolver
       }  else if (!(*i).compare("-c") ||  !(*i).compare("--comb") ||  !(*i).compare("--combine")) {
-        pbvsolver = 1; // combine
+        pbv_args["pbvsolver"] = 1; // combine
       } else if (!(*i).compare("-f") ||  !(*i).compare("--full")) {
-        pbvsolver = 2; // full
+        pbv_args["pbvsolver"] = 2; // full
       }  else if (!(*i).compare("-p") ||  !(*i).compare("--partial")) {
-        pbvsolver = 3; //partial
+        pbv_args["pbvsolver"] = 3; //partial
       } else if (!(*i).compare("-m") ||  !(*i).compare("--maxint")) {
-        pbvsolver = 4; // non pure pbv solver, k <= 67,108,864
+        pbv_args["pbvsolver"] = 4; // non pure pbv solver, k <= 67,108,864
+      } else if (!(*i).compare("-19") ||  !(*i).compare("--cade19")) {
+        pbv_args["pbvsolver"] = 5; // cade19 solver
       } else if (!(*i).compare("-w") ||  !(*i).compare("--no-postwalk")) { 
-        postwalk = 0;
+        pbv_args["postwalk"] = 0;
       } else if (!(*i).compare("--no-sub")) { 
-        bvsub = 1;
+        pbv_args["bvsub"] = 1;
+      } else if (!(*i).compare("--no-redundent-axioms")) { 
+        pbv_args["redundent_axioms"] = 0;
+      } else if (!(*i).compare("--lazy-pow")) { 
+        pbv_args["lazy_pow"] = 0;
+      } else if (!(*i).compare("--bvor-bvxor") || !(*i).compare("--no-elimination")) { 
+        pbv_args["eliminate_or_xor"] = 0;
+      }  else if (!(*i).compare("-mw") || !(*i).compare("--no-multiple-bitwidth")) { 
+        pbv_args["multiple_bitwidth"] = 0;
+      }else if (!(*i).compare("--bvlshr") || !(*i).compare("-l")) { 
+        pbv_args["bvlshr"] = 0;
       } else if (simplifyNumber(*i) >= 0) { 
-        simplify = simplifyNumber(*i);
+        pbv_args["simplify"] = simplifyNumber(*i);
       } else if (!(*i).compare("-s") || !(*i).compare("--simplify")) { 
-        simplify = 64;
+        pbv_args["simplify"] = 64;
       } else if (!(*i).compare("-fs") || !(*i).compare("--false-simplify")) {
-        if (simplify > 0) {
-          simplify = simplify * -1;
+        if (pbv_args["simplify"] > 0) {
+          pbv_args["simplify"] = pbv_args["simplify"] * -1;
         } else {
-          simplify = -64;
+          pbv_args["simplify"] = -64;
         }
       } else if (cvc5_args_parse(*i)) {
         continue;
@@ -166,7 +188,7 @@ void parse_args(int argc, char** argv) {
         piand_sum_mode = 0;
       } else if (!(*i).compare("--sum-ge-lemma")) {
         piand_sum_mode = 3;
-      } else if (!(*i).compare("--sum-eq-lemma")) {
+      } else if (!(*i).compare("--sum-both-lemma")) {
         piand_sum_mode = 4;
       } else if (!(*i).compare("--bitwise-based-lemma")) {
         piand_sum_mode = 2;
@@ -175,11 +197,11 @@ void parse_args(int argc, char** argv) {
       } else if (!(*i).compare("--skolem-lemmas")) {
         skolem_lemma = 1;
       } else if (!(*i).compare("--trans")) {
-        translate_smt = 1;
+        pbv_args["translate_smt"] = 1;
       } else if (!(*i).compare("-t") ||  !(*i).compare("--type-check")) {
-        type_check = 1;
-      } else if (!(*i).compare("-r") ||  !(*i).compare("--rewrite")) {
-        rewrite = 0;
+        pbv_args["type_check"] = 1;
+      } else if (!(*i).compare("-r") ||  !(*i).compare("--no-rewrite")) {
+        pbv_args["rewrite"] = 0;
       } else if (!(*i).compare("--get-value")) {
         get_value = 1;
       }   else if (!(*i).compare("--get-model")) {
@@ -201,12 +223,20 @@ void create_translate_smt() {
     if (!outFile) {
         throw std::runtime_error("Unable to create the file: " + out);
     }
-    if (pbvsolver) {
+    if (pbv_args["pbvsolver"]) {
       outFile << "(set-logic UFNIA)" << std::endl;
       outFile << "(declare-fun bvand (Int Int Int) Int)" << std::endl;
+      if (pbv_args["eliminate_or_xor"] == 0) {
+        outFile << "(declare-fun bvor (Int Int Int) Int)" << std::endl;
+        outFile << "(declare-fun bvxor (Int Int Int) Int)" << std::endl;
+      }
+      if (pbv_args["lazy_pow"] == 0) {
+        outFile << "(declare-fun ufpow (Int) Int)" << std::endl;
+      }
     } else {
       outFile << "(set-logic ALL)" << std::endl;
-    }
+    } 
+
 
     // read the origion file
     std::ifstream origion(test);
@@ -280,6 +310,7 @@ void create_translate_smt() {
 
 
 int main(int argc, char** argv){
+  initializeMap();
   // parse arguments
   parse_args(argc, argv);
   if (help) {
@@ -289,14 +320,15 @@ int main(int argc, char** argv){
     cout << "Missing path to smt2 file!" << endl;
     return 0;
   }
-  if (debug) {
+  if (pbv_args["debug"]) {
     cout << "test path: " << test << endl;
   }
 
   // create pbvsolver
   SmtSolver s, type_checker;
   SmtSolver cvc5 = Cvc5SolverFactory::create(false);
-  s = std::make_shared<PBVSolver>(cvc5, debug, pbvsolver, postwalk, 0, translate_smt, bvsub, simplify, rewrite);
+  // s = std::make_shared<PBVSolver>(cvc5, pbv_args["debug"], pbv_args["pbvsolver"], pbv_args["postwalk"], 0, pbv_args["translate_smt"], pbv_args["bvsub"], pbv_args["simplify"], pbv_args["rewrite"]);
+  s = std::make_shared<PBVSolver>(cvc5, pbv_args);
 
   // solver options
   std::size_t equal_pos;
@@ -304,7 +336,8 @@ int main(int argc, char** argv){
     arg.erase(remove(arg.begin(), arg.end(), '\"' ), arg.end());
     size_t pos = 0;
     std::string token;
-    while ((pos = arg.find(' ')) != std::string::npos) {
+    while (1) {
+      pos = arg.find(' ');
       token = arg.substr(0, pos);
       equal_pos = token.find('=');
       if (equal_pos != std::string::npos) { // Check if '=' is found
@@ -313,9 +346,18 @@ int main(int argc, char** argv){
           std::string value = token.substr(equal_pos + 1);       // After '='
           s->set_opt(key, value);
       } else {
+        std::string prefix = "no-";
+        if (token.rfind(prefix, 0) == 0) {
+          token =  token.substr(prefix.length());
+          s->set_opt(token, "false");
+        } else {
           s->set_opt(token, "true");
+        }
       }
       arg.erase(0, pos + 1);
+      if (pos == std::string::npos) {
+          break;
+      }
     }
     equal_pos = arg.find('=');
     if (equal_pos != std::string::npos) { // Check if '=' is found
@@ -327,6 +369,7 @@ int main(int argc, char** argv){
         s->set_opt(arg, "true");
     }
   }
+
   if(get_value) {
     s->set_opt("produce-model", "true");
   }
@@ -349,7 +392,7 @@ int main(int argc, char** argv){
   } else if (piand_sum_mode == 3) {
     s->set_opt("piand-lemmas-mode", "sum_ge");
   } else if (piand_sum_mode == 4) {
-    s->set_opt("piand-lemmas-mode", "sum_eq");
+    s->set_opt("piand-lemmas-mode", "sum_both");
   } else if (piand_sum_mode == 0) {
     s->set_opt("piand-lemmas-mode", "difference");
   }
@@ -361,9 +404,10 @@ int main(int argc, char** argv){
   }
 
   // type checker
-  if (type_check) {
+  if (pbv_args["type_check"]) {
     // zero signifies the absence of debugging
-    type_checker = std::make_shared<PBVSolver>(Cvc5SolverFactory::create(false), 0, pbvsolver, postwalk, type_check, translate_smt, bvsub, simplify, rewrite);
+    // type_checker = std::make_shared<PBVSolver>(Cvc5SolverFactory::create(false), 0, pbv_args["pbvsolver"], pbv_args["postwalk"], pbv_args["type_check"], pbv_args["translate_smt"], pbv_args["bvsub"], pbv_args["simplify"], pbv_args["rewrite"]);
+    type_checker = std::make_shared<PBVSolver>(cvc5, pbv_args);
 
     SmtLibReaderTester* type_reader = new SmtLibReaderTester(type_checker);
     type_reader->parse(test);
@@ -371,11 +415,11 @@ int main(int argc, char** argv){
     if (type_results[0].is_unsat()) {
         throw std::runtime_error("Type Checker Error!");
     }
-    type_check = 0;
+    pbv_args["type_check"] = 0;
   }
   // run solver on test.
-  if (debug) {
-    switch(pbvsolver) {
+  if (pbv_args["debug"]) {
+    switch(pbv_args["pbvsolver"]) {
       case 0: cout << "Piand PBVSolver:" << endl;
         break;
       case 1: cout << "Combine PBVSolver:" << endl;
@@ -386,29 +430,30 @@ int main(int argc, char** argv){
         break;
       case 4: cout << "Non-Pure Piand PBVSolver:" << endl;
         break;
+      case 5: cout << "CADE19 Solver:" << endl;
+        break;
       default: break;
     }
   }
 
-  // try {
+  try {
     SmtLibReaderTester* reader = new SmtLibReaderTester(s);
     reader->parse(test);
-    if (translate_smt) {
+    if (pbv_args["translate_smt"]) {
       create_translate_smt();
       return 1;
-    } else if(simplify == 0) {
+    } else if(pbv_args["simplify"] == 0) {
       return 1;
     }
     auto results = reader->get_results();
     cout << results[0] << endl;
+  } catch (const std::runtime_error& e) {
+      cout << "unknown" << endl;
   // } catch (std::exception& e) {
-  //   if (std::string(e.what()).find("67108864") != std::string::npos) {
-  //     cout << "unknown" << endl;
-  //   }
-  //    else {
-  //         cout << e.what() << endl;
-  //    }
-  // }
-
+    // if (std::string(e.what()).find("67108864") != std::string::npos) {
+    //   cout << "unknown" << endl;
+    // }
+    // cout << e.what() << endl;
+  }
   return 0;
 }

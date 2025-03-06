@@ -3,10 +3,13 @@
 #include "identity_walker.h"
 #include "pbvterm.h"
 #include "pbvsort.h"
+#include <map>
+#include <string>
+
+using namespace std;
 
 #pragma once
 
-using namespace std;
 
 namespace smt {
 
@@ -16,15 +19,31 @@ namespace smt {
   protected:
     TermVec* term_rules;
     TermVec* operator_rules;
-    Term two, bvand, k, x, y;
+    Term two, bvand, bvor, bvxor, ufpow, x, y, z;
     int piand = 0;
     int nonpure = 0;
+    int eliminate_or_xor;
+    int lazy_pow;
+    int bvlshr_trans;
+    int mw = 1;
+    // axioms show only once
+    int singlenton_axiom = 0;
+    int singlenton_bvand = 0;
+    int singlenton_bvor = 0;
+    int singlenton_bvxor = 0;
+    int singlenton_pow2 = 0;
+
   public:
-    AbstractPBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {
+    Term k;
+    AbstractPBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, map<string,int> args) : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {
       this->term_rules = term_rules;
       this->operator_rules = operator_rules;
       Sort sort = solver->make_sort(INT);
       this->two = solver->make_term(2, sort);
+      this->eliminate_or_xor = args["eliminate_or_xor"];
+      this->lazy_pow = args["lazy_pow"];
+      this->bvlshr_trans = args["bvlshr"];
+      this->mw = args["multiple_bitwidth"];
     }
 
     WalkerStepResult visit_term(Term & term);
@@ -38,6 +57,9 @@ namespace smt {
     Term get_bit_width_term(Term t);
     bool minimum_sign(TermIter it);
     virtual void bvand_handle() = 0;
+    void bvor_handle();
+    void bvxor_handle();
+    void pow2_handle();
     Term bvand_fullaxiom();
     Term bvand_basecase();
     Term bvand_max();
@@ -48,19 +70,22 @@ namespace smt {
     Term bvand_difference();
     Term bvand_min_range();
     Term bvand_max_range();
+    Term createPow2Term(Term t);
+    void mwError();
 };
 
 class PBVWalker : public AbstractPBVWalker
 {
-  protected:
-    int singlenton_axiom = 0;
   public:
-    PBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) 
-        : AbstractPBVWalker(solver, term_rules, operator_rules, power2) {
+    PBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, map<string,int> args) 
+        : AbstractPBVWalker(solver, term_rules, operator_rules, args) {
         Sort intsort = solver->make_sort(INT);
         Sort funsort = solver->make_sort(FUNCTION, SortVec{intsort, intsort, intsort, intsort});
+        Sort pow_funsort = solver->make_sort(FUNCTION, SortVec{intsort, intsort});
         this->bvand = solver->make_symbol("bvand", funsort);
-        this->k = solver->make_param("k", intsort);
+        this->bvor = solver->make_symbol("bvor", funsort);
+        this->bvxor = solver->make_symbol("bvxor", funsort);
+        this->ufpow = solver->make_symbol("ufpow", pow_funsort);
         this->x = solver->make_param("x", intsort);
         this->y = solver->make_param("y", intsort);
       }
@@ -69,60 +94,97 @@ class PBVWalker : public AbstractPBVWalker
 
 class PartialPBVWalker : public AbstractPBVWalker
 {
-  protected:
-    int singlenton_axiom = 0;
   public:
-    PartialPBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) 
-        : AbstractPBVWalker(solver, term_rules, operator_rules, power2) {
+    PartialPBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, map<string,int> args) 
+        : AbstractPBVWalker(solver, term_rules, operator_rules, args) {
         Sort intsort = solver->make_sort(INT);
         Sort funsort = solver->make_sort(FUNCTION, SortVec{intsort, intsort, intsort, intsort});
+        Sort pow_funsort = solver->make_sort(FUNCTION, SortVec{intsort, intsort});
         this->bvand = solver->make_symbol("bvand", funsort);
-        this->k = solver->make_param("k", intsort);
+        this->bvor = solver->make_symbol("bvor", funsort);
+        this->bvxor = solver->make_symbol("bvxor", funsort);
+        this->ufpow = solver->make_symbol("ufpow", pow_funsort);
         this->x = solver->make_param("x", intsort);
         this->y = solver->make_param("y", intsort);
       }
       void bvand_handle();
+      // void bvor_handle() {}
+      // void bvxor_handle() {}
+      // void pow2_handle() {}
 };
 
   class FullPBVWalker : public AbstractPBVWalker
 {
-  protected:
-    int singlenton_axiom = 0;
   public:
-    FullPBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) 
-        : AbstractPBVWalker(solver, term_rules, operator_rules, power2) {
+    FullPBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, map<string,int> args) 
+        : AbstractPBVWalker(solver, term_rules, operator_rules, args) {
           Sort intsort = solver->make_sort(INT);
           Sort funsort = solver->make_sort(FUNCTION, SortVec{intsort, intsort, intsort, intsort});
+          Sort pow_funsort = solver->make_sort(FUNCTION, SortVec{intsort, intsort});
           this->bvand = solver->make_symbol("bvand", funsort);
-          this->k = solver->make_param("k", intsort);
+          this->bvor = solver->make_symbol("bvor", funsort);
+          this->bvxor = solver->make_symbol("bvxor", funsort);
+          this->ufpow = solver->make_symbol("ufpow", pow_funsort);
           this->x = solver->make_param("x", intsort);
           this->y = solver->make_param("y", intsort);
         }
 
     void bvand_handle();
+    // void bvor_handle() {}
+    // void bvxor_handle() {}
+    // void pow2_handle() {}
+};
+
+  class CADE19PBVWalker : public AbstractPBVWalker
+{
+  public:
+    CADE19PBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, map<string,int> args) 
+        : AbstractPBVWalker(solver, term_rules, operator_rules, args) {
+          Sort intsort = solver->make_sort(INT);
+          Sort funsort = solver->make_sort(FUNCTION, SortVec{intsort, intsort, intsort, intsort});
+          Sort pow_funsort = solver->make_sort(FUNCTION, SortVec{intsort, intsort});
+          this->bvand = solver->make_symbol("bvand", funsort);
+          this->bvor = solver->make_symbol("bvor", funsort);
+          this->bvxor = solver->make_symbol("bvxor", funsort);
+          this->ufpow = solver->make_symbol("ufpow", pow_funsort);
+          this->x = solver->make_param("x", intsort); 
+          this->y = solver->make_param("y", intsort);
+          this->z = solver->make_param("z", intsort);
+        }
+
+    void bvand_handle();
+    // void bvor_handle();
+    // void bvxor_handle();
+    // void pow2_handle();
 };
 
   class EfficientPBVWalker : public AbstractPBVWalker
 {
   public:
-    EfficientPBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) 
-        : AbstractPBVWalker(solver, term_rules, operator_rules, power2) {
+    EfficientPBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, map<string,int> args) 
+        : AbstractPBVWalker(solver, term_rules, operator_rules, args) {
           this->piand = 1;
           Sort intsort = solver->make_sort(INT);
           Sort funsort = solver->make_sort(FUNCTION, SortVec{intsort, intsort, intsort, intsort});
+          Sort pow_funsort = solver->make_sort(FUNCTION, SortVec{intsort, intsort});
           this->bvand = solver->make_symbol("bvand", funsort);
-          this->k = solver->make_param("k", intsort);
+          this->bvor = solver->make_symbol("bvor", funsort);
+          this->bvxor = solver->make_symbol("bvxor", funsort);
+          this->ufpow = solver->make_symbol("ufpow", pow_funsort);
           this->x = solver->make_param("x", intsort);
           this->y = solver->make_param("y", intsort);
         }
     void bvand_handle();
+    // void bvor_handle() {}
+    // void bvxor_handle() {}
+    // void pow2_handle() {}
 };
 
   class NonPurePBVWalker : public EfficientPBVWalker
 {
   public:
-    NonPurePBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) 
-        : EfficientPBVWalker(solver, term_rules, operator_rules, power2) {
+    NonPurePBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, map<string,int> args) 
+        : EfficientPBVWalker(solver, term_rules, operator_rules, args) {
           this->nonpure = 1;
         }
     void bvand_handle();
@@ -131,17 +193,21 @@ class PartialPBVWalker : public AbstractPBVWalker
 class TypeCheckerWalker : public AbstractPBVWalker
 {
   public:
-    TypeCheckerWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, const Term & power2) 
-     : AbstractPBVWalker(solver, term_rules, operator_rules, power2) {
+    TypeCheckerWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, map<string,int> args) 
+     : AbstractPBVWalker(solver, term_rules, operator_rules, args) {
       Sort intsort = solver->make_sort(INT);
       Sort funsort = solver->make_sort(FUNCTION, SortVec{intsort, intsort, intsort, intsort});
       this->bvand = solver->make_symbol("type_check_bvand", funsort);
-      this->k = solver->make_param("type_check_k", intsort);
+      this->k = solver->make_symbol("type_check_k", intsort);
+      // this->k = solver->make_param("type_check_k", intsort);
       this->x = solver->make_param("type_check_x", intsort);
       this->y = solver->make_param("type_check_y", intsort);
     }
 
     void bvand_handle();
+    // void bvor_handle() {}
+    // void bvxor_handle() {}
+    // void pow2_handle() {}
 };
 
 // PBVConstantWalker
@@ -212,7 +278,6 @@ class AbstractPBVSolver : public AbsSmtSolver
 {
   protected:
    SmtSolver wrapped_solver;
-   Term power2;
    TermVec term_rules;
    TermVec operator_rules;
    AbstractPBVWalker* walker;
@@ -223,6 +288,9 @@ class AbstractPBVSolver : public AbsSmtSolver
    int bvsub = 0;
    int simplify_num = 0;
    int rewrite = 0;
+   int redundent_axioms = 1;
+   int eliminate_or_xor;
+   int lazy_pow;
   public:
     AbstractPBVSolver(SmtSolver s);
     AbstractPBVSolver(SmtSolver s, int debug);
@@ -302,22 +370,17 @@ class AbstractPBVSolver : public AbsSmtSolver
     int check_simplify(const Term& t);
     Term substitute(const Term term,
                   const UnorderedTermMap & substitution_map);
+    void initialK();
 };
 
 
 // PBVSolver
 class PBVSolver : public AbstractPBVSolver
 {
-    public:
-    PBVSolver(SmtSolver s);
+  public:
     PBVSolver(SmtSolver s, int debug);
-    PBVSolver(SmtSolver s, int debug, int walker);
     PBVSolver(SmtSolver s, int debug, int walker, int postwalk);
-    PBVSolver(SmtSolver s, int debug, int walker, int postwalk, int type_check);
-    PBVSolver(SmtSolver s, int debug, int walker, int postwalk, int type_check, int translate);
-    PBVSolver(SmtSolver s, int debug, int walker, int postwalk, int type_check, int translate, int pbvsub);
-    PBVSolver(SmtSolver s, int debug, int walker, int postwalk, int type_check, int translate, int pbvsub, int simplify_num);
-    PBVSolver(SmtSolver s, int debug, int walker, int postwalk, int type_check, int translate, int pbvsub, int simplify_num, int rewrite);
+    PBVSolver(SmtSolver s, map<string, int> args);
     ~PBVSolver(){};
 
     void assert_formula(const Term & t) override;

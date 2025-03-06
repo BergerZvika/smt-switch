@@ -38,7 +38,7 @@ const unordered_set<PrimOp> bv_ops({
     BVShl,       BVAshr,      BVLshr, BVComp,      BVUlt,        BVUle,
     BVUgt,       BVUge,       BVSlt,  BVSle,       BVSgt,        BVSge,
     Zero_Extend, Sign_Extend, Repeat, Rotate_Left, Rotate_Right, BV_To_Nat, 
-    PExtract, PZero_Extend, PSign_Extend,
+    PExtract, PZero_Extend, PSign_Extend, Int_To_PBV,
 });
 
 // boolean ops that can easily be represented with bit-vector operators
