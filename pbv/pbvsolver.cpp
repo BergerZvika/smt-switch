@@ -77,6 +77,10 @@ void initializeMap() {
   pbv_args["lazy_pow"] = 1;
   pbv_args["bvlshr"] = 1;
   pbv_args["multiple_bitwidth"] = 1;
+  pbv_args["lazy_piand"] = 1;
+  pbv_args["lemmas_piand"] = 0;
+  pbv_args["lemmas_pow2"] = 0;
+  pbv_args["one_k"] = 0;
 }
 
 int simplifyNumber(const std::string& input) {
@@ -160,7 +164,15 @@ void parse_args(int argc, char** argv) {
         pbv_args["redundent_axioms"] = 0;
       } else if (!(*i).compare("--lazy-pow")) { 
         pbv_args["lazy_pow"] = 0;
-      } else if (!(*i).compare("--bvor-bvxor") || !(*i).compare("--no-elimination")) { 
+      } else if (!(*i).compare("--lazy-piand")) { 
+        pbv_args["lazy_piand"] = 0;
+      } else if (!(*i).compare("--lemmas-pow")) { 
+        pbv_args["lemmas_pow2"] = 1;
+      } else if (!(*i).compare("--lemmas-piand")) { 
+        pbv_args["lemmas_piand"] = 1;
+      }   else if (!(*i).compare("--one-k")) { 
+        pbv_args["one_k"] = 1;
+      }  else if (!(*i).compare("--bvor-bvxor") || !(*i).compare("--no-elimination")) { 
         pbv_args["eliminate_or_xor"] = 0;
       }  else if (!(*i).compare("-mw") || !(*i).compare("--no-multiple-bitwidth")) { 
         pbv_args["multiple_bitwidth"] = 0;
@@ -370,12 +382,12 @@ int main(int argc, char** argv){
     }
   }
 
-  if(get_value) {
-    s->set_opt("produce-model", "true");
-  }
-  if(get_model) {
-    s->set_opt("produce-model", "true");
-  }
+  // if(get_value) {
+  //   s->set_opt("produce-model", "true");
+  // }
+  // if(get_model) {
+  //   s->set_opt("produce-model", "true");
+  // }
   //piand mode options
   if (piand_mode == 1) {
     s->set_opt("piand-mode", "piand");

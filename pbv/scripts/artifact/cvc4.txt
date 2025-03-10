@@ -1,2 +1,0 @@
-configuration 1: --nl-ext-planes
-configuration 2: --nl-ext-tplanes --full-saturate-quant --no-e-matching

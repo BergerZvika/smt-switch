@@ -24,8 +24,12 @@ namespace smt {
     int nonpure = 0;
     int eliminate_or_xor;
     int lazy_pow;
+    int lazy_piand;
     int bvlshr_trans;
     int mw = 1;
+    int lemmas_pow = 0;
+    int lemmas_piand = 0;
+    int one_k = 0;
     // axioms show only once
     int singlenton_axiom = 0;
     int singlenton_bvand = 0;
@@ -42,8 +46,12 @@ namespace smt {
       this->two = solver->make_term(2, sort);
       this->eliminate_or_xor = args["eliminate_or_xor"];
       this->lazy_pow = args["lazy_pow"];
+      this->lazy_piand = args["lazy_piand"];
       this->bvlshr_trans = args["bvlshr"];
       this->mw = args["multiple_bitwidth"];
+      this->lemmas_pow = args["lemmas_pow2"];
+      this->lemmas_piand = args["lemmas_piand"];
+      this->one_k = args["one_k"];
     }
 
     WalkerStepResult visit_term(Term & term);
@@ -70,6 +78,7 @@ namespace smt {
     Term bvand_difference();
     Term bvand_min_range();
     Term bvand_max_range();
+    Term bvand_new_lemmas();
     Term createPow2Term(Term t);
     void mwError();
 };
@@ -108,9 +117,6 @@ class PartialPBVWalker : public AbstractPBVWalker
         this->y = solver->make_param("y", intsort);
       }
       void bvand_handle();
-      // void bvor_handle() {}
-      // void bvxor_handle() {}
-      // void pow2_handle() {}
 };
 
   class FullPBVWalker : public AbstractPBVWalker
@@ -130,9 +136,6 @@ class PartialPBVWalker : public AbstractPBVWalker
         }
 
     void bvand_handle();
-    // void bvor_handle() {}
-    // void bvxor_handle() {}
-    // void pow2_handle() {}
 };
 
   class CADE19PBVWalker : public AbstractPBVWalker
@@ -153,9 +156,6 @@ class PartialPBVWalker : public AbstractPBVWalker
         }
 
     void bvand_handle();
-    // void bvor_handle();
-    // void bvxor_handle();
-    // void pow2_handle();
 };
 
   class EfficientPBVWalker : public AbstractPBVWalker
@@ -175,9 +175,6 @@ class PartialPBVWalker : public AbstractPBVWalker
           this->y = solver->make_param("y", intsort);
         }
     void bvand_handle();
-    // void bvor_handle() {}
-    // void bvxor_handle() {}
-    // void pow2_handle() {}
 };
 
   class NonPurePBVWalker : public EfficientPBVWalker
@@ -197,17 +194,19 @@ class TypeCheckerWalker : public AbstractPBVWalker
      : AbstractPBVWalker(solver, term_rules, operator_rules, args) {
       Sort intsort = solver->make_sort(INT);
       Sort funsort = solver->make_sort(FUNCTION, SortVec{intsort, intsort, intsort, intsort});
-      this->bvand = solver->make_symbol("type_check_bvand", funsort);
-      this->k = solver->make_symbol("type_check_k", intsort);
-      // this->k = solver->make_param("type_check_k", intsort);
+      try {
+        this->bvand = solver->get_symbol("type_check_bvand");
+        this->k = solver->get_symbol("type_check_k");
+
+      } catch (...) {
+        this->bvand = solver->make_symbol("type_check_bvand", funsort);
+        this->k = solver->make_symbol("type_check_k", funsort);
+      }  
       this->x = solver->make_param("type_check_x", intsort);
       this->y = solver->make_param("type_check_y", intsort);
     }
 
     void bvand_handle();
-    // void bvor_handle() {}
-    // void bvxor_handle() {}
-    // void pow2_handle() {}
 };
 
 // PBVConstantWalker
@@ -291,6 +290,8 @@ class AbstractPBVSolver : public AbsSmtSolver
    int redundent_axioms = 1;
    int eliminate_or_xor;
    int lazy_pow;
+   int lazy_piand;
+   int one_k = 0;
   public:
     AbstractPBVSolver(SmtSolver s);
     AbstractPBVSolver(SmtSolver s, int debug);
