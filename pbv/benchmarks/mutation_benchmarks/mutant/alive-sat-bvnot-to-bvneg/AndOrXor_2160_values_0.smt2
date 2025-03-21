@@ -5,5 +5,5 @@
 (declare-fun C4 () (_ BitVec k))
 (declare-fun C3 () (_ BitVec k))
 (declare-fun %V1 () (_ BitVec k))
-(assert (and (= (bvand C1 C2) (_ bv0 k)) (= (bvand C3 (bvneg C1)) (_ bv0 k)) (= (bvand C4 (bvnot C2)) (_ bv0 k)) (not (= (bvor (bvand (bvor %V1 C3) C1) (bvand (bvor %V1 C4) C2)) (bvand (bvor %V1 (bvor C3 C4)) (bvor C1 C2))))))
+(assert (and (= (bvand C1 C2) (int_to_pbv k 0)) (= (bvand C3 (bvneg C1)) (int_to_pbv k 0)) (= (bvand C4 (bvnot C2)) (int_to_pbv k 0)) (not (= (bvor (bvand (bvor %V1 C3) C1) (bvand (bvor %V1 C4) C2)) (bvand (bvor %V1 (bvor C3 C4)) (bvor C1 C2))))))
 (check-sat)

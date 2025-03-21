@@ -3,5 +3,5 @@
 (declare-fun C1 () (_ BitVec k))
 (declare-fun %X () (_ BitVec k))
 (declare-fun C2 () (_ BitVec k))
-(assert (and (= C1 C2) (= (bvand C1 (bvsub C1 (_ bv1 k))) (_ bv0 k)) (not (= (ite (= (bvand %X C1) (_ bv0 k)) %X (bvxor %X C2)) (bvand %X (bvneg C1)))) (not (= C1 (_ bv0 k)))))
+(assert (and (= C1 C2) (= (bvand C1 (bvsub C1 (int_to_pbv k 1))) (int_to_pbv k 0)) (not (= (ite (= (bvand %X C1) (int_to_pbv k 0)) %X (bvxor %X C2)) (bvand %X (bvneg C1)))) (not (= C1 (int_to_pbv k 0)))))
 (check-sat)

@@ -7,14 +7,14 @@
 (declare-fun ts () (_ BitVec k))
 
 (define-fun min () (_ BitVec m)
-  (bvnot (bvlshr (bvnot (_ bv0 m)) (_ bv0 m)))
+  (bvnot (bvlshr (bvnot (int_to_pbv m 0)) (int_to_pbv m 0)))
 )
 (define-fun max () (_ BitVec m)
   (bvnot min)
 )
 
 (define-fun SC () Bool
-(and (bvule s ts) (=> (= s ts) (distinct tx (_ bv0 m))))
+(and (bvule s ts) (=> (= s ts) (distinct tx (int_to_pbv m 0))))
 )
 
 (assert

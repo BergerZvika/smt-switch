@@ -2,7 +2,7 @@
 (declare-const k Int)(declare-const x (_ BitVec k))
 (declare-const s (_ BitVec k))
 (declare-const t (_ BitVec k))
-(define-fun lemma_UDIV_REF3 ((x (_ BitVec k)) (s (_ BitVec k)) (t (_ BitVec k))) Bool (=> (= s (_ bv1 k)) (= t (bvnot (_ bv0 k)))))
+(define-fun lemma_UDIV_REF3 ((x (_ BitVec k)) (s (_ BitVec k)) (t (_ BitVec k))) Bool (=> (= s (int_to_pbv k 1)) (= t (bvnot (int_to_pbv k 0)))))
 (assert (= t (bvudiv x s)))
 (assert (not (lemma_UDIV_REF3 x s t)))
 (check-sat)

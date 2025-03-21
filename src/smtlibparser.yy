@@ -270,6 +270,7 @@ term_s_expr:
     }
     else if ((uf = drv.lookup_symbol($2)))
     {
+
       smt::TermVec vec({uf});
       vec.insert(vec.end(), $3->begin(), $3->end());
       $$ = drv.solver()->make_term(smt::Apply, vec);

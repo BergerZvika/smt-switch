@@ -2,5 +2,5 @@
 (declare-const k Int)
 (declare-fun s () (_ BitVec k))
 (declare-fun t () (_ BitVec k))
-(assert (distinct (bvlshr s (bvurem (_ bv1 k) (bvadd t (_ bv1 k)))) (bvlshr s (bvand (_ bv1 k) (bvnot t)))))
+(assert (distinct (bvlshr s (bvurem (int_to_pbv k 1) (bvadd t (int_to_pbv k 1)))) (bvlshr s (bvand (int_to_pbv k 1) (bvnot t)))))
 (check-sat)

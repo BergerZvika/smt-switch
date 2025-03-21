@@ -7,7 +7,7 @@
 (declare-fun ts () (_ BitVec k))
 
 (define-fun min () (_ BitVec m)
-  (bvnot (bvshl (bvnot (_ bv0 m)) (_ bv1 m)))
+  (bvnot (bvshl (bvnot (int_to_pbv m 0)) (int_to_pbv m 1)))
 )
 (define-fun max () (_ BitVec m)
   (bvnot min)

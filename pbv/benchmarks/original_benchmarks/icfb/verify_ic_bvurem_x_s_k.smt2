@@ -19,15 +19,15 @@
 
 
 (define-fun odd ((v (_ BitVec k))) Bool
- (= (pextract 0 0  v) (_ bv1 1))
+ (= (pextract 0 0  v) (int_to_pbv 1 1))
 )
 
 (define-fun zero () (_ BitVec k)
- (_ bv0 k)
+ (int_to_pbv k 0)
 )
 
 (define-fun one () (_ BitVec k)
- (_ bv1 k)
+ (int_to_pbv k 1)
 )
 
 (define-fun ones () (_ BitVec k)
@@ -40,7 +40,7 @@
 
 (define-fun addo ((a (_ BitVec k)) (b (_ BitVec k))) Bool
  (let ((zext_a (pzero_extend 1 a)) (zext_b (pzero_extend 1 b)))
-  (= (pextract k k  (bvadd zext_a zext_b)) (_ bv1 1))
+  (= (pextract k k  (bvadd zext_a zext_b)) (int_to_pbv 1 1))
  )
 )
 

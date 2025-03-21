@@ -1,6 +1,0 @@
-(set-logic ALL)
-(declare-const k Int)
-(declare-fun %y () (_ BitVec k))
-(declare-fun %x () (_ BitVec k))
-(assert (not (= (bvand (pzero_extend k %x) (pzero_extend k %y)) (pzero_extend k (bvand %x %y)))))
-(check-sat)

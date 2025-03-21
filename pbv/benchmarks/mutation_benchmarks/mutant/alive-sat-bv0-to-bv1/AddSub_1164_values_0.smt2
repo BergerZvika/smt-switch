@@ -2,5 +2,5 @@
 (declare-const k Int)
 (declare-fun %a () (_ BitVec k))
 (declare-fun %b () (_ BitVec k))
-(assert (not (= (bvadd (bvsub (_ bv1 k) %a) %b) (bvsub %b %a))))
+(assert (not (= (bvadd (bvsub (int_to_pbv k 1) %a) %b) (bvsub %b %a))))
 (check-sat)

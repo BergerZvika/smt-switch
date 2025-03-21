@@ -3,5 +3,5 @@
 (declare-fun C2 () (_ BitVec k))
 (declare-fun %a () (_ BitVec k))
 (declare-fun C1 () (_ BitVec k))
-(assert (not (and (bvult C1 C2) (= C2 (bvadd C1 (_ bv1 k))) (not (= (and (bvugt %a C1) (not (= %a C2))) (bvugt %a C2))))))
+(assert (not (and (bvult C1 C2) (= C2 (bvadd C1 (int_to_pbv k 1))) (not (= (and (bvugt %a C1) (not (= %a C2))) (bvugt %a C2))))))
 (check-sat)

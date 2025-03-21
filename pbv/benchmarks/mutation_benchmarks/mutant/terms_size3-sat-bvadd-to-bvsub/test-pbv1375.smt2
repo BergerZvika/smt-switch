@@ -4,6 +4,6 @@
 (declare-const k Int)
 (declare-const s (_ BitVec k))
 (declare-const t (_ BitVec k))
-(assert (distinct (bvlshr (bvsub t t) (bvneg (_ bv0 k))) (bvadd (bvlshr s s) (bvadd t t))))
+(assert (distinct (bvlshr (bvsub t t) (bvneg (int_to_pbv k 0))) (bvadd (bvlshr s s) (bvadd t t))))
 (check-sat)
 (exit)

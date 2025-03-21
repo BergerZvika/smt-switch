@@ -5,20 +5,20 @@
 (declare-fun t () (_ BitVec k))
 
 (define-fun udivtotal ((a (_ BitVec k)) (b (_ BitVec k))) (_ BitVec k)
-  (ite (= b (_ bv0 k)) (bvnot (_ bv0 k)) (bvudiv a b))
+  (ite (= b (int_to_pbv k 0)) (bvnot (int_to_pbv k 0)) (bvudiv a b))
 )
 (define-fun uremtotal ((a (_ BitVec k)) (b (_ BitVec k))) (_ BitVec k)
-  (ite (= b (_ bv0 k)) a (bvurem a b))
+  (ite (= b (int_to_pbv k 0)) a (bvurem a b))
 )
 (define-fun min () (_ BitVec k)
-  (bvnot (bvlshr (bvnot (_ bv0 k)) (_ bv0 k)))
+  (bvnot (bvlshr (bvnot (int_to_pbv k 0)) (int_to_pbv k 0)))
 )
 (define-fun max () (_ BitVec k)
   (bvnot min)
 )
 
 (define-fun SC ((s (_ BitVec k)) (t (_ BitVec k))) Bool
-(bvslt (bvnot (_ bv0 k)) (bvand (bvneg s) t))
+(bvslt (bvnot (int_to_pbv k 0)) (bvand (bvneg s) t))
 )
 
 (assert

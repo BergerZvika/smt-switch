@@ -1,5 +1,5 @@
 (set-logic ALL)
 (declare-const k Int)
 (declare-fun %b () (_ BitVec k))
-(assert (let ((_let_0 (psign_extend 1 %b))) (let ((_let_1 (bvsub %b %b))) (and (= (bvadd _let_0 _let_0) (psign_extend 1 _let_1)) (not (= _let_1 (bvshl %b (_ bv1 k))))))))
+(assert (let ((_let_0 (psign_extend 1 %b))) (let ((_let_1 (bvsub %b %b))) (and (= (bvadd _let_0 _let_0) (psign_extend 1 _let_1)) (not (= _let_1 (bvshl %b (int_to_pbv k 1))))))))
 (check-sat)

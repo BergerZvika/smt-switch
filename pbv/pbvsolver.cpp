@@ -52,9 +52,9 @@ class SmtLibReaderTester : public SmtLibReader
 std::map<std::string, int> pbv_args;
 int help = 0;
 int produce_model = 0;
-int piand_sum_mode = 1;
+int piand_sum_mode = 3;
 int piand_mode = 1;
-int difference_lemma = 0;
+int difference_lemma = 1;
 int skolem_lemma = 0;
 int after_simplify = 0;
 int get_value = 0;
@@ -72,7 +72,8 @@ void initializeMap() {
   pbv_args["translate_smt"] = 0;
   pbv_args["simplify"] = -1;
   pbv_args["rewrite"] = 1;
-  pbv_args["eliminate_or_xor"] = 1;
+  pbv_args["eliminate_or"] = 1;
+  pbv_args["eliminate_xor"] = 1;
   pbv_args["redundent_axioms"] = 1;
   pbv_args["lazy_pow"] = 1;
   pbv_args["bvlshr"] = 1;
@@ -81,6 +82,7 @@ void initializeMap() {
   pbv_args["lemmas_piand"] = 0;
   pbv_args["lemmas_pow2"] = 0;
   pbv_args["one_k"] = 0;
+  pbv_args["simplify_only"] = 0;
 }
 
 int simplifyNumber(const std::string& input) {
@@ -118,30 +120,80 @@ void parse_args(int argc, char** argv) {
       if (!(*i).compare("-h") ||  !(*i).compare("--help")) {
         help = 1;
         cout << "Syntax: ./pbvsolver <path/to/smt2>" << endl;
+        cout << endl;
         cout << "\t-h / --help\t\tprint help command line arrgument on screen." << endl;
-        cout << "\t-d / --debug\t\tprint to screen debug meeseges at runtime.." << endl;
-        cout << "\t--pbvsolver\t\tuse default piand PBVSolver." << endl;
-        cout << "\t-c / --comb / --combine\t\tuse PBVSolver with combaine (default)." << endl;
-        cout << "\t-f / --full\t\tuse PBVSolver with full." << endl;
-        cout << "\t-p / --partial\t\tuse PBVSolver with partial." << endl;
-        cout << "\t-w / --no-postwalk\t\tdisable postwalk to optimize your benchmark." << endl;
-        cout << "\t-t / --type-check\t\ttype checking before solving formula." << endl;
-        cout << "\t-m / --maxint\t\tnon pure piand solver, upper bound of bit-width 67108864." << endl;
-        cout << "\t-r / --rewrite\t\tdon't use rewrite rules on pbv formula." << endl;
-        cout << "\t-s / --simplify\t\tuse default simplify with bit-width 64." << endl;
-        cout << "\t-fs / --false-simplify\t\tuse simplify when simplify get false or true." << endl;
-        cout << "\t--simplify={num}\t\tuse simplify with bit-width num." << endl;
-        cout << "\t--no-sub\t\ttranslate x-y to x + (-y)." << endl;
-        cout << "\t--produce-model\t\tuse produce model solver." << endl;
-        cout << "\t--cigar\t\tput all piand lemmas in cigar loop." << endl;
-        cout << "\t--no-cigar\t\tput all piand lemmas in initilize." << endl;
-        cout << "\t--cvc5:{args}\t\tsend arguments to cvc5 solver. foe example --cvc5:nl-cov or --cvc5:mbqi. you can also send a list of arguments at once --cvc5:\"nl-cov mbqi\"." << endl;
-        cout << "\t--no-sum-based-lemma\t\tremove sum based lemma." << endl;
-        cout << "\t--sum-eq-lemma\t\tadd sum based lemma eq." << endl;
-        cout << "\t--sum-ge-lemma\t\tadd sum based lemma ge." << endl;
-        cout << "\t--bitwise-based-lemma\t\tadd bitwised based lemma." << endl;
-        cout << "\t--skolem-lemmas\t\tadd skolems lemmas." << endl;
-        cout << "\t--trans\t\tcreate smt2 file of the translation." << endl;
+        cout << "\t-d / --debug\t\tprint to screen debug meeseges at runtime." << endl;
+        cout << "\t-t / --type-check\ttype checking before solving formula." << endl;
+        cout << "\t--trans\t\t\tcreate smt2 file of the translation." << endl;
+        cout << "\t--cvc5:{args}\t\tsend arguments to cvc5 solver. for example --cvc5:nl-cov or --cvc5:mbqi=fmc." << endl;
+        cout << "\t\t\t\tyou can also send a list of arguments at once --cvc5:\"nl-cov mbqi\"." << endl;
+        
+        // cout << "\t-s / --simplify\t\tuse default simplify with bit-width 64." << endl;
+        // cout << "\t-fs / --false-simplify\t\tuse simplify when simplify get false or true." << endl;
+        // cout << "\t--simplify={num}\t\tuse simplify with bit-width num." << endl;
+        // cout << "\t--produce-model\t\tuse produce model solver." << endl;
+        cout << endl;
+        cout << "\tpiand solver:" << endl;
+        cout << "\t\t--cigar\t\t\tput all piand lemmas in cigar loop." << endl;
+        cout << "\t\t--no-cigar\t\tput all piand lemmas in initilize." << endl;
+        cout << "\t\t--no-sum-based-lemma\tremove sum based lemma." << endl;
+        cout << "\t\t--sum-eq-lemma\t\tuse sum based lemma eq." << endl;
+        cout << "\t\t--sum-ge-lemma\t\tuse sum based lemma ge." << endl;
+        cout << "\t\t---sum-both-lemma\t\tuse sum based lemma eq + ge." << endl;
+        cout << "\t\t--bitwise-based-lemma\tuse bitwised based lemma ibtead of sum lemma." << endl;
+        cout << "\t\t--skolem-lemmas\t\tadd skolems lemmas." << endl;
+
+        cout << endl;
+        cout << "\tattributes of pbv solver:" << endl;
+        cout << "\t\t-w / --no-postwalk\tdisable postwalk." << endl;
+        cout << "\t\t-r / --rewrite\t\tdisable rewrite rules on pbv formula." << endl;
+        cout << "\t\t--always-axioms\t\tinsert axioms in all formulas." << endl;
+        cout << "\t\t--eager-pow\t\tsolved pow2 in eager approach." << endl;
+        cout << "\t\t--eager-piand\t\tsolved piand in eager approach." << endl;
+        cout << "\t\t--lemmas-pow\t\tadd our new lemmas to solved pow2." << endl;
+        cout << "\t\t--lemmas-pow-all\tadd more new lemmas to solved pow2 (not in paper)." << endl;
+        cout << "\t\t--lemmas-piand\t\tadd our new lemmas to solved piand." << endl;
+        cout << "\t\t--one-k\t\t\toptimize cade19 solver with same k in all axioms." << endl;
+        cout << "\t\t--no-elimination\tdo not eliminate bvor and bvxor to bvand." << endl;
+        cout << "\t\t--bvor\t\t\tdo not eliminate bvor to bvand." << endl;
+        cout << "\t\t--bvxor\t\t\tdo not eliminate bvxor to bvand." << endl;
+        cout << "\t\t-mw / --one-bitwidth\tsolved only pbv formulas with one bitwidth." << endl;
+        cout << "\t\t--no-sub\t\ttranslate x-y to x + (-y)." << endl;
+        cout << "\t\t--no-solving\t\tnot use cvc5 solver just simplify." << endl;
+        
+        cout << endl;
+        cout << "\tconfigurations from paper:" << endl;
+        cout << "\t\t--cade19" << endl;
+        cout << "\t\t--lem-pow" << endl;
+        cout << "\t\t--lem-piand" << endl;
+        cout << "\t\t--lazy-pow" << endl;
+        cout << "\t\t--lazy-piand" << endl;
+        cout << "\t\t--cade19-elim-or" << endl;
+        cout << "\t\t--cade19-elim-xor" << endl;
+        cout << "\t\t--cade19-elim-lshr" << endl;
+        cout << "\t\t--cade19-or-xor-lshr" << endl;
+        cout << "\t\t--eager" << endl;
+        cout << "\t\t--eager+pw" << endl;
+        cout << "\t\t--eager+rr" << endl;
+        cout << "\t\t--eager+pw+rr" << endl;
+        cout << "\t\t--piand" << endl;
+        cout << "\t\t--piandA" << endl;
+        cout << "\t\t--piandV" << endl;
+        cout << "\t\t--piandAB" << endl;
+        cout << "\t\t--simplify-only" << endl;
+        
+
+        cout << endl;
+        cout << "\tpbvsolver solver:" << endl;
+        cout << "\t\t--pbvsolver\t\tuse default piand PBVSolver." << endl;
+        cout << "\t\t-c / --combine\t\tuse eager piand approach PBVSolver with combaine (default)." << endl;
+        cout << "\t\t-f / --full\t\tuse eager piand approach PBVSolver with full." << endl;
+        cout << "\t\t-p / --partial\t\tuse eager piand approach PBVSolver with partial." << endl;
+        cout << "\t\t-t19 / --cade19-translate\t\tuse  PBVSolver with cade19 translation." << endl;
+        cout << "\t\t-m / --maxint\t\tnon pure piand solver, upper bound of bit-width 67108864." << endl;
+        
+
+        
       } else if (!(*i).compare("-d") ||  !(*i).compare("--debug")) {
         pbv_args["debug"] = 1;
       } else if (!(*i).compare("--pbvsolver")) {
@@ -154,31 +206,283 @@ void parse_args(int argc, char** argv) {
         pbv_args["pbvsolver"] = 3; //partial
       } else if (!(*i).compare("-m") ||  !(*i).compare("--maxint")) {
         pbv_args["pbvsolver"] = 4; // non pure pbv solver, k <= 67,108,864
-      } else if (!(*i).compare("-19") ||  !(*i).compare("--cade19")) {
+      } else if (!(*i).compare("-t19") ||  !(*i).compare("--cade19-translate")) {
         pbv_args["pbvsolver"] = 5; // cade19 solver
       } else if (!(*i).compare("-w") ||  !(*i).compare("--no-postwalk")) { 
         pbv_args["postwalk"] = 0;
       } else if (!(*i).compare("--no-sub")) { 
         pbv_args["bvsub"] = 1;
-      } else if (!(*i).compare("--no-redundent-axioms")) { 
+      } else if (!(*i).compare("--always-axioms")) { 
         pbv_args["redundent_axioms"] = 0;
-      } else if (!(*i).compare("--lazy-pow")) { 
+      } else if (!(*i).compare("--eager-pow")) { 
         pbv_args["lazy_pow"] = 0;
-      } else if (!(*i).compare("--lazy-piand")) { 
+      } else if (!(*i).compare("--eager-piand")) { 
         pbv_args["lazy_piand"] = 0;
-      } else if (!(*i).compare("--lemmas-pow")) { 
+      } else if (!(*i).compare("--lemmas-pow-all")) { 
         pbv_args["lemmas_pow2"] = 1;
+      } else if (!(*i).compare("--lemmas-pow")) { 
+        pbv_args["lemmas_pow2"] = 2;
       } else if (!(*i).compare("--lemmas-piand")) { 
         pbv_args["lemmas_piand"] = 1;
       }   else if (!(*i).compare("--one-k")) { 
         pbv_args["one_k"] = 1;
-      }  else if (!(*i).compare("--bvor-bvxor") || !(*i).compare("--no-elimination")) { 
-        pbv_args["eliminate_or_xor"] = 0;
-      }  else if (!(*i).compare("-mw") || !(*i).compare("--no-multiple-bitwidth")) { 
+      }  else if (!(*i).compare("--no-elimination")) { 
+        pbv_args["eliminate_or"] = 0;
+        pbv_args["eliminate_xor"] = 0;
+      } else if (!(*i).compare("--bvor")) { 
+        pbv_args["eliminate_or"] = 0;
+      } else if (!(*i).compare("--bvxor")) { 
+        pbv_args["eliminate_xor"] = 0;
+      } else if (!(*i).compare("-mw") || !(*i).compare("--no-multiple-bitwidth")) { 
         pbv_args["multiple_bitwidth"] = 0;
-      }else if (!(*i).compare("--bvlshr") || !(*i).compare("-l")) { 
+      } else if (!(*i).compare("--bvlshr") || !(*i).compare("-l")) { 
         pbv_args["bvlshr"] = 0;
-      } else if (simplifyNumber(*i) >= 0) { 
+      } else if (!(*i).compare("--no-solving")) { 
+        pbv_args["simplify_only"] = 1;
+      }  else if (!(*i).compare("--simplify-only")) { 
+        pbv_args["simplify_only"] = 1;
+        pbv_args["postwalk"] = 1;
+        pbv_args["rewrite"] = 1;
+        pbv_args["eliminate_or"] = 1;
+        pbv_args["eliminate_xor"] = 1;
+        pbv_args["redundent_axioms"] = 1;
+        pbv_args["lazy_pow"] = 1;
+        pbv_args["bvlshr"] = 1;
+        pbv_args["multiple_bitwidth"] = 1;
+        pbv_args["lazy_piand"] = 1;
+        pbv_args["lemmas_piand"] = 0;
+        pbv_args["lemmas_pow2"] = 0;
+      } else if (!(*i).compare("--cade19")) { 
+        pbv_args["pbvsolver"] = 5;
+        pbv_args["postwalk"] = 0;
+        pbv_args["rewrite"] = 0;
+        pbv_args["eliminate_or"] = 0;
+        pbv_args["eliminate_xor"] = 0;
+        pbv_args["redundent_axioms"] = 0;
+        pbv_args["lazy_pow"] = 0;
+        pbv_args["bvlshr"] = 0;
+        pbv_args["multiple_bitwidth"] = 0;
+        pbv_args["lazy_piand"] = 0;
+        pbv_args["lemmas_piand"] = 0;
+        pbv_args["lemmas_pow2"] = 0;
+        pbv_args["one_k"] = 0;
+      } else if (!(*i).compare("--lem-pow")) { 
+        pbv_args["pbvsolver"] = 5;
+        pbv_args["postwalk"] = 0;
+        pbv_args["rewrite"] = 0;
+        pbv_args["eliminate_or"] = 0;
+        pbv_args["eliminate_xor"] = 0;
+        pbv_args["redundent_axioms"] = 0;
+        pbv_args["lazy_pow"] = 0;
+        pbv_args["bvlshr"] = 0;
+        pbv_args["multiple_bitwidth"] = 0;
+        pbv_args["lazy_piand"] = 0;
+        pbv_args["lemmas_piand"] = 0;
+        pbv_args["lemmas_pow2"] = 2;
+        pbv_args["one_k"] = 0;
+      } else if (!(*i).compare("--lem-piand")) { 
+        pbv_args["pbvsolver"] = 5;
+        pbv_args["postwalk"] = 0;
+        pbv_args["rewrite"] = 0;
+        pbv_args["eliminate_or"] = 0;
+        pbv_args["eliminate_xor"] = 0;
+        pbv_args["redundent_axioms"] = 0;
+        pbv_args["lazy_pow"] = 0;
+        pbv_args["bvlshr"] = 0;
+        pbv_args["multiple_bitwidth"] = 0;
+        pbv_args["lazy_piand"] = 0;
+        pbv_args["lemmas_piand"] = 1;
+        pbv_args["lemmas_pow2"] = 0;
+        pbv_args["one_k"] = 0;
+      } else if (!(*i).compare("--lazy-pow")) { 
+        pbv_args["pbvsolver"] = 5;
+        pbv_args["postwalk"] = 0;
+        pbv_args["rewrite"] = 0;
+        pbv_args["eliminate_or"] = 0;
+        pbv_args["eliminate_xor"] = 0;
+        pbv_args["redundent_axioms"] = 0;
+        pbv_args["lazy_pow"] = 1;
+        pbv_args["bvlshr"] = 0;
+        pbv_args["multiple_bitwidth"] = 0;
+        pbv_args["lazy_piand"] = 0;
+        pbv_args["lemmas_piand"] = 0;
+        pbv_args["lemmas_pow2"] = 2;
+        pbv_args["one_k"] = 0;
+      } else if (!(*i).compare("--lazy-piand")) { 
+        pbv_args["pbvsolver"] = 5;
+        pbv_args["postwalk"] = 0;
+        pbv_args["rewrite"] = 0;
+        pbv_args["eliminate_or"] = 0;
+        pbv_args["eliminate_xor"] = 0;
+        pbv_args["redundent_axioms"] = 0;
+        pbv_args["lazy_pow"] = 0;
+        pbv_args["bvlshr"] = 0;
+        pbv_args["multiple_bitwidth"] = 0;
+        pbv_args["lazy_piand"] = 1;
+        pbv_args["lemmas_piand"] = 0;
+        pbv_args["lemmas_pow2"] = 0;
+        pbv_args["one_k"] = 0;
+      } else if (!(*i).compare("--cade19-elim-or")) { 
+        pbv_args["pbvsolver"] = 5;
+        pbv_args["postwalk"] = 0;
+        pbv_args["rewrite"] = 0;
+        pbv_args["  "] = 1;
+        pbv_args["eliminate_xor"] = 0;
+        pbv_args["redundent_axioms"] = 0;
+        pbv_args["lazy_pow"] = 0;
+        pbv_args["bvlshr"] = 0;
+        pbv_args["multiple_bitwidth"] = 0;
+        pbv_args["lazy_piand"] = 0;
+        pbv_args["lemmas_piand"] = 0;
+        pbv_args["lemmas_pow2"] = 0;
+        pbv_args["one_k"] = 0;
+      } else if (!(*i).compare("--cade19-elim-xor")) { 
+        pbv_args["pbvsolver"] = 5;
+        pbv_args["postwalk"] = 0;
+        pbv_args["rewrite"] = 0;
+        pbv_args["eliminate_or"] = 0;
+        pbv_args["eliminate_xor"] = 1;
+        pbv_args["redundent_axioms"] = 0;
+        pbv_args["lazy_pow"] = 0;
+        pbv_args["bvlshr"] = 0;
+        pbv_args["multiple_bitwidth"] = 0;
+        pbv_args["lazy_piand"] = 0;
+        pbv_args["lemmas_piand"] = 0;
+        pbv_args["lemmas_pow2"] = 0;
+        pbv_args["one_k"] = 0;
+      } else if (!(*i).compare("--cade19-elim-lshr")) { 
+        pbv_args["pbvsolver"] = 5;
+        pbv_args["postwalk"] = 0;
+        pbv_args["rewrite"] = 0;
+        pbv_args["eliminate_or"] = 0;
+        pbv_args["eliminate_xor"] = 0;
+        pbv_args["redundent_axioms"] = 0;
+        pbv_args["lazy_pow"] = 0;
+        pbv_args["bvlshr"] = 1;
+        pbv_args["multiple_bitwidth"] = 0;
+        pbv_args["lazy_piand"] = 0;
+        pbv_args["lemmas_piand"] = 0;
+        pbv_args["lemmas_pow2"] = 0;
+        pbv_args["one_k"] = 0;
+      } else if (!(*i).compare("--cade19-or-xor-lshr")) { 
+        pbv_args["pbvsolver"] = 5;
+        pbv_args["postwalk"] = 0;
+        pbv_args["rewrite"] = 0;
+        pbv_args["eliminate_or"] = 1;
+        pbv_args["eliminate_xor"] = 1;
+        pbv_args["redundent_axioms"] = 0;
+        pbv_args["lazy_pow"] = 0;
+        pbv_args["bvlshr"] = 1;
+        pbv_args["multiple_bitwidth"] = 0;
+        pbv_args["lazy_piand"] = 0;
+        pbv_args["lemmas_piand"] = 0;
+        pbv_args["lemmas_pow2"] = 0;
+        pbv_args["one_k"] = 0;
+      } else if (!(*i).compare("--eager")) { 
+        pbv_args["pbvsolver"] = 5;
+        pbv_args["postwalk"] = 0;
+        pbv_args["rewrite"] = 0;
+        pbv_args["eliminate_or"] = 1;
+        pbv_args["eliminate_xor"] = 1;
+        pbv_args["redundent_axioms"] = 1;
+        pbv_args["lazy_pow"] = 0;
+        pbv_args["lazy_piand"] = 0;
+        pbv_args["bvlshr"] = 1;
+        pbv_args["multiple_bitwidth"] = 1;
+        pbv_args["lemmas_piand"] = 1;
+        pbv_args["lemmas_pow2"] = 2;
+        pbv_args["one_k"] = 0;
+      } else if (!(*i).compare("--eager+pw")) { 
+        pbv_args["pbvsolver"] = 5;
+        pbv_args["postwalk"] = 1;
+        pbv_args["rewrite"] = 0;
+        pbv_args["eliminate_or"] = 1;
+        pbv_args["eliminate_xor"] = 1;
+        pbv_args["redundent_axioms"] = 1;
+        pbv_args["lazy_pow"] = 0;
+        pbv_args["lazy_piand"] = 0;
+        pbv_args["bvlshr"] = 1;
+        pbv_args["multiple_bitwidth"] = 1;
+        pbv_args["lemmas_piand"] = 1;
+        pbv_args["lemmas_pow2"] = 2;
+        pbv_args["one_k"] = 0;
+      } else if (!(*i).compare("--eager+rr")) {
+        pbv_args["pbvsolver"] = 5; 
+        pbv_args["postwalk"] = 0;
+        pbv_args["rewrite"] = 1;
+        pbv_args["eliminate_or"] = 1;
+        pbv_args["eliminate_xor"] = 1;
+        pbv_args["redundent_axioms"] = 1;
+        pbv_args["lazy_pow"] = 0;
+        pbv_args["lazy_piand"] = 0;
+        pbv_args["bvlshr"] = 1;
+        pbv_args["multiple_bitwidth"] = 1;
+        pbv_args["lemmas_piand"] = 1;
+        pbv_args["lemmas_pow2"] = 2;
+        pbv_args["one_k"] = 0;
+      } else if (!(*i).compare("--eager+pw+rr")) { 
+        pbv_args["pbvsolver"] = 5;
+        pbv_args["postwalk"] = 1;
+        pbv_args["rewrite"] = 1;
+        pbv_args["eliminate_or"] = 1;
+        pbv_args["eliminate_xor"] = 1;
+        pbv_args["redundent_axioms"] = 1;
+        pbv_args["lazy_pow"] = 0;
+        pbv_args["lazy_piand"] = 0;
+        pbv_args["bvlshr"] = 1;
+        pbv_args["multiple_bitwidth"] = 1;
+        pbv_args["lemmas_piand"] = 1;
+        pbv_args["lemmas_pow2"] = 2;
+        pbv_args["one_k"] = 0;
+      } else if (!(*i).compare("--piand")) { 
+        pbv_args["postwalk"] = 0;
+        pbv_args["rewrite"] = 0;
+        pbv_args["eliminate_or"] = 1;
+        pbv_args["eliminate_xor"] = 1;
+        pbv_args["redundent_axioms"] = 1;
+        pbv_args["lazy_pow"] = 1;
+        pbv_args["lazy_piand"] = 1;
+        pbv_args["bvlshr"] = 1;
+        pbv_args["multiple_bitwidth"] = 1;
+        pbv_args["lemmas_piand"] = 1;
+        pbv_args["lemmas_pow2"] = 2;
+      } else if (!(*i).compare("--piandA")) { 
+        pbv_args["postwalk"] = 1;
+        pbv_args["rewrite"] = 0;
+        pbv_args["eliminate_or"] = 1;
+        pbv_args["eliminate_xor"] = 1;
+        pbv_args["redundent_axioms"] = 1;
+        pbv_args["lazy_pow"] = 1;
+        pbv_args["lazy_piand"] = 1;
+        pbv_args["bvlshr"] = 1;
+        pbv_args["multiple_bitwidth"] = 1;
+        pbv_args["lemmas_piand"] = 1;
+        pbv_args["lemmas_pow2"] = 2;
+      } else if (!(*i).compare("--piandB")) { 
+        pbv_args["postwalk"] = 0;
+        pbv_args["rewrite"] = 1;
+        pbv_args["eliminate_or"] = 1;
+        pbv_args["eliminate_xor"] = 1;
+        pbv_args["redundent_axioms"] = 1;
+        pbv_args["lazy_pow"] = 1;
+        pbv_args["lazy_piand"] = 1;
+        pbv_args["bvlshr"] = 1;
+        pbv_args["multiple_bitwidth"] = 1;
+        pbv_args["lemmas_piand"] = 1;
+        pbv_args["lemmas_pow2"] = 2;
+      } else if (!(*i).compare("--piandAB")) { 
+        pbv_args["postwalk"] = 1;
+        pbv_args["rewrite"] = 1;
+        pbv_args["eliminate_or"] = 1;
+        pbv_args["eliminate_xor"] = 1;
+        pbv_args["redundent_axioms"] = 1;
+        pbv_args["lazy_pow"] = 1;
+        pbv_args["lazy_piand"] = 1;
+        pbv_args["bvlshr"] = 1;
+        pbv_args["multiple_bitwidth"] = 1;
+        pbv_args["lemmas_piand"] = 1;
+        pbv_args["lemmas_pow2"] = 2;
+      }else if (simplifyNumber(*i) >= 0) { 
         pbv_args["simplify"] = simplifyNumber(*i);
       } else if (!(*i).compare("-s") || !(*i).compare("--simplify")) { 
         pbv_args["simplify"] = 64;
@@ -198,13 +502,15 @@ void parse_args(int argc, char** argv) {
         piand_mode = 3;
       } else if (!(*i).compare("--no-sum-based-lemma")) {
         piand_sum_mode = 0;
-      } else if (!(*i).compare("--sum-ge-lemma")) {
+      } else if (!(*i).compare("--sum-eq-lemma")) {
+        piand_sum_mode = 1;
+      }  else if (!(*i).compare("--sum-ge-lemma")) {
         piand_sum_mode = 3;
       } else if (!(*i).compare("--sum-both-lemma")) {
         piand_sum_mode = 4;
       } else if (!(*i).compare("--bitwise-based-lemma")) {
         piand_sum_mode = 2;
-      } else if (!(*i).compare("--difference-lemma")) {
+      } else if (!(*i).compare("--no-difference-lemma")) {
         difference_lemma = 0;
       } else if (!(*i).compare("--skolem-lemmas")) {
         skolem_lemma = 1;
@@ -339,8 +645,8 @@ int main(int argc, char** argv){
   // create pbvsolver
   SmtSolver s, type_checker;
   SmtSolver cvc5 = Cvc5SolverFactory::create(false);
-  // s = std::make_shared<PBVSolver>(cvc5, pbv_args["debug"], pbv_args["pbvsolver"], pbv_args["postwalk"], 0, pbv_args["translate_smt"], pbv_args["bvsub"], pbv_args["simplify"], pbv_args["rewrite"]);
   s = std::make_shared<PBVSolver>(cvc5, pbv_args);
+  s->set_logic("UFNIA");
 
   // solver options
   std::size_t equal_pos;
@@ -461,11 +767,6 @@ int main(int argc, char** argv){
     cout << results[0] << endl;
   } catch (const std::runtime_error& e) {
       cout << "unknown" << endl;
-  // } catch (std::exception& e) {
-    // if (std::string(e.what()).find("67108864") != std::string::npos) {
-    //   cout << "unknown" << endl;
-    // }
-    // cout << e.what() << endl;
   }
   return 0;
 }

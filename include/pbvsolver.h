@@ -22,7 +22,8 @@ namespace smt {
     Term two, bvand, bvor, bvxor, ufpow, x, y, z;
     int piand = 0;
     int nonpure = 0;
-    int eliminate_or_xor;
+    int eliminate_or;
+    int eliminate_xor;
     int lazy_pow;
     int lazy_piand;
     int bvlshr_trans;
@@ -38,13 +39,14 @@ namespace smt {
     int singlenton_pow2 = 0;
 
   public:
-    Term k;
+    Term k = NULL;
     AbstractPBVWalker(const SmtSolver & solver,TermVec* term_rules,TermVec* operator_rules, map<string,int> args) : smt::IdentityWalker(solver, true, new UnorderedTermMap()) {
       this->term_rules = term_rules;
       this->operator_rules = operator_rules;
       Sort sort = solver->make_sort(INT);
       this->two = solver->make_term(2, sort);
-      this->eliminate_or_xor = args["eliminate_or_xor"];
+      this->eliminate_or = args["eliminate_or"];
+      this->eliminate_xor = args["eliminate_xor"];
       this->lazy_pow = args["lazy_pow"];
       this->lazy_piand = args["lazy_piand"];
       this->bvlshr_trans = args["bvlshr"];
@@ -279,6 +281,7 @@ class AbstractPBVSolver : public AbsSmtSolver
    SmtSolver wrapped_solver;
    TermVec term_rules;
    TermVec operator_rules;
+   TermVec simplify_only_term;
    AbstractPBVWalker* walker;
    int debug = 0;
    int postwalk = 0;
@@ -288,10 +291,12 @@ class AbstractPBVSolver : public AbsSmtSolver
    int simplify_num = 0;
    int rewrite = 0;
    int redundent_axioms = 1;
-   int eliminate_or_xor;
+   int eliminate_xor;
+   int eliminate_or;
    int lazy_pow;
    int lazy_piand;
    int one_k = 0;
+   int simplify_only;
   public:
     AbstractPBVSolver(SmtSolver s);
     AbstractPBVSolver(SmtSolver s, int debug);

@@ -415,6 +415,7 @@ Term SmtLibReader::apply_define_fun(const string & defname,
 
   auto it = defs_.find(defname);
 
+
   if (it == defs_.end())
   {
     throw SmtException("Unknown function: " + defname);
@@ -428,11 +429,12 @@ Term SmtLibReader::apply_define_fun(const string & defname,
                        + " not applied to correct number of arguments.");
   }
 
+
   for (size_t i = 0; i < args.size(); ++i)
   {
     subs_map[def_args_.at(defname)[i]] = args[i];
   }
-
+  
   return solver_->substitute(def, subs_map);
 }
 

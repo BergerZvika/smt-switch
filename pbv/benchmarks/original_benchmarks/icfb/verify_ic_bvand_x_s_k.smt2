@@ -15,20 +15,21 @@
  )
 )
 
-
-
+(define-fun bvxnor ((a (_ BitVec k)) (b (_ BitVec k))) Bool
+ (= a b)
+)
 
 
 (define-fun odd ((v (_ BitVec k))) Bool
- (= (pextract 0 0  v) (_ bv1 1))
+ (= (pextract 0 0  v) (int_to_pbv 1 1))
 )
 
 (define-fun zero () (_ BitVec k)
- (_ bv0 k)
+ (int_to_pbv k 0)
 )
 
 (define-fun one () (_ BitVec k)
- (_ bv1 k)
+ (int_to_pbv k 1)
 )
 
 (define-fun ones () (_ BitVec k)
@@ -44,7 +45,7 @@
 )
 
 (define-fun w () (_ BitVec k)
- (_ bvk k)
+ (int_to_pbv k k)
 )
 
 (define-fun msb ((v (_ BitVec k))) (_ BitVec 1)
@@ -52,7 +53,7 @@
 )
 
 (define-fun IC ((s (_ BitVec k)) (t (_ BitVec k)) (xlo (_ BitVec k)) (xhi (_ BitVec k))) Bool
- (and (= (bvand s t) t) (= (bvand s xhi (bvxnor xlo xhi)) (bvand t (bvxnor xlo xhi))))
+ (and (= (bvand s t) t) (= (bvand s xhi (= xlo xhi)) (bvand t (= xlo xhi))))
 )
 
 (define-fun LIT ((x (_ BitVec k))) Bool

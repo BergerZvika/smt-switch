@@ -5,5 +5,5 @@
 (declare-fun C1 () (_ BitVec m))
 (declare-fun %X () (_ BitVec m))
 (assert (> m k))
-(assert (let ((_let_0 (bvshl %X C1))) (let ((_let_1 (pzero_extend (- m k) C2))) (and (bvult C1 (_ bvm m)) (bvult C2 (_ bvk k)) (not (= (bvshl (pextract (- k 1) 0 _let_0) C2) (pextract (- k 1) 0 (bvand (bvshl _let_0 _let_1) (bvshl (bvadd (bvshl (_ bv1 m) (_ bvk m)) (_ bv1 m)) _let_1)))))))))
+(assert (let ((_let_0 (bvshl %X C1))) (let ((_let_1 (pzero_extend (- m k) C2))) (and (bvult C1 (int_to_pbv m m)) (bvult C2 (int_to_pbv k k)) (not (= (bvshl (pextract (- k 1) 0 _let_0) C2) (pextract (- k 1) 0 (bvand (bvshl _let_0 _let_1) (bvshl (bvadd (bvshl (int_to_pbv m 1) (int_to_pbv m k)) (int_to_pbv m 1)) _let_1)))))))))
 (check-sat)

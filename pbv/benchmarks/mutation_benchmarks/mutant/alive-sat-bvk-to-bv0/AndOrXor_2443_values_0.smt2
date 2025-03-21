@@ -2,5 +2,5 @@
 (declare-const k Int)
 (declare-fun %y () (_ BitVec k))
 (declare-fun %x () (_ BitVec k))
-(assert (and (bvult %y (_ bv0 k)) (not (= (bvxor (bvashr (bvxor %x (bvnot (_ bv0 k))) %y) (bvnot (_ bv0 k))) (bvashr %x %y)))))
+(assert (and (bvult %y (int_to_pbv k 0)) (not (= (bvxor (bvashr (bvxor %x (bvnot (int_to_pbv k 0))) %y) (bvnot (int_to_pbv k 0))) (bvashr %x %y)))))
 (check-sat)
