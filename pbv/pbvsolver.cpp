@@ -79,8 +79,8 @@ void initializeMap() {
   pbv_args["bvlshr"] = 1;
   pbv_args["multiple_bitwidth"] = 1;
   pbv_args["lazy_piand"] = 1;
-  pbv_args["lemmas_piand"] = 0;
-  pbv_args["lemmas_pow2"] = 0;
+  pbv_args["lemmas_piand"] = 1;
+  pbv_args["lemmas_pow2"] = 2;
   pbv_args["one_k"] = 0;
   pbv_args["simplify_only"] = 0;
 }
@@ -121,12 +121,12 @@ void parse_args(int argc, char** argv) {
         help = 1;
         cout << "Syntax: ./pbvsolver <path/to/smt2>" << endl;
         cout << endl;
-        cout << "\t-h / --help\t\tprint help command line arrgument on screen." << endl;
-        cout << "\t-d / --debug\t\tprint to screen debug meeseges at runtime." << endl;
-        cout << "\t-t / --type-check\ttype checking before solving formula." << endl;
-        cout << "\t--trans\t\t\tcreate smt2 file of the translation." << endl;
-        cout << "\t--cvc5:{args}\t\tsend arguments to cvc5 solver. for example --cvc5:nl-cov or --cvc5:mbqi=fmc." << endl;
-        cout << "\t\t\t\tyou can also send a list of arguments at once --cvc5:\"nl-cov mbqi\"." << endl;
+        cout << "\t-h / --help\t\t\tprint help command line arrgument on screen." << endl;
+        cout << "\t-d / --debug\t\t\tprint to screen debug meeseges at runtime." << endl;
+        // cout << "\t-t / --type-check\ttype checking before solving formula." << endl;
+        cout << "\t--trans\t\t\t\tcreate smt2 file of the translation." << endl;
+        cout << "\t--cvc5:{args}\t\t\tsend arguments to cvc5 solver. for example --cvc5:nl-cov or --cvc5:mbqi=fmc." << endl;
+        cout << "\t\t\t\t\tyou can also send a list of arguments at once --cvc5:\"nl-cov mbqi\"." << endl;
         
         // cout << "\t-s / --simplify\t\tuse default simplify with bit-width 64." << endl;
         // cout << "\t-fs / --false-simplify\t\tuse simplify when simplify get false or true." << endl;
@@ -134,12 +134,12 @@ void parse_args(int argc, char** argv) {
         // cout << "\t--produce-model\t\tuse produce model solver." << endl;
         cout << endl;
         cout << "\tpiand solver:" << endl;
-        cout << "\t\t--cigar\t\t\tput all piand lemmas in cigar loop." << endl;
-        cout << "\t\t--no-cigar\t\tput all piand lemmas in initilize." << endl;
+        cout << "\t\t--cegar\t\t\tput all piand lemmas in cegar loop." << endl;
+        cout << "\t\t--no-cegar\t\tput all piand lemmas in initilize." << endl;
         cout << "\t\t--no-sum-based-lemma\tremove sum based lemma." << endl;
         cout << "\t\t--sum-eq-lemma\t\tuse sum based lemma eq." << endl;
         cout << "\t\t--sum-ge-lemma\t\tuse sum based lemma ge." << endl;
-        cout << "\t\t---sum-both-lemma\t\tuse sum based lemma eq + ge." << endl;
+        cout << "\t\t---sum-both-lemma\tuse sum based lemma eq + ge." << endl;
         cout << "\t\t--bitwise-based-lemma\tuse bitwised based lemma ibtead of sum lemma." << endl;
         cout << "\t\t--skolem-lemmas\t\tadd skolems lemmas." << endl;
 
@@ -150,6 +150,8 @@ void parse_args(int argc, char** argv) {
         cout << "\t\t--always-axioms\t\tinsert axioms in all formulas." << endl;
         cout << "\t\t--eager-pow\t\tsolved pow2 in eager approach." << endl;
         cout << "\t\t--eager-piand\t\tsolved piand in eager approach." << endl;
+        cout << "\t\t--lazy-pow\t\tsolved pow2 in lazy approach." << endl;
+        cout << "\t\t--lazy-piand\t\tsolved piand in lazy approach." << endl;
         cout << "\t\t--lemmas-pow\t\tadd our new lemmas to solved pow2." << endl;
         cout << "\t\t--lemmas-pow-all\tadd more new lemmas to solved pow2 (not in paper)." << endl;
         cout << "\t\t--lemmas-piand\t\tadd our new lemmas to solved piand." << endl;
@@ -163,24 +165,24 @@ void parse_args(int argc, char** argv) {
         
         cout << endl;
         cout << "\tconfigurations from paper:" << endl;
-        cout << "\t\t--cade19" << endl;
-        cout << "\t\t--lem-pow" << endl;
-        cout << "\t\t--lem-piand" << endl;
-        cout << "\t\t--lazy-pow" << endl;
-        cout << "\t\t--lazy-piand" << endl;
-        cout << "\t\t--cade19-elim-or" << endl;
-        cout << "\t\t--cade19-elim-xor" << endl;
-        cout << "\t\t--cade19-elim-lshr" << endl;
-        cout << "\t\t--cade19-or-xor-lshr" << endl;
-        cout << "\t\t--eager" << endl;
-        cout << "\t\t--eager+pw" << endl;
-        cout << "\t\t--eager+rr" << endl;
-        cout << "\t\t--eager+pw+rr" << endl;
-        cout << "\t\t--piand" << endl;
-        cout << "\t\t--piandA" << endl;
-        cout << "\t\t--piandV" << endl;
-        cout << "\t\t--piandAB" << endl;
-        cout << "\t\t--simplify-only" << endl;
+        cout << "\t\t--baseline\t\tour implementation for cade19 approach." << endl;
+        cout << "\t\t--pow2++\t\tlike baseline with new lemmas for pow2." << endl;
+        cout << "\t\t--piand++\t\tlike baseline with new lemmas for piand." << endl;
+        cout << "\t\t--pow2-l\t\tlike baseline with lazy solver for pow2." << endl;
+        cout << "\t\t--piand-l\t\tlike baseline with lazy solver for piand." << endl;
+        cout << "\t\t--or-e\t\t\tlike baseline with elimination for bvor operation." << endl;
+        cout << "\t\t--xor-e\t\t\tlike baseline with elimination for bvxor operation." << endl;
+        cout << "\t\t--sh-m-e\t\tlike baseline with elimination of mod in bvshl operation." << endl;
+        cout << "\t\t--all-e\t\t\tlike baseline with elimination of bvor, bvxor and mod in bvshl." << endl;
+        cout << "\t\t--eager-no-opt\t\tlike baseline with all eliminations, new lemmas for piand and pow2, supporting multiple bitwidth and redundant axioms." << endl;
+        cout << "\t\t--eager\t\t\tlike eager-no-opt with optimization on the integer formula for eliminate mod." << endl;
+        cout << "\t\t--eager-no-opt-B\tlike eager-no-opt with rewriter for the pbv formula." << endl;
+        cout << "\t\t--eagerB\t\tlike eager-no-opt-B with optimization on the integer formula for eliminate mod." << endl;
+        cout << "\t\t--lazy-no-opt\t\tlike eager-no-opt with lazy solvers for piand and pow2." << endl;
+        cout << "\t\t--lazy\t\t\tlike eager with lazy solvers for piand and pow2." << endl;
+        cout << "\t\t--lazy-no-opt-B\t\tlike eager-no-opt-B with lazy solvers for piand and pow2." << endl;
+        cout << "\t\t--lazyB\t\t\tlike eagerB with lazy solvers for piand and pow2." << endl;
+        cout << "\t\t--simp\t\t\tlike eagerB but not solved the formula just use cvc5 simplify." << endl;
         
 
         cout << endl;
@@ -218,7 +220,11 @@ void parse_args(int argc, char** argv) {
         pbv_args["lazy_pow"] = 0;
       } else if (!(*i).compare("--eager-piand")) { 
         pbv_args["lazy_piand"] = 0;
-      } else if (!(*i).compare("--lemmas-pow-all")) { 
+      } else if (!(*i).compare("--lazy-pow")) { 
+        pbv_args["lazy_pow"] = 1;
+      } else if (!(*i).compare("--lazy-piand")) { 
+        pbv_args["lazy_piand"] = 1;
+      }else if (!(*i).compare("--lemmas-pow-all")) { 
         pbv_args["lemmas_pow2"] = 1;
       } else if (!(*i).compare("--lemmas-pow")) { 
         pbv_args["lemmas_pow2"] = 2;
@@ -239,7 +245,7 @@ void parse_args(int argc, char** argv) {
         pbv_args["bvlshr"] = 0;
       } else if (!(*i).compare("--no-solving")) { 
         pbv_args["simplify_only"] = 1;
-      }  else if (!(*i).compare("--simplify-only")) { 
+      }  else if (!(*i).compare("--simp")) { 
         pbv_args["simplify_only"] = 1;
         pbv_args["postwalk"] = 1;
         pbv_args["rewrite"] = 1;
@@ -252,7 +258,7 @@ void parse_args(int argc, char** argv) {
         pbv_args["lazy_piand"] = 1;
         pbv_args["lemmas_piand"] = 0;
         pbv_args["lemmas_pow2"] = 0;
-      } else if (!(*i).compare("--cade19")) { 
+      } else if (!(*i).compare("--baseline")) { 
         pbv_args["pbvsolver"] = 5;
         pbv_args["postwalk"] = 0;
         pbv_args["rewrite"] = 0;
@@ -266,7 +272,7 @@ void parse_args(int argc, char** argv) {
         pbv_args["lemmas_piand"] = 0;
         pbv_args["lemmas_pow2"] = 0;
         pbv_args["one_k"] = 0;
-      } else if (!(*i).compare("--lem-pow")) { 
+      } else if (!(*i).compare("--pow2++")) { 
         pbv_args["pbvsolver"] = 5;
         pbv_args["postwalk"] = 0;
         pbv_args["rewrite"] = 0;
@@ -280,7 +286,7 @@ void parse_args(int argc, char** argv) {
         pbv_args["lemmas_piand"] = 0;
         pbv_args["lemmas_pow2"] = 2;
         pbv_args["one_k"] = 0;
-      } else if (!(*i).compare("--lem-piand")) { 
+      } else if (!(*i).compare("--piand++")) { 
         pbv_args["pbvsolver"] = 5;
         pbv_args["postwalk"] = 0;
         pbv_args["rewrite"] = 0;
@@ -294,7 +300,7 @@ void parse_args(int argc, char** argv) {
         pbv_args["lemmas_piand"] = 1;
         pbv_args["lemmas_pow2"] = 0;
         pbv_args["one_k"] = 0;
-      } else if (!(*i).compare("--lazy-pow")) { 
+      } else if (!(*i).compare("--pow2-l")) { 
         pbv_args["pbvsolver"] = 5;
         pbv_args["postwalk"] = 0;
         pbv_args["rewrite"] = 0;
@@ -308,7 +314,7 @@ void parse_args(int argc, char** argv) {
         pbv_args["lemmas_piand"] = 0;
         pbv_args["lemmas_pow2"] = 2;
         pbv_args["one_k"] = 0;
-      } else if (!(*i).compare("--lazy-piand")) { 
+      } else if (!(*i).compare("--piand-l")) { 
         pbv_args["pbvsolver"] = 5;
         pbv_args["postwalk"] = 0;
         pbv_args["rewrite"] = 0;
@@ -322,7 +328,7 @@ void parse_args(int argc, char** argv) {
         pbv_args["lemmas_piand"] = 0;
         pbv_args["lemmas_pow2"] = 0;
         pbv_args["one_k"] = 0;
-      } else if (!(*i).compare("--cade19-elim-or")) { 
+      } else if (!(*i).compare("--or-e")) { 
         pbv_args["pbvsolver"] = 5;
         pbv_args["postwalk"] = 0;
         pbv_args["rewrite"] = 0;
@@ -336,7 +342,7 @@ void parse_args(int argc, char** argv) {
         pbv_args["lemmas_piand"] = 0;
         pbv_args["lemmas_pow2"] = 0;
         pbv_args["one_k"] = 0;
-      } else if (!(*i).compare("--cade19-elim-xor")) { 
+      } else if (!(*i).compare("--xor-e")) { 
         pbv_args["pbvsolver"] = 5;
         pbv_args["postwalk"] = 0;
         pbv_args["rewrite"] = 0;
@@ -350,7 +356,7 @@ void parse_args(int argc, char** argv) {
         pbv_args["lemmas_piand"] = 0;
         pbv_args["lemmas_pow2"] = 0;
         pbv_args["one_k"] = 0;
-      } else if (!(*i).compare("--cade19-elim-lshr")) { 
+      } else if (!(*i).compare("--sh-m-e")) { 
         pbv_args["pbvsolver"] = 5;
         pbv_args["postwalk"] = 0;
         pbv_args["rewrite"] = 0;
@@ -364,7 +370,7 @@ void parse_args(int argc, char** argv) {
         pbv_args["lemmas_piand"] = 0;
         pbv_args["lemmas_pow2"] = 0;
         pbv_args["one_k"] = 0;
-      } else if (!(*i).compare("--cade19-or-xor-lshr")) { 
+      } else if (!(*i).compare("--all-e")) { 
         pbv_args["pbvsolver"] = 5;
         pbv_args["postwalk"] = 0;
         pbv_args["rewrite"] = 0;
@@ -378,7 +384,7 @@ void parse_args(int argc, char** argv) {
         pbv_args["lemmas_piand"] = 0;
         pbv_args["lemmas_pow2"] = 0;
         pbv_args["one_k"] = 0;
-      } else if (!(*i).compare("--eager")) { 
+      } else if (!(*i).compare("--eager-no-opt")) { 
         pbv_args["pbvsolver"] = 5;
         pbv_args["postwalk"] = 0;
         pbv_args["rewrite"] = 0;
@@ -392,7 +398,7 @@ void parse_args(int argc, char** argv) {
         pbv_args["lemmas_piand"] = 1;
         pbv_args["lemmas_pow2"] = 2;
         pbv_args["one_k"] = 0;
-      } else if (!(*i).compare("--eager+pw")) { 
+      } else if (!(*i).compare("--eager")) { 
         pbv_args["pbvsolver"] = 5;
         pbv_args["postwalk"] = 1;
         pbv_args["rewrite"] = 0;
@@ -406,7 +412,7 @@ void parse_args(int argc, char** argv) {
         pbv_args["lemmas_piand"] = 1;
         pbv_args["lemmas_pow2"] = 2;
         pbv_args["one_k"] = 0;
-      } else if (!(*i).compare("--eager+rr")) {
+      } else if (!(*i).compare("--eager-no-opt-B")) {
         pbv_args["pbvsolver"] = 5; 
         pbv_args["postwalk"] = 0;
         pbv_args["rewrite"] = 1;
@@ -420,7 +426,7 @@ void parse_args(int argc, char** argv) {
         pbv_args["lemmas_piand"] = 1;
         pbv_args["lemmas_pow2"] = 2;
         pbv_args["one_k"] = 0;
-      } else if (!(*i).compare("--eager+pw+rr")) { 
+      } else if (!(*i).compare("--eagerB")) { 
         pbv_args["pbvsolver"] = 5;
         pbv_args["postwalk"] = 1;
         pbv_args["rewrite"] = 1;
@@ -434,7 +440,7 @@ void parse_args(int argc, char** argv) {
         pbv_args["lemmas_piand"] = 1;
         pbv_args["lemmas_pow2"] = 2;
         pbv_args["one_k"] = 0;
-      } else if (!(*i).compare("--piand")) { 
+      } else if (!(*i).compare("--lazy-no-opt")) { 
         pbv_args["postwalk"] = 0;
         pbv_args["rewrite"] = 0;
         pbv_args["eliminate_or"] = 1;
@@ -446,7 +452,7 @@ void parse_args(int argc, char** argv) {
         pbv_args["multiple_bitwidth"] = 1;
         pbv_args["lemmas_piand"] = 1;
         pbv_args["lemmas_pow2"] = 2;
-      } else if (!(*i).compare("--piandA")) { 
+      } else if (!(*i).compare("--lazy")) { 
         pbv_args["postwalk"] = 1;
         pbv_args["rewrite"] = 0;
         pbv_args["eliminate_or"] = 1;
@@ -458,7 +464,7 @@ void parse_args(int argc, char** argv) {
         pbv_args["multiple_bitwidth"] = 1;
         pbv_args["lemmas_piand"] = 1;
         pbv_args["lemmas_pow2"] = 2;
-      } else if (!(*i).compare("--piandB")) { 
+      } else if (!(*i).compare("--lazy-no-opt-B")) { 
         pbv_args["postwalk"] = 0;
         pbv_args["rewrite"] = 1;
         pbv_args["eliminate_or"] = 1;
@@ -470,7 +476,7 @@ void parse_args(int argc, char** argv) {
         pbv_args["multiple_bitwidth"] = 1;
         pbv_args["lemmas_piand"] = 1;
         pbv_args["lemmas_pow2"] = 2;
-      } else if (!(*i).compare("--piandAB")) { 
+      } else if (!(*i).compare("--lazyB")) { 
         pbv_args["postwalk"] = 1;
         pbv_args["rewrite"] = 1;
         pbv_args["eliminate_or"] = 1;
@@ -496,11 +502,13 @@ void parse_args(int argc, char** argv) {
         continue;
       } else if (!(*i).compare("--produce-model")) {
         produce_model = 1;
-      } else if (!(*i).compare("--cigar")) {
+      } else if (!(*i).compare("--cegar")) {
         piand_mode = 2;
-      } else if (!(*i).compare("--no-cigar")) {
+      } else if (!(*i).compare("--no-cegar")) {
         piand_mode = 3;
-      } else if (!(*i).compare("--no-sum-based-lemma")) {
+      } else if (!(*i).compare("--piand-solver")) {
+        piand_mode = 4;
+      }else if (!(*i).compare("--no-sum-based-lemma")) {
         piand_sum_mode = 0;
       } else if (!(*i).compare("--sum-eq-lemma")) {
         piand_sum_mode = 1;
@@ -552,7 +560,7 @@ void create_translate_smt() {
         outFile << "(declare-fun ufpow (Int) Int)" << std::endl;
       }
     } else {
-      outFile << "(set-logic ALL)" << std::endl;
+      outFile << "(set-logic UFNIA)" << std::endl;
     } 
 
 
@@ -647,6 +655,7 @@ int main(int argc, char** argv){
   SmtSolver cvc5 = Cvc5SolverFactory::create(false);
   s = std::make_shared<PBVSolver>(cvc5, pbv_args);
   s->set_logic("UFNIA");
+  s->set_opt("incremental", "false");
 
   // solver options
   std::size_t equal_pos;
@@ -698,9 +707,11 @@ int main(int argc, char** argv){
   if (piand_mode == 1) {
     s->set_opt("piand-mode", "piand");
   } else if (piand_mode == 2) {
-    s->set_opt("piand-mode", "cigar");
+    s->set_opt("piand-mode", "cegar");
   } else if (piand_mode == 3) {
-    s->set_opt("piand-mode", "no-cigar");
+    s->set_opt("piand-mode", "no-cegar");
+  }  else if (piand_mode == 4) {
+    s->set_opt("piand-mode", "piand_opt");
   }
   // sum lemma options
   if (piand_sum_mode == 1) {
@@ -725,7 +736,8 @@ int main(int argc, char** argv){
   if (pbv_args["type_check"]) {
     // zero signifies the absence of debugging
     // type_checker = std::make_shared<PBVSolver>(Cvc5SolverFactory::create(false), 0, pbv_args["pbvsolver"], pbv_args["postwalk"], pbv_args["type_check"], pbv_args["translate_smt"], pbv_args["bvsub"], pbv_args["simplify"], pbv_args["rewrite"]);
-    type_checker = std::make_shared<PBVSolver>(cvc5, pbv_args);
+    SmtSolver cvc5_type_check = Cvc5SolverFactory::create(false);
+    type_checker = std::make_shared<PBVSolver>(cvc5_type_check, pbv_args);
 
     SmtLibReaderTester* type_reader = new SmtLibReaderTester(type_checker);
     type_reader->parse(test);
@@ -752,6 +764,19 @@ int main(int argc, char** argv){
         break;
       default: break;
     }
+    cout << "    Multiple_bitwidth: " << (pbv_args["multiple_bitwidth"] ? "yes":"no") << endl;
+    cout << "    Lazy pow: \t\t" << (pbv_args["lazy_pow"] ? "yes":"no") << endl;
+    cout << "    Lazy piand: \t" << (pbv_args["lazy_piand"] ? "yes":"no") << endl;
+    cout << "    Eliminate or: \t" << (pbv_args["eliminate_or"] ? "yes":"no") << endl;
+    cout << "    Eliminate xor: \t" << (pbv_args["eliminate_xor"] ? "yes":"no") << endl;
+    cout << "    Remove mod in lshr: " << (pbv_args["bvlshr"] ? "yes":"no") << endl;
+    cout << "    Lemmas piand: \t" << (pbv_args["lemmas_piand"] ? "yes":"no") << endl;
+    cout << "    Lemmas pow: \t" << (pbv_args["lemmas_pow2"] ? "yes":"no") << endl;
+    cout << "    Redundent_axioms: \t" << (pbv_args["redundent_axioms"] ? "yes":"no") << endl;
+    cout << "    PBV Rewrite: \t" << (pbv_args["rewrite"] ? "yes":"no") << endl;
+    cout << "    Arith Rewrite: \t" << (pbv_args["postwalk"] ? "yes":"no") << endl;
+    cout << "    Solved: \t\t" << (pbv_args["simplify_only"] ? "no":"yes") << endl;
+    cout <<  endl;
   }
 
   try {
@@ -765,8 +790,8 @@ int main(int argc, char** argv){
     }
     auto results = reader->get_results();
     cout << results[0] << endl;
-  } catch (const std::runtime_error& e) {
+  } catch (...) {
       cout << "unknown" << endl;
-  }
+  } 
   return 0;
 }

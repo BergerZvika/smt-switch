@@ -72,8 +72,6 @@
   )
  )
 )
-
-(assert (> k 0))
 (check-sat)
 (exit)
 

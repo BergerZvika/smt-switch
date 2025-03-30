@@ -15,9 +15,8 @@
  )
 )
 
-(define-fun bvxnor ((a (_ BitVec k)) (b (_ BitVec k))) Bool
- (= a b)
-)
+
+
 
 
 (define-fun odd ((v (_ BitVec k))) Bool
@@ -48,16 +47,12 @@
  (int_to_pbv k k)
 )
 
-(define-fun msb ((v (_ BitVec k))) (_ BitVec 1)
- (pextract (- k 1) (- k 1)  v)
-)
-
 (define-fun IC ((s (_ BitVec k)) (t (_ BitVec k)) (xlo (_ BitVec k)) (xhi (_ BitVec k))) Bool
- (and (= (bvand s t) t) (= (bvand s xhi (= xlo xhi)) (bvand t (= xlo xhi))))
+ (or (distinct xhi xlo) (distinct xhi s))
 )
 
 (define-fun LIT ((x (_ BitVec k))) Bool
- (= (bvand x s) t)
+ (distinct x s)
 )
 
 ; valid xlo/xhi pairs
@@ -75,7 +70,7 @@
  )
 )
 
-(assert (> k 0))
+
 (check-sat)
 (exit)
 

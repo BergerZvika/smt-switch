@@ -10,7 +10,7 @@ RUN apt-get install gcc
 RUN apt-get install -y openjdk-11-jre-headless && \
     apt-get clean;
 # RUN apt-get install -y git build-essential cmake python3 python3-pip
-RUN pip install toml
+RUN pip install --break-system-packages toml
 RUN apt install libgmp-dev -y
 
 # Set the working directory inside the container
@@ -34,4 +34,4 @@ WORKDIR /app/smt-switch/pbv/build
 # Command to run the built program (change this as needed)
 # CMD ["echo", "Repository cloned, install.sh script run."]
 ENTRYPOINT [ "./pbvsolver" ]
-CMD ["../benchmarks/validation/test-bvconstant-unsat.smt2", "--debug", "--postwalk"]
+CMD ["../benchmarks/validation/test-pbvadd-unsat.smt2", "--lazyB"]

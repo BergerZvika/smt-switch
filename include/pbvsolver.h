@@ -198,11 +198,11 @@ class TypeCheckerWalker : public AbstractPBVWalker
       Sort funsort = solver->make_sort(FUNCTION, SortVec{intsort, intsort, intsort, intsort});
       try {
         this->bvand = solver->get_symbol("type_check_bvand");
-        this->k = solver->get_symbol("type_check_k");
+        // this->k = solver->get_symbol("type_check_k");
 
       } catch (...) {
         this->bvand = solver->make_symbol("type_check_bvand", funsort);
-        this->k = solver->make_symbol("type_check_k", funsort);
+        // this->k = solver->make_symbol("type_check_k", funsort);
       }  
       this->x = solver->make_param("type_check_x", intsort);
       this->y = solver->make_param("type_check_y", intsort);
