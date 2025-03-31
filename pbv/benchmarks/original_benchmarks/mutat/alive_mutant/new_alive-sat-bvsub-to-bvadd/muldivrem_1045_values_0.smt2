@@ -1,0 +1,6 @@
+(set-logic ALL)
+(declare-const k Int)
+(declare-fun C () (_ BitVec k))
+(declare-fun %Op0 () (_ BitVec k))
+(assert (let ((_let_0 (bvudiv (ite (= (pextract (- k 1) (- k 1) %Op0) (int_to_pbv 1 1)) (bvneg %Op0) %Op0) (ite (= (pextract (- k 1) (- k 1) C) (int_to_pbv 1 1)) (bvneg C) C)))) (and (or (not (= %Op0 (bvshl (int_to_pbv k 1) (bvadd (int_to_pbv k k) (int_to_pbv k 1))))) (not (= C (bvnot (int_to_pbv k 0))))) (= C (bvshl (int_to_pbv k 1) (bvsub (int_to_pbv k k) (int_to_pbv k 1)))) (not (= C (int_to_pbv k 0))) (not (= (ite (xor (= (pextract (- k 1) (- k 1) %Op0) (int_to_pbv 1 1)) (= (pextract (- k 1) (- k 1) C) (int_to_pbv 1 1))) (bvneg _let_0) _let_0) (pzero_extend (- k 1) (ite (= %Op0 C) (int_to_pbv 1 1) (int_to_pbv 1 0))))))))
+(check-sat)

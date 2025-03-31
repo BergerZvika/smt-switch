@@ -1,0 +1,5 @@
+(set-logic ALL)
+(declare-const k Int)
+(declare-fun %op0RHS () (_ BitVec k))
+(assert (and (bvult %op0RHS (int_to_pbv k 0)) (not (= (bvand (bvshl (int_to_pbv k 1) %op0RHS) (int_to_pbv k 1)) (pzero_extend (- k 1) (ite (= %op0RHS (int_to_pbv k 0)) (int_to_pbv 1 1) (int_to_pbv 1 0)))))))
+(check-sat)

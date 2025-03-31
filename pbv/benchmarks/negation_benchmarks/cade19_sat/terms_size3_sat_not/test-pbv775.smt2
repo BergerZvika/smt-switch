@@ -1,0 +1,9 @@
+(set-logic ALL)
+
+
+(declare-const k Int)
+(declare-const s (_ BitVec k))
+(declare-const t (_ BitVec k))
+(assert (not (distinct (bvshl s (bvshl (bvmul t t) s)) (bvshl s (bvmul t (bvshl t s))))))
+(check-sat)
+(exit)

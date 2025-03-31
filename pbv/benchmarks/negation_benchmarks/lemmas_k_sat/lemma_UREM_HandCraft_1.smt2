@@ -1,0 +1,13 @@
+(set-logic ALL)
+(declare-const k Int)
+(declare-const x (_ BitVec k))
+(declare-const s (_ BitVec k))
+(declare-const t (_ BitVec k))
+(declare-const i Int)
+(define-fun lemma_UREM_HC1 ((x (_ BitVec k)) (s (_ BitVec k)) (t (_ BitVec k))) Bool (=> (= s (bvshl (int_to_pbv k 1) (int_to_pbv k i))) (= t (concat (int_to_pbv (- k i) 0) (pextract (- i 1) 0 x)))))
+(assert (>= i 0))
+(assert (< i k))
+(assert (= t (bvurem x s)))
+(assert (not (not (lemma_UREM_HC1 x s t))))
+(check-sat)
+

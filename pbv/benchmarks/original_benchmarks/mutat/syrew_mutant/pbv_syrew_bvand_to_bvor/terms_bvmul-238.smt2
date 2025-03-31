@@ -1,0 +1,6 @@
+(set-logic ALL)
+(declare-const k Int)
+(declare-fun s () (_ BitVec k))
+(declare-fun t () (_ BitVec k))
+(assert (distinct (bvor (bvmul s s) (bvlshr t s)) (bvand s (bvand (int_to_pbv k 1) (bvlshr t s)))))
+(check-sat)

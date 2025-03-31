@@ -1,0 +1,35 @@
+(set-logic ALL)
+
+(declare-const k Int)
+(declare-fun s () (_ BitVec k))
+(declare-fun t () (_ BitVec k))
+
+(define-fun udivtotal ((a (_ BitVec k)) (b (_ BitVec k))) (_ BitVec k)
+  (ite (= b (int_to_pbv k 0)) (bvnot (int_to_pbv k 0)) (bvudiv a b))
+)
+(define-fun uremtotal ((a (_ BitVec k)) (b (_ BitVec k))) (_ BitVec k)
+  (ite (= b (int_to_pbv k 0)) a (bvurem a b))
+)
+(define-fun min () (_ BitVec k)
+  (bvnot (bvlshr (bvnot (int_to_pbv k 0)) (int_to_pbv k 1)))
+)
+(define-fun max () (_ BitVec k)
+  (bvnot min)
+)
+
+;(define-fun SC ((s (_ BitVec k)) (t (_ BitVec k))) Bool
+;(or  (bvsgt (bvlshr s (int_to_pbv k 0)) t) (bvsgt (bvshl s (int_to_pbv k 1)) t) (bvsgt (bvshl s (int_to_pbv k 2)) t) (bvsgt (bvshl s (int_to_pbv k 3)) t) (bvsgt (bvshl s (int_to_pbv k k)) t))
+;)
+
+(define-fun SC ((s Int) (t Int)) Bool (exists ((i (_ BitVec k))) (and (bvsge i  (int_to_pbv k 0)) (bvsle i (int_to_pbv k k)) (bvsgt (bvshl s i) t))))
+
+
+(assert
+ (not
+  (and
+  (=> (SC s t) (exists ((x (_ BitVec k))) (bvsgt (bvshl s x) t)))
+  (=> (exists ((x (_ BitVec k))) (bvsgt (bvshl s x) t)) (SC s t))
+  )
+ )
+)
+(check-sat)

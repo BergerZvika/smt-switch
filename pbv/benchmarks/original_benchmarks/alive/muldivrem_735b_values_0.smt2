@@ -1,0 +1,7 @@
+(set-logic ALL)
+(declare-const k Int)
+(declare-fun C2 () (_ BitVec k))
+(declare-fun C1 () (_ BitVec k))
+(declare-fun %X () (_ BitVec k))
+(assert (and (= (pextract (- (* 2 k) 1) k (bvmul (pzero_extend k C1) (pzero_extend k C2))) (int_to_pbv k 0)) (not (= C1 (int_to_pbv k 0))) (not (= C2 (int_to_pbv k 0))) (not (= (bvudiv (bvudiv %X C1) C2) (bvudiv %X (bvmul C1 C2))))))
+(check-sat)

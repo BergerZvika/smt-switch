@@ -1,0 +1,6 @@
+(set-logic ALL)
+(declare-const k Int)
+(declare-fun %b () (_ BitVec k))
+(declare-fun %a () (_ BitVec k))
+(assert (not (not (= (bvxor (bvand %a (bvxor %b (bvnot (int_to_pbv k 0)))) (bvxor %a (bvnot (int_to_pbv k 0)))) (bvxor (bvand %a %b) (bvnot (int_to_pbv k 0)))))))
+(check-sat)
