@@ -2302,6 +2302,29 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
 return Walker_Continue;
 }
 
+// bool RewritePBVWalker::eliminateDiv(Term x, Term y, Term zero) {
+//     Op op = y->get_op();
+//     PrimOp primop_y = op.prim_op;
+//     if (primop_y == BVUdiv) {
+//         auto it_y = y->begin();
+//         Term left = *it_y;
+//         it_y++;
+//         Term right = *it_y;
+//         Term translate_left, translate_right;
+//         if(!query_cache(left, translate_left)){
+//             translate_left = left;
+//         }
+//         if(!query_cache(right, translate_right)){
+//             translate_right = right;
+//         }
+
+//         if (translate_left == zero && x == translate_right) {
+//             return true;
+//         }
+//     }
+//     return false;
+// }
+
 // RewritePBVWalker
 WalkerStepResult RewritePBVWalker::visit_term(Term & term) {
   if (!preorder_)
@@ -2553,10 +2576,10 @@ WalkerStepResult RewritePBVWalker::visit_term(Term & term) {
             return Walker_Continue;  
         }
         // bvudiv 0 y -> 0
-        if (translate_x == bvk_zero) {
-            save_in_cache(term, bvk_zero);
-            return Walker_Continue;  
-        }
+        // if (translate_x == bvk_zero) {
+        //     save_in_cache(term, bvk_zero);
+        //     return Walker_Continue;  
+        // }
         // bvudiv x 1 -> x
         if (translate_y == bvk_one) {
             save_in_cache(term, translate_x);
@@ -2833,6 +2856,11 @@ WalkerStepResult RewritePBVWalker::visit_term(Term & term) {
             save_in_cache(term, bvk_zero);
             return Walker_Continue;  
         }
+        // bvshl (x (bvudix 0 x)) -> 0
+        // if (this->eliminateDiv(translate_x, translate_y, bvk_zero)) {
+        //     save_in_cache(term, translate_x);
+        //     return Walker_Continue;  
+        // }
       } else if (primop == BVLshr) {
         // (bvlshr x 0) -> x
         if (translate_y == bvk_zero) {
@@ -2849,13 +2877,18 @@ WalkerStepResult RewritePBVWalker::visit_term(Term & term) {
             save_in_cache(term, bvk_zero);
             return Walker_Continue;  
         }
+        // bvlshr (x (bvudix 0 x)) -> 0
+        // if (this->eliminateDiv(translate_x, translate_y, bvk_zero)) {
+        //     save_in_cache(term, translate_x);
+        //     return Walker_Continue;  
+        // }
       } else if (primop == BVAshr) {
         // (bvAshr x 0) -> X
         if (translate_y == bvk_zero) {
             save_in_cache(term, translate_x);
             return Walker_Continue;  
         }
-        // (bvlshr 0 y) -> 0
+        // (bvAshr 0 y) -> 0
         if (translate_x == bvk_zero) {
             save_in_cache(term, bvk_zero);
             return Walker_Continue;  
@@ -2865,6 +2898,11 @@ WalkerStepResult RewritePBVWalker::visit_term(Term & term) {
             save_in_cache(term, bvk_zero);
             return Walker_Continue;  
         }
+        // bvAshr (x (bvudix 0 x)) -> 0
+        // if (this->eliminateDiv(translate_x, translate_y, bvk_zero)) {
+        //     save_in_cache(term, translate_x);
+        //     return Walker_Continue;  
+        // }
       } else if (primop == Equal) {
         // (= x x) -> true
         if (translate_x == translate_y) {

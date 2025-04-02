@@ -1,6 +1,0 @@
-(set-logic ALL)
-(declare-const k Int)
-(declare-fun %Y () (_ BitVec k))
-(declare-fun %Op1 () (_ BitVec k))
-(assert (and (bvult %Y (int_to_pbv k 0)) (not (= (bvmul (bvshl (int_to_pbv k 1) %Y) %Op1) (bvshl %Op1 %Y)))))
-(check-sat)

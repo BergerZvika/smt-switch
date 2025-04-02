@@ -260,6 +260,7 @@ class RewritePBVWalker : public IdentityWalker
     }
     WalkerStepResult visit_term(Term & term) override;
     Term get_bit_width_term(Term t);
+    // bool eliminateDiv(Term x, Term y, Term zero);
 };
 
 // PostPBVWalker
