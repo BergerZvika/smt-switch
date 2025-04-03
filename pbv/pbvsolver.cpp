@@ -121,11 +121,11 @@ void parse_args(int argc, char** argv) {
         help = 1;
         cout << "Syntax: ./pbvsolver <path/to/smt2>" << endl;
         cout << endl;
-        cout << "\t-h / --help\t\t\tprint help command line arrgument on screen." << endl;
-        cout << "\t-d / --debug\t\t\tprint to screen debug meeseges at runtime." << endl;
+        cout << "\t-h / --help\t\t\tPrint help command line arrgument on screen." << endl;
+        cout << "\t-d / --debug\t\t\tPrint to screen debug meeseges at runtime." << endl;
         // cout << "\t-t / --type-check\ttype checking before solving formula." << endl;
-        cout << "\t--trans\t\t\t\tcreate smt2 file of the translation." << endl;
-        cout << "\t--cvc5:{args}\t\t\tsend arguments to cvc5 solver. for example --cvc5:nl-cov or --cvc5:mbqi=fmc." << endl;
+        cout << "\t--trans\t\t\t\tCreate smt2 file of the translation." << endl;
+        cout << "\t--cvc5:{args}\t\t\tSend arguments to cvc5 solver. for example --cvc5:nl-cov or --cvc5:mbqi=fmc." << endl;
         cout << "\t\t\t\t\tyou can also send a list of arguments at once --cvc5:\"nl-cov mbqi\"." << endl;
         
         // cout << "\t-s / --simplify\t\tuse default simplify with bit-width 64." << endl;
@@ -134,65 +134,68 @@ void parse_args(int argc, char** argv) {
         // cout << "\t--produce-model\t\tuse produce model solver." << endl;
         cout << endl;
         cout << "\tpiand solver:" << endl;
-        cout << "\t\t--cegar\t\t\tput all piand lemmas in cegar loop." << endl;
-        cout << "\t\t--no-cegar\t\tput all piand lemmas in initilize." << endl;
-        cout << "\t\t--no-sum-based-lemma\tremove sum based lemma." << endl;
-        cout << "\t\t--sum-eq-lemma\t\tuse sum based lemma eq." << endl;
-        cout << "\t\t--sum-ge-lemma\t\tuse sum based lemma ge." << endl;
-        cout << "\t\t---sum-both-lemma\tuse sum based lemma eq + ge." << endl;
-        cout << "\t\t--bitwise-based-lemma\tuse bitwised based lemma ibtead of sum lemma." << endl;
-        cout << "\t\t--skolem-lemmas\t\tadd skolems lemmas." << endl;
+        cout << "\t\t--cegar\t\t\tPut all piand lemmas in cegar loop." << endl;
+        cout << "\t\t--no-cegar\t\tPut all piand lemmas in initilize." << endl;
+        cout << "\t\t--no-sum-based-lemma\tRemove sum based lemma." << endl;
+        cout << "\t\t--sum-eq-lemma\t\tUse sum based lemma eq." << endl;
+        cout << "\t\t--sum-ge-lemma\t\tUse sum based lemma ge." << endl;
+        cout << "\t\t---sum-both-lemma\tUse sum based lemma eq + ge." << endl;
+        cout << "\t\t--bitwise-based-lemma\tUse bitwised based lemma ibtead of sum lemma." << endl;
+        cout << "\t\t--skolem-lemmas\t\tAdd skolems lemmas." << endl;
 
         cout << endl;
         cout << "\tattributes of pbv solver:" << endl;
-        cout << "\t\t-w / --no-postwalk\tdisable postwalk." << endl;
-        cout << "\t\t-r / --rewrite\t\tdisable rewrite rules on pbv formula." << endl;
-        cout << "\t\t--always-axioms\t\tinsert axioms in all formulas." << endl;
-        cout << "\t\t--eager-pow\t\tsolved pow2 in eager approach." << endl;
-        cout << "\t\t--eager-piand\t\tsolved piand in eager approach." << endl;
-        cout << "\t\t--lazy-pow\t\tsolved pow2 in lazy approach." << endl;
-        cout << "\t\t--lazy-piand\t\tsolved piand in lazy approach." << endl;
-        cout << "\t\t--lemmas-pow\t\tadd our new lemmas to solved pow2." << endl;
-        cout << "\t\t--lemmas-pow-all\tadd more new lemmas to solved pow2 (not in paper)." << endl;
-        cout << "\t\t--lemmas-piand\t\tadd our new lemmas to solved piand." << endl;
-        cout << "\t\t--one-k\t\t\toptimize cade19 solver with same k in all axioms." << endl;
-        cout << "\t\t--no-elimination\tdo not eliminate bvor and bvxor to bvand." << endl;
-        cout << "\t\t--bvor\t\t\tdo not eliminate bvor to bvand." << endl;
-        cout << "\t\t--bvxor\t\t\tdo not eliminate bvxor to bvand." << endl;
-        cout << "\t\t-mw / --one-bitwidth\tsolved only pbv formulas with one bitwidth." << endl;
-        cout << "\t\t--no-sub\t\ttranslate x-y to x + (-y)." << endl;
-        cout << "\t\t--no-solving\t\tnot use cvc5 solver just simplify." << endl;
+        cout << "\t\t-w / --no-postwalk\tDisable postwalk." << endl;
+        cout << "\t\t-r / --rewrite\t\tDisable rewrite rules on pbv formula." << endl;
+        cout << "\t\t--always-axioms\t\tInsert axioms in all formulas." << endl;
+        cout << "\t\t--eager-pow\t\tSolved pow2 in eager approach." << endl;
+        cout << "\t\t--eager-piand\t\tSolved piand in eager approach." << endl;
+        cout << "\t\t--lazy-pow\t\tSolved pow2 in lazy approach." << endl;
+        cout << "\t\t--lazy-piand\t\tSolved piand in lazy approach." << endl;
+        cout << "\t\t--lemmas-pow\t\tAdd our new lemmas to solved pow2." << endl;
+        cout << "\t\t--lemmas-pow-all\tAdd more new lemmas to solved pow2 (not in paper)." << endl;
+        cout << "\t\t--lemmas-piand\t\tAdd our new lemmas to solved piand." << endl;
+        cout << "\t\t--one-k\t\t\tOptimize cade19 solver with same k in all axioms." << endl;
+        cout << "\t\t--no-elimination\tDo not eliminate bvor and bvxor to bvand." << endl;
+        cout << "\t\t--bvor\t\t\tDo not eliminate bvor to bvand." << endl;
+        cout << "\t\t--bvxor\t\t\tDo not eliminate bvxor to bvand." << endl;
+        cout << "\t\t-mw / --one-bitwidth\tSolved only pbv formulas with one bitwidth." << endl;
+        cout << "\t\t--no-sub\t\tTranslate x-y to x + (-y)." << endl;
+        cout << "\t\t--no-solving\t\tNot use cvc5 solver just simplify." << endl;
         
         cout << endl;
         cout << "\tconfigurations from paper:" << endl;
-        cout << "\t\t--baseline\t\tour implementation for cade19 approach." << endl;
-        cout << "\t\t--pow2++\t\tlike baseline with new lemmas for pow2." << endl;
-        cout << "\t\t--piand++\t\tlike baseline with new lemmas for piand." << endl;
-        cout << "\t\t--pow2-l\t\tlike baseline with lazy solver for pow2." << endl;
-        cout << "\t\t--piand-l\t\tlike baseline with lazy solver for piand." << endl;
-        cout << "\t\t--or-e\t\t\tlike baseline with elimination for bvor operation." << endl;
-        cout << "\t\t--xor-e\t\t\tlike baseline with elimination for bvxor operation." << endl;
-        cout << "\t\t--sh-m-e\t\tlike baseline with elimination of mod in bvshl operation." << endl;
-        cout << "\t\t--all-e\t\t\tlike baseline with elimination of bvor, bvxor and mod in bvshl." << endl;
-        cout << "\t\t--eager-no-opt\t\tlike baseline with all eliminations, new lemmas for piand and pow2, supporting multiple bitwidth and redundant axioms." << endl;
-        cout << "\t\t--eager\t\t\tlike eager-no-opt with optimization on the integer formula for eliminate mod." << endl;
-        cout << "\t\t--eager-no-opt-B\tlike eager-no-opt with rewriter for the pbv formula." << endl;
-        cout << "\t\t--eagerB\t\tlike eager-no-opt-B with optimization on the integer formula for eliminate mod." << endl;
-        cout << "\t\t--lazy-no-opt\t\tlike eager-no-opt with lazy solvers for piand and pow2." << endl;
-        cout << "\t\t--lazy\t\t\tlike eager with lazy solvers for piand and pow2." << endl;
-        cout << "\t\t--lazy-no-opt-B\t\tlike eager-no-opt-B with lazy solvers for piand and pow2." << endl;
-        cout << "\t\t--lazyB\t\t\tlike eagerB with lazy solvers for piand and pow2." << endl;
-        cout << "\t\t--simp\t\t\tlike eagerB but not solved the formula just use cvc5 simplify." << endl;
+        cout << "\t\t--baseline\t\tOur implementation for cade19 approach." << endl;
+        cout << "\t\t--pbv-no-rw\t\tLike PBV but without PBV formula rewriting." << endl;
+        cout << "\t\t--pbv\t\t\tOur best solver with all improvements from the paper." << endl;
+
+        cout << endl;
+        cout << "\tconfigurations from appendix:" << endl;
+        cout << "\t\t--pow2++\t\tLike baseline with new lemmas for pow2." << endl;
+        cout << "\t\t--piand++\t\tLike baseline with new lemmas for piand." << endl;
+        cout << "\t\t--pow2-l\t\tLike baseline with lazy solver for pow2." << endl;
+        cout << "\t\t--piand-l\t\tLike baseline with lazy solver for piand." << endl;
+        cout << "\t\t--or-e\t\t\tLike baseline with elimination for bvor operation." << endl;
+        cout << "\t\t--xor-e\t\t\tLike baseline with elimination for bvxor operation." << endl;
+        cout << "\t\t--sh-m-e\t\tLike baseline with elimination of mod in bvshl operation." << endl;
+        cout << "\t\t--all-e\t\t\tLike baseline with elimination of bvor, bvxor and mod in bvshl." << endl;
+        cout << "\t\t--eager-no-rw-no-opt\tLike Eager but without redundant mod optimization and without PBV formula rewriting." << endl;
+        cout << "\t\t--eager-no-rw\t\tLike Eager but without PBV formula rewriting." << endl;
+        cout << "\t\t--eager-no-opt\t\tLike Eager but without redundant mod optimization." << endl;
+        cout << "\t\t--eager\t\t\tLike PBV but solves piand and pow2 eagerly." << endl;
+        cout << "\t\t--pbv-no-rw-no-opt\tLike PBV but without redundant mod optimization and without PBV formula rewriting." << endl;
+        cout << "\t\t--pbv-no-opt\t\tLike PBV but without redundant mod optimization." << endl;
+        cout << "\t\t--simp\t\t\tLike PBV but not solved the formula just use cvc5 simplify." << endl;
         
 
         cout << endl;
         cout << "\tpbvsolver solver:" << endl;
-        cout << "\t\t--pbvsolver\t\tuse default piand PBVSolver." << endl;
-        cout << "\t\t-c / --combine\t\tuse eager piand approach PBVSolver with combaine (default)." << endl;
-        cout << "\t\t-f / --full\t\tuse eager piand approach PBVSolver with full." << endl;
-        cout << "\t\t-p / --partial\t\tuse eager piand approach PBVSolver with partial." << endl;
-        cout << "\t\t-t19 / --cade19-translate\t\tuse  PBVSolver with cade19 translation." << endl;
-        cout << "\t\t-m / --maxint\t\tnon pure piand solver, upper bound of bit-width 67108864." << endl;
+        cout << "\t\t--pbvsolver\t\tUse default piand PBVSolver." << endl;
+        cout << "\t\t-c / --combine\t\tUse eager piand approach PBVSolver with combaine (default)." << endl;
+        cout << "\t\t-f / --full\t\tUse eager piand approach PBVSolver with full." << endl;
+        cout << "\t\t-p / --partial\t\tUse eager piand approach PBVSolver with partial." << endl;
+        cout << "\t\t-t19 / --cade19-translate\tUse  PBVSolver with cade19 translation." << endl;
+        cout << "\t\t-m / --maxint\t\tNon pure piand solver, upper bound of bit-width 67108864." << endl;
         
 
         
@@ -384,7 +387,7 @@ void parse_args(int argc, char** argv) {
         pbv_args["lemmas_piand"] = 0;
         pbv_args["lemmas_pow2"] = 0;
         pbv_args["one_k"] = 0;
-      } else if (!(*i).compare("--eager-no-opt")) { 
+      } else if (!(*i).compare("--eager-no-rw-no-opt")) { 
         pbv_args["pbvsolver"] = 5;
         pbv_args["postwalk"] = 0;
         pbv_args["rewrite"] = 0;
@@ -398,7 +401,7 @@ void parse_args(int argc, char** argv) {
         pbv_args["lemmas_piand"] = 1;
         pbv_args["lemmas_pow2"] = 2;
         pbv_args["one_k"] = 0;
-      } else if (!(*i).compare("--eager")) { 
+      } else if (!(*i).compare("--eager-no-rw")) { 
         pbv_args["pbvsolver"] = 5;
         pbv_args["postwalk"] = 1;
         pbv_args["rewrite"] = 0;
@@ -412,7 +415,7 @@ void parse_args(int argc, char** argv) {
         pbv_args["lemmas_piand"] = 1;
         pbv_args["lemmas_pow2"] = 2;
         pbv_args["one_k"] = 0;
-      } else if (!(*i).compare("--eager-no-opt-B")) {
+      } else if (!(*i).compare("--eager-no-opt")) {
         pbv_args["pbvsolver"] = 5; 
         pbv_args["postwalk"] = 0;
         pbv_args["rewrite"] = 1;
@@ -426,7 +429,7 @@ void parse_args(int argc, char** argv) {
         pbv_args["lemmas_piand"] = 1;
         pbv_args["lemmas_pow2"] = 2;
         pbv_args["one_k"] = 0;
-      } else if (!(*i).compare("--eagerB")) { 
+      } else if (!(*i).compare("--eager")) { 
         pbv_args["pbvsolver"] = 5;
         pbv_args["postwalk"] = 1;
         pbv_args["rewrite"] = 1;
@@ -440,7 +443,7 @@ void parse_args(int argc, char** argv) {
         pbv_args["lemmas_piand"] = 1;
         pbv_args["lemmas_pow2"] = 2;
         pbv_args["one_k"] = 0;
-      } else if (!(*i).compare("--lazy-no-opt")) { 
+      } else if (!(*i).compare("--pbv-no-rw-no-opt")) { 
         pbv_args["postwalk"] = 0;
         pbv_args["rewrite"] = 0;
         pbv_args["eliminate_or"] = 1;
@@ -452,7 +455,7 @@ void parse_args(int argc, char** argv) {
         pbv_args["multiple_bitwidth"] = 1;
         pbv_args["lemmas_piand"] = 1;
         pbv_args["lemmas_pow2"] = 2;
-      } else if (!(*i).compare("--lazy")) { 
+      } else if (!(*i).compare("--pbv-no-rw")) { 
         pbv_args["postwalk"] = 1;
         pbv_args["rewrite"] = 0;
         pbv_args["eliminate_or"] = 1;
@@ -464,7 +467,7 @@ void parse_args(int argc, char** argv) {
         pbv_args["multiple_bitwidth"] = 1;
         pbv_args["lemmas_piand"] = 1;
         pbv_args["lemmas_pow2"] = 2;
-      } else if (!(*i).compare("--lazy-no-opt-B")) { 
+      } else if (!(*i).compare("--pbv-no-opt")) { 
         pbv_args["postwalk"] = 0;
         pbv_args["rewrite"] = 1;
         pbv_args["eliminate_or"] = 1;
@@ -476,7 +479,7 @@ void parse_args(int argc, char** argv) {
         pbv_args["multiple_bitwidth"] = 1;
         pbv_args["lemmas_piand"] = 1;
         pbv_args["lemmas_pow2"] = 2;
-      } else if (!(*i).compare("--lazyB")) { 
+      } else if (!(*i).compare("--pbv")) { 
         pbv_args["postwalk"] = 1;
         pbv_args["rewrite"] = 1;
         pbv_args["eliminate_or"] = 1;
@@ -764,7 +767,7 @@ int main(int argc, char** argv){
         break;
       default: break;
     }
-    cout << "    Multiple_bitwidth: " << (pbv_args["multiple_bitwidth"] ? "yes":"no") << endl;
+    cout << "    Multiple_bitwidth: \t" << (pbv_args["multiple_bitwidth"] ? "yes":"no") << endl;
     cout << "    Lazy pow: \t\t" << (pbv_args["lazy_pow"] ? "yes":"no") << endl;
     cout << "    Lazy piand: \t" << (pbv_args["lazy_piand"] ? "yes":"no") << endl;
     cout << "    Eliminate or: \t" << (pbv_args["eliminate_or"] ? "yes":"no") << endl;

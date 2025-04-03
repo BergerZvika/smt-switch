@@ -2586,7 +2586,7 @@ WalkerStepResult RewritePBVWalker::visit_term(Term & term) {
             return Walker_Continue;  
         }
       } else if (primop == BVUrem) {
-        // bvurem x 1 -> x
+        // bvurem x 1 -> 0
         if (translate_y == bvk_one) {
             save_in_cache(term, bvk_zero);
             return Walker_Continue;  
