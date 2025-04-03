@@ -12,6 +12,7 @@ main directory of the repository).
 ```
  cd smt-switch/pbv
  docker build -t pbvsolver .
+ docker run -it --rm pbvsolver
  ./pbvsolver <path to smt2 file>
 ```
 For an example, you can run:
