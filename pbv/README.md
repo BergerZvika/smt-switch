@@ -10,6 +10,8 @@ to which this README.md file belongs (directory `pbv` under the
 main directory of the repository).
 
 ```
+ git clone https://github.com/BergerZvika/smt-switch.git
+ cd smt-switch/pbv
  docker build -t pbvsolver-binary .
  docker run -it --rm pbvsolver-binary
  ./pbvsolver <path to smt2 file>
