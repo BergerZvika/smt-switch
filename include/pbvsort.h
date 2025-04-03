@@ -24,7 +24,6 @@ class PBVSort : public AbsSort
   // throw not implemented exception
   // for specific getters (will be
   // implemented by a subclass)
-  
     
   uint64_t get_width() const override
   {

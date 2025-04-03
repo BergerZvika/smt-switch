@@ -180,8 +180,7 @@ namespace smt {
     }
 
     Term AbstractPBVSolver::get_value(const std::string & name) const {
-        // Term val = wrapped_solver->make_ter
-        // return wrapped_solver->get_value(val);
+        return wrapped_solver->get_value(val);
     }
 
     UnorderedTermMap AbstractPBVSolver::get_array_values(const Term & arr,
@@ -2248,7 +2247,6 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
         }
         if (!query_cache(term, k) && term->to_string() != bit_width->to_string()) {
             try {
-                // solver_->make_symbol(term->to_string() ,intsort);
                 if (term->is_param()) {
                     k = solver_->make_param("_pbv_" + term->to_string() ,intsort);
                 } else if(term->is_symbol()) {
@@ -2301,29 +2299,6 @@ WalkerStepResult AbstractPBVWalker::visit_term(Term & term) {
   }
 return Walker_Continue;
 }
-
-// bool RewritePBVWalker::eliminateDiv(Term x, Term y, Term zero) {
-//     Op op = y->get_op();
-//     PrimOp primop_y = op.prim_op;
-//     if (primop_y == BVUdiv) {
-//         auto it_y = y->begin();
-//         Term left = *it_y;
-//         it_y++;
-//         Term right = *it_y;
-//         Term translate_left, translate_right;
-//         if(!query_cache(left, translate_left)){
-//             translate_left = left;
-//         }
-//         if(!query_cache(right, translate_right)){
-//             translate_right = right;
-//         }
-
-//         if (translate_left == zero && x == translate_right) {
-//             return true;
-//         }
-//     }
-//     return false;
-// }
 
 // RewritePBVWalker
 WalkerStepResult RewritePBVWalker::visit_term(Term & term) {
@@ -2515,41 +2490,6 @@ WalkerStepResult RewritePBVWalker::visit_term(Term & term) {
             save_in_cache(term, std::make_shared<PBVTerm>(BVAdd, TermVec{translate_y, translate_x}));
             return Walker_Continue;  
         }
-        // (bvadd (bvmul x1 y) (bvmul x2 y)) -> (bvmul (bvadd x1 x2) y)
-        // (bvadd (bvmul y x1) (bvmul y x2)) -> (bvmul y (bvadd x1 x2))
-        // if (!op_x.is_null() && op_x.prim_op == BVMul && !op_y.is_null() && op_y.prim_op == BVMul) {
-        //     auto x_it = x->begin();
-        //     Term x_left = *x_it;
-        //     Term translate_x_left;
-        //     if(!query_cache(x_left, translate_x_left)){
-        //         translate_x_left = x_left;
-        //     }
-        //     Term x_right = *(++x_it);
-        //     Term translate_x_right;
-        //     if(!query_cache(x_right, translate_x_right)) {
-        //         translate_x_right = x_right;
-        //     }
-        //     auto y_it = translate_y->begin();
-        //     Term y_left = *y_it;
-        //     Term translate_y_left;
-        //     if(!query_cache(y_left, translate_y_left)){
-        //         translate_y_left = y_left;
-        //     }
-        //     Term y_right = *(++y_it);
-        //     Term translate_y_right;
-        //     if(!query_cache(y_right, translate_y_right)){
-        //         translate_y_right = y_right;
-        //     }
-        //     if (x_left == y_left) {
-        //         Term add_term = std::make_shared<PBVTerm>(BVAdd, TermVec{x_right, y_right});
-        //         save_in_cache(term, std::make_shared<PBVTerm>(BVMul, TermVec{x_left, add_term}));
-        //         return Walker_Continue;
-        //     } else if (x_right == y_right) {
-        //         Term add_term = std::make_shared<PBVTerm>(BVAdd, TermVec{x_left, y_left});
-        //         save_in_cache(term, std::make_shared<PBVTerm>(BVMul, TermVec{x_right, add_term}));
-        //         return Walker_Continue;
-        //     }
-        // }
       } else if (primop == BVMul) {
         // (bvmul x 1) -> x
          if (translate_x == bvk_one) {
@@ -2575,11 +2515,6 @@ WalkerStepResult RewritePBVWalker::visit_term(Term & term) {
             save_in_cache(term, bvk_max);
             return Walker_Continue;  
         }
-        // bvudiv 0 y -> 0
-        // if (translate_x == bvk_zero) {
-        //     save_in_cache(term, bvk_zero);
-        //     return Walker_Continue;  
-        // }
         // bvudiv x 1 -> x
         if (translate_y == bvk_one) {
             save_in_cache(term, translate_x);
@@ -2706,11 +2641,6 @@ WalkerStepResult RewritePBVWalker::visit_term(Term & term) {
                 save_in_cache(term, translate_y);
                 return Walker_Continue; 
             }
-            // bvxor x (bvnot 0) -> bvnot x
-            // if (translate_y == bvk_max) {
-            //     save_in_cache(term, std::make_shared<PBVTerm>(BVNot, TermVec{translate_x}));
-            //     return Walker_Continue; 
-            // }
             if (translate_x == bvk_max) {
                 save_in_cache(term, std::make_shared<PBVTerm>(BVNot, TermVec{translate_y}));
                 return Walker_Continue; 
@@ -2856,11 +2786,6 @@ WalkerStepResult RewritePBVWalker::visit_term(Term & term) {
             save_in_cache(term, bvk_zero);
             return Walker_Continue;  
         }
-        // bvshl (x (bvudix 0 x)) -> 0
-        // if (this->eliminateDiv(translate_x, translate_y, bvk_zero)) {
-        //     save_in_cache(term, translate_x);
-        //     return Walker_Continue;  
-        // }
       } else if (primop == BVLshr) {
         // (bvlshr x 0) -> x
         if (translate_y == bvk_zero) {
@@ -2877,11 +2802,6 @@ WalkerStepResult RewritePBVWalker::visit_term(Term & term) {
             save_in_cache(term, bvk_zero);
             return Walker_Continue;  
         }
-        // bvlshr (x (bvudix 0 x)) -> 0
-        // if (this->eliminateDiv(translate_x, translate_y, bvk_zero)) {
-        //     save_in_cache(term, translate_x);
-        //     return Walker_Continue;  
-        // }
       } else if (primop == BVAshr) {
         // (bvAshr x 0) -> X
         if (translate_y == bvk_zero) {
@@ -2898,11 +2818,6 @@ WalkerStepResult RewritePBVWalker::visit_term(Term & term) {
             save_in_cache(term, bvk_zero);
             return Walker_Continue;  
         }
-        // bvAshr (x (bvudix 0 x)) -> 0
-        // if (this->eliminateDiv(translate_x, translate_y, bvk_zero)) {
-        //     save_in_cache(term, translate_x);
-        //     return Walker_Continue;  
-        // }
       } else if (primop == Equal) {
         // (= x x) -> true
         if (translate_x == translate_y) {
@@ -3354,7 +3269,6 @@ WalkerStepResult PBVConstantWalker::visit_term(Term & term) {
       Term c;
       for (auto t : term)
       {
-        // TODO: see if we can pass the same term as both arguments
         c = t;
         query_cache(t, c);
         cached_children.push_back(c);
@@ -3419,7 +3333,6 @@ WalkerStepResult PBVParametricWalker::visit_term(Term & term) {
       Term c, third, four;
       for (auto t : term)
       {
-        // TODO: see if we can pass the same term as both arguments
         c = t;
         query_cache(t, c);
         cached_children.push_back(c);

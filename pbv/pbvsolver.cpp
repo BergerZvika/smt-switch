@@ -123,15 +123,10 @@ void parse_args(int argc, char** argv) {
         cout << endl;
         cout << "\t-h / --help\t\t\tPrint help command line arrgument on screen." << endl;
         cout << "\t-d / --debug\t\t\tPrint to screen debug meeseges at runtime." << endl;
-        // cout << "\t-t / --type-check\ttype checking before solving formula." << endl;
         cout << "\t--trans\t\t\t\tCreate smt2 file of the translation." << endl;
         cout << "\t--cvc5:{args}\t\t\tSend arguments to cvc5 solver. for example --cvc5:nl-cov or --cvc5:mbqi=fmc." << endl;
         cout << "\t\t\t\t\tyou can also send a list of arguments at once --cvc5:\"nl-cov mbqi\"." << endl;
-        
-        // cout << "\t-s / --simplify\t\tuse default simplify with bit-width 64." << endl;
-        // cout << "\t-fs / --false-simplify\t\tuse simplify when simplify get false or true." << endl;
-        // cout << "\t--simplify={num}\t\tuse simplify with bit-width num." << endl;
-        // cout << "\t--produce-model\t\tuse produce model solver." << endl;
+       
         cout << endl;
         cout << "\tpiand solver:" << endl;
         cout << "\t\t--cegar\t\t\tPut all piand lemmas in cegar loop." << endl;
@@ -700,12 +695,6 @@ int main(int argc, char** argv){
     }
   }
 
-  // if(get_value) {
-  //   s->set_opt("produce-model", "true");
-  // }
-  // if(get_model) {
-  //   s->set_opt("produce-model", "true");
-  // }
   //piand mode options
   if (piand_mode == 1) {
     s->set_opt("piand-mode", "piand");
@@ -737,8 +726,6 @@ int main(int argc, char** argv){
 
   // type checker
   if (pbv_args["type_check"]) {
-    // zero signifies the absence of debugging
-    // type_checker = std::make_shared<PBVSolver>(Cvc5SolverFactory::create(false), 0, pbv_args["pbvsolver"], pbv_args["postwalk"], pbv_args["type_check"], pbv_args["translate_smt"], pbv_args["bvsub"], pbv_args["simplify"], pbv_args["rewrite"]);
     SmtSolver cvc5_type_check = Cvc5SolverFactory::create(false);
     type_checker = std::make_shared<PBVSolver>(cvc5_type_check, pbv_args);
 

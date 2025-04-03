@@ -12,8 +12,6 @@ PBVTerm::PBVTerm(Sort s1, TermVec t) : s(s1), children(t) {
     op = Op();
     for (auto term : t)
     {
-      // auto it = term->begin();
-      // repr = (*it)->to_string();
       repr = term->to_string();
       break;
     }
@@ -28,8 +26,6 @@ PBVTerm::PBVTerm(Term t) {
   op = Op();
   for (auto term : t)
     {
-      // auto it = term->begin();
-      // repr = (*it)->to_string();
       repr = term->to_string();
       break;
   }
@@ -112,13 +108,11 @@ std::size_t PBVTerm::get_id() const { return id_; }
 
 bool PBVTerm::compare(const Term & t) const
 {
-  // TODO: not efficient.
   if (!t)
   {
     // The null term is different than any constructed term.
     return false;
   }
-  // cout << "repr:" + repr << endl << "t->to_string(): " + t->to_string() << endl;
   return repr == t->to_string();
 }
 
@@ -137,7 +131,6 @@ string PBVTerm::compute_string() const
   {
     return repr;
   }
-  // Assert(!op.is_null());
     string result = "(";
     result += op.to_string();
     for (auto c : children)
