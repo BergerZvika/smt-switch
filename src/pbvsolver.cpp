@@ -180,7 +180,8 @@ namespace smt {
     }
 
     Term AbstractPBVSolver::get_value(const std::string & name) const {
-        return wrapped_solver->get_value(val);
+        // Term val = wrapped_solver->make_ter
+        // return wrapped_solver->get_value(val);
     }
 
     UnorderedTermMap AbstractPBVSolver::get_array_values(const Term & arr,
