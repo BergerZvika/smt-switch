@@ -26,13 +26,20 @@ $ ./pbvsolver <path to smt2 file>
 For an example, you can run:  ./pbvsolver ../benchmarks/validation/test-pbvmul-unsat.smt2
 
 ## Install Pbv-Solver by Dockerfile
+
+
 ```
-$ wget 'https://raw.githubusercontent.com/BergerZvika/smt-switch/pbv-master/pbv/Dockerfile' -O Dockerfile
+$ cd smt-switch/pbv
 $ docker build -t pbvsolver .
 $ docker run pbvsolver <path to smt2 file>
 ```
 For an example, you can run:  docker run pbvsolver ../benchmarks/validation/test-pbvmul-unsat.smt2
 
+ **Note** You can download the Dockerfile without download smt-switch using the following command:
+
+ ```
+wget 'https://raw.githubusercontent.com/BergerZvika/smt-switch/pbv-master/pbv/Dockerfile' -O Dockerfile
+```
 # Architecture Overview
 
 There are three abstract classes:
