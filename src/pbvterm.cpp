@@ -102,19 +102,21 @@ Op PBVTerm::get_op() const {
 
 bool PBVTerm::is_symbol() const { return is_sym; }
 bool PBVTerm::is_param() const { return op.is_null() && is_par; }
-size_t PBVTerm::hash() const { return str_hash(compute_string()); }
+size_t PBVTerm::hash() const {
+    return str_hash(compute_string() + "::" + s->to_string());
+  }
 std::size_t PBVTerm::get_id() const { return id_; }
 
-
 bool PBVTerm::compare(const Term & t) const
-{
-  if (!t)
   {
-    // The null term is different than any constructed term.
-    return false;
+    if (!t)
+    {
+      // The null term is different than any constructed term.
+      return false;
+    }
+    if (repr != t->to_string()) return false;
+    return s->to_string() == t->get_sort()->to_string();
   }
-  return repr == t->to_string();
-}
 
 string PBVTerm::to_string()
 {
