@@ -39,3 +39,20 @@ For an example, you can run:
 ```
 ./pbvsolver ../benchmarks/validation/test-pbvmul-unsat.smt2
   ```
+
+## Input Logics
+pbvsolver reads two encodings of parametric bit-vector formulas:
+
+* `(set-logic ALL)`: bit-vector sorts carry their width term, e.g.
+  `(declare-const k Int) (declare-const x (_ BitVec k))`.
+* `(set-logic PBV)`: the width-free sort `PBitVec`, the `pbv*` operators,
+  `pconcat`, `(pextract t hi lo)` and `(pbvsize t)`.
+
+A PBV-logic file is first rewritten into the ALL encoding (`pbv_parser.cpp`):
+the width of every `PBitVec` is inferred from the terms that must have equal
+width, and widths that nothing fixes become fresh Int constants `k`, `k1`, ...
+Both encodings then go through the same translation to integers. To see the
+ALL encoding of a PBV-logic file, run:
+```
+./pbvsolver --pbv-to-all <path to smt2 file>
+```

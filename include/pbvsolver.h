@@ -376,7 +376,7 @@ class AbstractPBVSolver : public AbsSmtSolver
     Term simplify(const Term& t) override;
     int check_simplify(const Term& t);
     Term substitute(const Term term,
-                  const UnorderedTermMap & substitution_map);
+                  const UnorderedTermMap & substitution_map) const override;
     void initialK();
 };
 

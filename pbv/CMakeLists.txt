@@ -23,7 +23,7 @@ file(GLOB headers "../build/install/include/smt-switch/*.h" "../tests/*.h")
 # Add the directory containing libsmt-switch.a and libsmt-switch-cvc5.a to the project
 link_directories("${PROJECT_SOURCE_DIR}/../build/install/lib")
 
-add_executable(pbvsolver pbvsolver.cpp ${headers})
+add_executable(pbvsolver pbvsolver.cpp pbv_parser.cpp ${headers})
 
 # Add the GMP include directories
 target_include_directories(pbvsolver PUBLIC ${GMP_INCLUDE_DIRS})

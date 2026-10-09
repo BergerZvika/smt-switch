@@ -9,6 +9,8 @@
 #include <cstdlib>
 #include <stdexcept>
 #include <map>
+#include <sstream>
+#include <unistd.h>
 
 #include "smt_defs.h"
 #include "cvc5_factory.h"
@@ -16,6 +18,7 @@
 #include "available_solvers.h"
 #include "smtlib_reader.h"
 #include "pbvsolver.h"
+#include "pbv_parser.h"
 
 using namespace smt;
 using namespace std;
@@ -62,6 +65,10 @@ int get_model = 0;
 std::list<string> values;
 std::list<string> cvc5_args;
 string test = "";
+// file handed to the SMT-LIB reader: test itself, or its ALL encoding when
+// test is in the PBV logic
+string parse_file = "";
+int pbv_to_all = 0;
 
 void initializeMap() {
   pbv_args["debug"] = 0;
@@ -124,6 +131,7 @@ void parse_args(int argc, char** argv) {
         cout << "\t-h / --help\t\t\tPrint help command line arrgument on screen." << endl;
         cout << "\t-d / --debug\t\t\tPrint to screen debug meeseges at runtime." << endl;
         cout << "\t--trans\t\t\t\tCreate smt2 file of the translation." << endl;
+        cout << "\t--pbv-to-all\t\t\tPrint the ALL-logic encoding of a PBV-logic file." << endl;
         cout << "\t--cvc5:{args}\t\t\tSend arguments to cvc5 solver. for example --cvc5:nl-cov or --cvc5:mbqi=fmc." << endl;
         cout << "\t\t\t\t\tyou can also send a list of arguments at once --cvc5:\"nl-cov mbqi\"." << endl;
        
@@ -522,6 +530,8 @@ void parse_args(int argc, char** argv) {
         skolem_lemma = 1;
       } else if (!(*i).compare("--trans")) {
         pbv_args["translate_smt"] = 1;
+      } else if (!(*i).compare("--pbv-to-all")) {
+        pbv_to_all = 1;
       } else if (!(*i).compare("-t") ||  !(*i).compare("--type-check")) {
         pbv_args["type_check"] = 1;
       } else if (!(*i).compare("-r") ||  !(*i).compare("--no-rewrite")) {
@@ -563,9 +573,9 @@ void create_translate_smt() {
 
 
     // read the origion file
-    std::ifstream origion(test);
+    std::ifstream origion(parse_file);
     if (!origion) {
-        throw std::runtime_error("Unable to open the file: " + test);
+        throw std::runtime_error("Unable to open the file: " + parse_file);
     }
     int assert = 0;
     bool isfun = false;
@@ -633,6 +643,12 @@ void create_translate_smt() {
 
 
 
+void remove_parse_file() {
+  if (parse_file != test) {
+    std::remove(parse_file.c_str());
+  }
+}
+
 int main(int argc, char** argv){
   initializeMap();
   // parse arguments
@@ -646,6 +662,36 @@ int main(int argc, char** argv){
   }
   if (pbv_args["debug"]) {
     cout << "test path: " << test << endl;
+  }
+
+  // PBV logic: translate to the ALL encoding, which the reader parses
+  parse_file = test;
+  if (pbv::is_pbv_logic_file(test)) {
+    try {
+      if (pbv_to_all) {
+        std::ifstream in(test);
+        std::stringstream ss;
+        ss << in.rdbuf();
+        cout << pbv::pbv_to_all(ss.str());
+        return 0;
+      }
+      char tmpl[] = "/tmp/pbvsolver_XXXXXX.smt2";
+      int fd = mkstemps(tmpl, 5);
+      if (fd < 0) {
+        throw std::runtime_error("Unable to create a temporary file");
+      }
+      close(fd);
+      parse_file = tmpl;
+      pbv::pbv_file_to_all(test, parse_file);
+    } catch (const std::runtime_error & e) {
+      cerr << "PBV logic: " << e.what() << endl;
+      remove_parse_file();
+      cout << "unknown" << endl;
+      return 0;
+    }
+  } else if (pbv_to_all) {
+    cout << "Not a PBV-logic file: " << test << endl;
+    return 0;
   }
 
   // create pbvsolver
@@ -730,7 +776,7 @@ int main(int argc, char** argv){
     type_checker = std::make_shared<PBVSolver>(cvc5_type_check, pbv_args);
 
     SmtLibReaderTester* type_reader = new SmtLibReaderTester(type_checker);
-    type_reader->parse(test);
+    type_reader->parse(parse_file);
     auto type_results = type_reader->get_results();
     if (type_results[0].is_unsat()) {
         throw std::runtime_error("Type Checker Error!");
@@ -771,11 +817,13 @@ int main(int argc, char** argv){
 
   try {
     SmtLibReaderTester* reader = new SmtLibReaderTester(s);
-    reader->parse(test);
+    reader->parse(parse_file);
     if (pbv_args["translate_smt"]) {
       create_translate_smt();
+      remove_parse_file();
       return 1;
     } else if(pbv_args["simplify"] == 0) {
+      remove_parse_file();
       return 1;
     }
     auto results = reader->get_results();
@@ -783,5 +831,6 @@ int main(int argc, char** argv){
   } catch (...) {
       cout << "unknown" << endl;
   } 
+  remove_parse_file();
   return 0;
-}
+}

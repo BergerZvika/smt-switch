@@ -390,8 +390,17 @@ bvconst:
    }
    | indprefix PBV term_s_expr RP
    {
-    smt::Sort bvsort = drv.solver()->make_sort(smt::BV, $3);
-     $$ = drv.solver()->make_term($2, bvsort, 0);
+     // (_ bvX w) with a symbol X stands for (int_to_pbv w X)
+     smt::Term val = drv.lookup_symbol($2);
+     if (val)
+     {
+       $$ = drv.solver()->make_term(smt::Int_To_PBV, smt::TermVec{ $3, val });
+     }
+     else
+     {
+       smt::Sort bvsort = drv.solver()->make_sort(smt::BV, $3);
+       $$ = drv.solver()->make_term($2, bvsort, 0);
+     }
    }
 ;
 

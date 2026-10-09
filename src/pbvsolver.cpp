@@ -171,7 +171,8 @@ namespace smt {
             if (terms[1]->to_string() == "1" || terms[1]->to_string() == "0" || terms[1]->to_string() == terms[0]->to_string()) {
                 return pbvterm;
             }
-            return this->walker->solver_->make_term(Mod, pbvterm, pow2);
+            // pbvterm is not a term of the wrapped solver: keep the mod a PBVTerm
+            return std::make_shared<PBVTerm>(pbv_sort, Op(Mod), TermVec{pbvterm, pow2});
         }
         return wrapped_solver->make_term(op, terms);
     }
@@ -302,8 +303,38 @@ namespace smt {
         return wrapped_solver->make_term(op, t0, t1);
     }
 
-Term AbstractPBVSolver::substitute(const Term term, const UnorderedTermMap & substitution_map) {
-     return wrapped_solver->substitute(term, substitution_map);
+// Same as AbsSmtSolver::substitute (used to apply define-funs), except for
+// the terms built by int_to_pbv: a PBVTerm with no operator whose child is the
+// value. Rebuilding it from its operator fails, so rebuild it from its sort.
+Term AbstractPBVSolver::substitute(const Term term, const UnorderedTermMap & substitution_map) const {
+    UnorderedTermMap cache(substitution_map);
+    TermVec to_visit{ term };
+    TermVec cached_children;
+    Term t;
+    while (to_visit.size()) {
+        t = to_visit.back();
+        to_visit.pop_back();
+        if (cache.find(t) == cache.end()) {
+            cache[t] = t;
+            to_visit.push_back(t);
+            for (auto c : t) {
+                to_visit.push_back(c);
+            }
+        } else {
+            cached_children.clear();
+            for (auto c : t) {
+                cached_children.push_back(cache.at(c));
+            }
+            if (cached_children.size() && !t->is_value()) {
+                if (t->is_pbvterm() && t->get_op().is_null()) {
+                    cache[t] = make_term(t->get_sort(), cached_children[0]);
+                } else {
+                    cache[t] = make_term(t->get_op(), cached_children);
+                }
+            }
+        }
+    }
+    return cache.at(term);
 }
 
 int AbstractPBVSolver::check_simplify(const Term& t) {
@@ -3115,10 +3146,14 @@ WalkerStepResult PostPBVWalker::visit_term(Term & term) {
         auto it = term->begin();
         Term translate_x, translate_y;
         Term x = (*it);
-        query_cache(x, translate_x);
+        if (!query_cache(x, translate_x)) {
+            translate_x = x;
+        }
         it++;
         Term y = (*it);
-        query_cache(y, translate_y);
+        if (!query_cache(y, translate_y)) {
+            translate_y = y;
+        }
         if ((translate_x->to_string()).substr(1, 3) != "div" && (translate_x->to_string()).substr(1, 2) != "^") {
             Op x_op = translate_x->get_op();
             PrimOp x_primop = x_op.prim_op;
