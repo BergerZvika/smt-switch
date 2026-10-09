@@ -12,7 +12,7 @@ apt-get update && apt-get install -y \
   libgmp-dev \
   clang \
   curl \
-  bison \ 
+  bison \
   flex \
   g++ \
   gcc \
